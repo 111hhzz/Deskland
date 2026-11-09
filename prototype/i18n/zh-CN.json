@@ -114,6 +114,7 @@
     "trayReload": "重新载入",
     "trayAutostart": "开机自动启动",
     "trayExit": "退出（恢复原壁纸）",
+    "trayClickThrough": "鼠标穿透（让出点击）",
     "welcomeTitle": "Deskland 已在运行",
     "welcomeBody": "点击右下角托盘里的海边图标{hotkey}打开菜单。\n找不到图标时，点任务栏右侧的 ^ 展开。",
     "welcomeHotkey": "，或按 Ctrl+Alt+H，",

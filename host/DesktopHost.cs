@@ -318,7 +318,7 @@ class HostContext : ApplicationContext
 
     readonly string pageDir;
     readonly NotifyIcon tray;
-    readonly MenuItem pauseItem, autoStartItem, settingsItem, reloadItem, exitItem;
+    readonly MenuItem pauseItem, autoStartItem, settingsItem, reloadItem, exitItem, clickThroughItem;
     readonly System.Windows.Forms.Timer watch;
     readonly EventWaitHandle exitEvent, menuEvent, settingsEvent;
     readonly HotkeyWindow hotkey = new HotkeyWindow();
@@ -355,6 +355,12 @@ class HostContext : ApplicationContext
         });
         autoStartItem = new MenuItem(I18n.T("trayAutostart"), delegate { SetAutoStart(!autoStartItem.Checked); });
         autoStartItem.Checked = IsAutoStart();
+        clickThroughItem = new MenuItem(I18n.T("trayClickThrough"), delegate
+        {
+            if (form != null) form.SetClickThrough(!clickThroughItem.Checked);
+            clickThroughItem.Checked = !clickThroughItem.Checked;
+        });
+        clickThroughItem.Checked = false;            // 默认不勾选：保持互动模式基线（WebView2 正常接收鼠标）
         if (autoStartItem.Checked && AutoStartValue() != "")
         {
             try
@@ -381,6 +387,7 @@ class HostContext : ApplicationContext
             pauseItem,
             reloadItem = new MenuItem(I18n.T("trayReload"), delegate { if (form != null) form.Reload(); }),
             autoStartItem,
+        clickThroughItem,
             new MenuItem("-"),
             exitItem = new MenuItem(I18n.T("trayExit"), delegate { Exit(); }),
         });
@@ -405,6 +412,7 @@ class HostContext : ApplicationContext
         reloadItem.Text = I18n.T("trayReload");
         autoStartItem.Text = I18n.T("trayAutostart");
         exitItem.Text = I18n.T("trayExit");
+        clickThroughItem.Text = I18n.T("trayClickThrough");
     }
 
     // ---------------------------------------------------------------- 设置窗口
@@ -1381,6 +1389,45 @@ class WallpaperForm : Form
         Log.Write(pause ? "暂停（有窗口最大化 / 全屏，或手动暂停）" + (pauseBy == "" ? "" : "，前台窗口类 " + pauseBy) : "继续播放");
     }
 
+    // ---------------------------------------------------------------- 鼠标穿透开关
+    /// <summary>
+    /// 切换鼠标穿透。语义是"完全让出鼠标事件"：开启后壁纸窗口连同其中的 WebView2 都不再接收
+    /// 任何鼠标事件，点击直接落到下层（桌面图标区由桌面消费、空白区由下层的窗口/桌面消费）。
+    /// 这不是用来"修复桌面不可点"的——默认（关）就是互动基线，页面照常接收点击；开启后页面交互也一并失效。
+    /// </summary>
+    public void SetClickThrough(bool on)
+    {
+        if (!IsHandleCreated) return;
+        int before = Native.GetWindowLong(Handle, Native.GWL_EXSTYLE);
+        Log.Write(string.Format("穿透开关：{0}，操作前 GWL_EXSTYLE=0x{1:X8}", on ? "开" : "关", before));
+        int ex = before;
+        if (on)
+        {
+            ex |= Native.WS_EX_LAYERED;            // 1) 确保分层样式存在（经典 WorkerW 模式原本没有）
+            ex |= Native.WS_EX_TRANSPARENT;        // 2) 叠加上层鼠标透明
+            Native.SetWindowLong(Handle, Native.GWL_EXSTYLE, ex);
+            // 3) 刷新扩展样式（FRAMEOWNED 的扩展样式变更需重设窗口位）
+            Native.SetWindowPos(Handle, IntPtr.Zero, 0, 0, 0, 0,
+                Native.SWP_NOMOVE | Native.SWP_NOSIZE | Native.SWP_NOACTIVATE | Native.SWP_FRAMECHANGED);
+            // 只枚举、只打印直接子窗口（含 WebView2 的承载窗口），不修改任何子窗口样式
+            Native.EnumChildWindows(Handle, delegate(IntPtr h, IntPtr l)
+            {
+                var sb = new StringBuilder(64);
+                Native.GetClassName(h, sb, 64);
+                int ce = Native.GetWindowLong(h, Native.GWL_EXSTYLE);
+                Log.Write(string.Format("  子窗口 {0}  class={1} GWL_EXSTYLE=0x{2:X8}", h, sb, ce));
+                return true;
+            }, IntPtr.Zero);
+        }
+        else
+        {
+            ex &= ~Native.WS_EX_TRANSPARENT;       // 只清 TRANSPARENT，保留 LAYERED 与 alpha 等其他位
+            Native.SetWindowLong(Handle, Native.GWL_EXSTYLE, ex);
+        }
+        int after = Native.GetWindowLong(Handle, Native.GWL_EXSTYLE);
+        Log.Write(string.Format("穿透开关：{0}，操作后 GWL_EXSTYLE=0x{1:X8}", on ? "开" : "关", after));
+    }
+
     // ---------------------------------------------------------------- 退出：拆掉窗口，让资源管理器重画原壁纸
     public void Shutdown()
     {
@@ -1534,7 +1581,7 @@ class DesktopIconLocator : IDisposable
 
 static class Native
 {
-    public const int GWL_STYLE = -16, GWL_EXSTYLE = -20, WS_EX_LAYERED = 0x00080000;
+    public const int GWL_STYLE = -16, GWL_EXSTYLE = -20, WS_EX_LAYERED = 0x00080000, WS_EX_TRANSPARENT = 0x00000020;
     public const uint LWA_ALPHA = 0x2, SWP_NOSIZE = 0x0001, SWP_NOMOVE = 0x0002;
     public const uint MOD_ALT = 0x1, MOD_CONTROL = 0x2, MOD_NOREPEAT = 0x4000;
     public const int SW_SHOW = 5, SW_RESTORE = 9;
@@ -1548,6 +1595,7 @@ static class Native
     public delegate void WinEventDelegate(IntPtr hook, uint ev, IntPtr hwnd, int idObject, int idChild, uint thread, uint time);
     [DllImport("user32.dll")] public static extern bool SetLayeredWindowAttributes(IntPtr h, uint key, byte alpha, uint flags);
     [DllImport("user32.dll")] public static extern IntPtr GetWindow(IntPtr h, uint cmd);
+    [DllImport("user32.dll")] public static extern bool EnumChildWindows(IntPtr parent, EnumWindowsProc cb, IntPtr lParam);
     [DllImport("user32.dll")] public static extern IntPtr SetWinEventHook(uint min, uint max, IntPtr mod, WinEventDelegate proc, uint pid, uint tid, uint flags);
     [DllImport("user32.dll")] public static extern bool UnhookWinEvent(IntPtr hook);
     public const int WS_CHILD = 0x40000000, WS_VISIBLE = 0x10000000, WS_POPUP = unchecked((int)0x80000000);

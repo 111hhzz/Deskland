@@ -114,6 +114,7 @@
     "trayReload": "Reload",
     "trayAutostart": "Start with Windows",
     "trayExit": "Exit (restore wallpaper)",
+    "trayClickThrough": "Mouse pass-through (yield clicks)",
     "welcomeTitle": "Deskland is running",
     "welcomeBody": "Click the beach icon in the system tray{hotkey} to open the menu.\nCan't see it? Click ^ on the right side of the taskbar.",
     "welcomeHotkey": " or press Ctrl+Alt+H",
