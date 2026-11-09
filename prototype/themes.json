@@ -196,10 +196,57 @@
       "id": "sky",
       "name": "天空",
       "desc": "卡通风的蓝天白云，图标坐在一团团圆鼓鼓的云上；可选白天、傍晚、晚上",
-      "status": "locked",
-      "locked": true,
+      "page": "sky.html",
+      "status": "ready",
+      "product": "free",
       "thumb": "url(thumbs/sky.webp?v=d706a0326d) center / cover no-repeat, radial-gradient(ellipse 30% 20% at 30% 40%, #fbfdff 55%, #c2ddf5 57%, #c2ddf5 75%, transparent 77%), radial-gradient(ellipse 24% 15% at 74% 68%, #fbfdff 55%, #c2ddf5 57%, #c2ddf5 75%, transparent 77%), linear-gradient(180deg, #3385cc 0%, #80bfe6 100%)",
-      "thumbSource": "custom"
+      "thumbSource": "custom",
+      "groups": [
+        {
+          "name": "云",
+          "params": [
+            {
+              "key": "sigma",
+              "label": "云团大小",
+              "hint": "图标所在的云从图标往外铺多远",
+              "min": 40,
+              "max": 200,
+              "step": 1,
+              "default": 72,
+              "unit": "px"
+            },
+            {
+              "key": "cover",
+              "label": "天上的云",
+              "hint": "飘在空中的云有多少",
+              "min": 0,
+              "max": 1,
+              "step": 0.01,
+              "default": 0.3,
+              "format": "percent"
+            },
+            {
+              "key": "flow",
+              "label": "流动速度",
+              "hint": "云飘多快、云团的鼓包变化多快",
+              "min": 0,
+              "max": 3,
+              "step": 0.05,
+              "default": 1,
+              "format": "times"
+            },
+            {
+              "key": "scheme",
+              "label": "时段",
+              "hint": "白天 / 傍晚 / 晚上",
+              "min": 0,
+              "max": 2,
+              "step": 1,
+              "default": 0
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "ocean",
