@@ -32,3 +32,25 @@
     if (m && m.t === 'ripple' && Number.isFinite(m.x) && Number.isFinite(m.y)) ripple(m.x, m.y);
   });
 })();
+
+// 主题切换淡入：新页面首帧准备好后，用 keyframe 动画在 250ms 内把 body 从透明淡入到不透明。
+// 淡入起点颜色 = 页面背景（html/body 的背景色，getComputedStyle 读取），避免白闪或颜色跳变；
+// 只覆盖"从空白到首帧可见"这一段，不叠加在 sky 的 2.6s morph 上。三个主题页共用此函数。
+(function desklandFadeIn() {
+  const bg = getComputedStyle(document.body).backgroundColor;
+  const style = document.createElement('style');
+  style.textContent = `
+    html { background: ${bg || '#1aa3c4'}; }
+    body { opacity: 0; }
+    body.deskland-ready { animation: desklandFadeIn 250ms ease-out forwards; }
+    @keyframes desklandFadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) { body.deskland-ready { animation: none; opacity: 1; } }
+  `;
+  document.head.appendChild(style);
+  // 双 rAF：等第一帧真正画完（着色器已输出首帧）再开始淡入。
+  // 结束后移除注入的 <style>（body 回到默认 opacity:1）与 class，不会反向淡出。
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.body.classList.add('deskland-ready');
+    setTimeout(() => { style.remove(); document.body.classList.remove('deskland-ready'); }, 300);
+  }));
+})();
