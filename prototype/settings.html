@@ -8,11 +8,10 @@
   Deskland 设置窗口
   - 由桌面宿主（host/Deskland.exe）在 WebView2 里打开；单独用浏览器打开时使用模拟数据，方便调界面
   - 主题与参数来自 themes.json，控件按清单自动生成
-  - 实时预览：iframe 加载主题页面的 ?preview=1 模式，用你桌面上真实的图标位置
+  - 主题预览：直接显示 thumbs-data.js 里的静态缩略图，不启动第二套 WebGL2 页面
   - 和宿主的消息（JSON 字符串）：
-      发出：hello / set {theme,key,value} / reset {theme} / theme {id} / autostart {v} / share / shareVideo / openShare / revealShare / updateProgram
-      收到：init {theme,params,screen,autostart,autostartWarn} / icons {vis,r} / autostart {v} / recProgress {p}
-            / shareResult {ok,kind?,thumb,path,url?,msg}（kind = 'video' 时 url 是能直接播放的视频地址）
+      发出：hello / set {theme,key,value} / reset {theme} / theme {id} / autostart {v} / updateProgram
+      收到：init {theme,params,screen,autostart,autostartWarn} / autostart {v}
             / updateState {version,status,progress,error}（商店版下载安装进度由宿主提供）
       autostartWarn：开机自启这次没跑起来（被安全软件拦了）时的提醒文字，空字符串 = 没问题；点"知道了"发 autostartWarnSeen
 -->
@@ -150,9 +149,8 @@
   .preview-head h2 { font-size: 28px; font-weight: 650; letter-spacing: -.04em; line-height: 1.2; }
   .stage { display: flex; justify-content: center; }
   .preview { position: relative; overflow: hidden; border-radius: 16px; background: var(--panel-2); }
-  .preview iframe { position: absolute; left: 0; top: 0; border: 0; transform-origin: 0 0; pointer-events: none; }
-  .preview-foot { margin-top: 12px; color: var(--muted); font-size: 10px; display: flex; align-items: center; gap: 6px; }
-  .live-dot { flex: none; width: 5px; height: 5px; border-radius: 50%; background: var(--text); }
+  .preview img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+  .preview-foot { margin-top: 12px; color: var(--muted); font-size: 10px; }
 
   .controls { flex: 1; min-height: 0; overflow-y: auto; border-top: 1px solid var(--line); padding-right: 4px; margin-right: -4px; }
   .controls::-webkit-scrollbar { width: 8px; }
@@ -196,27 +194,18 @@
   .chip { padding: 2px 9px; border-radius: 10px; border: 1px dashed var(--line); background: var(--panel-2); color: var(--muted); }
   .empty { padding: 40px 10px; text-align: center; color: var(--muted); }
 
-  /* ---------- 一键分享 ---------- */
-  .preview-actions { display: grid; grid-template-columns: minmax(0, .8fr) repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: 16px; }
-  .preview-actions .share { display: flex; min-width: 0; align-items: center; justify-content: center; gap: 5px; padding: 9px 5px; font-size: 11px; white-space: nowrap; }
-  #share { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-  #share:hover { opacity: .8; }
-  .modal video { display: block; width: 100%; border-radius: 8px; background: #000; box-shadow: inset 0 0 0 1px var(--line), var(--shadow); }
-  .modal video[hidden], .modal img[hidden] { display: none; }
-  .preview-actions .share svg { width: 14px; height: 14px; flex: none; }
-  .preview-actions .share span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }   /* 别的语言字长，放不下用省略号（按钮有完整的提示） */
-  :is(:lang(ru), :lang(es), :lang(pt), :lang(fr), :lang(de), :lang(ja), :lang(ko)) .preview-actions .share span { white-space: normal; overflow-wrap: anywhere; text-overflow: clip; }
+  /* ---------- 刷新画面种子 ---------- */
+  .preview-actions { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; margin-top: 16px; }
+  .preview-actions .refresh { display: flex; min-width: 0; align-items: center; justify-content: center; gap: 5px; padding: 9px 5px; font-size: 11px; white-space: nowrap; }
+  .preview-actions .refresh svg { width: 14px; height: 14px; flex: none; }
   :lang(ja) body { font-family: "Yu Gothic UI", "Meiryo", system-ui, sans-serif; }
   :lang(ko) body { font-family: "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif; word-break: keep-all; }
-  .preview-actions .share:disabled { opacity: .6; cursor: default; }
   .modal { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: rgba(0, 0, 0, .38); }
   .modal[hidden] { display: none; }
   .modal .box { width: 560px; max-width: calc(100vw - 48px); background: var(--bg); border-radius: 24px; padding: 24px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, .2); }
   .modal h3 { margin: 0 0 8px; font-size: 24px; font-weight: 650; letter-spacing: -.03em; }
   .modal .sub { margin: 0 0 12px; color: var(--muted); font-size: 12.5px; }
-  .modal img { display: block; width: 100%; border-radius: 8px; box-shadow: inset 0 0 0 1px var(--line), var(--shadow); }
-  .modal .path { margin: 10px 0 0; color: var(--faint); font-size: 11.5px; word-break: break-all; }
   .modal .actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; margin-top: 14px; }
   .modal .actions .primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
   .modal .actions .primary:hover { color: var(--accent-ink); opacity: .8; }
@@ -306,18 +295,12 @@
   <div class="side">
     <section class="card preview-card">
       <div class="preview-head"><h2 id="themeName">　</h2><label class="switch-row adaptive-switch" id="adaptiveRow" hidden><span data-i18n="adaptive">自适应</span><input type="checkbox" id="adaptive" role="switch" checked><i class="switch" aria-hidden="true"></i></label></div>
-      <div class="stage" id="stage"><div class="preview" id="previewBox"><iframe id="preview" data-i18n-title="livePreview" title="实时预览" tabindex="-1"></iframe></div></div>
-      <p class="preview-foot"><span class="live-dot"></span><span id="previewFoot">实时预览</span></p>
+      <div class="stage" id="stage"><div class="preview" id="previewBox"><img id="preview" data-i18n-title="themePreview" data-i18n-alt="themePreview" title="主题预览" alt="主题预览" decoding="async"></div></div>
+      <p class="preview-foot"><span id="previewFoot" data-i18n="themePreview">主题预览</span></p>
       <div class="preview-actions">
-        <button class="ghost-btn share" id="reseed" data-i18n-title="refreshTitle" title="重新生成这个主题的画面">
+        <button class="ghost-btn refresh" id="reseed" data-i18n-title="refreshTitle" title="重新生成这个主题的画面">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.2 8a5.2 5.2 0 1 1-1.6-3.75"/><path d="M13.4 2.6v3.2h-3.2"/></svg>
           <span data-i18n="refresh">刷新</span></button>
-        <button class="ghost-btn share" id="share" data-i18n-title="shareImageTitle" title="用保护隐私的方式分享你的桌面图片">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="10" rx="1.5"/><circle cx="6" cy="6.5" r="1.2"/><path d="m2.5 11.5 3.5-3 2.5 2 2-1.5 3 2.5"/></svg>
-          <span id="shareText">分享图片</span></button>
-        <button class="ghost-btn share" id="shareVideo" data-i18n-title="shareVideoTitle" title="用保护隐私的方式分享你的桌面动画">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.8" y="3.5" width="9" height="9" rx="1.5"/><path d="m10.8 6.6 3.4-2v6.8l-3.4-2"/></svg>
-          <span id="shareVideoText">分享动画</span></button>
       </div>
     </section>
     <section class="card controls" id="controls"></section>
@@ -333,22 +316,6 @@
     <div class="actions">
       <button class="ghost-btn" id="purchaseLater" data-i18n="purchaseLater">继续体验</button>
       <button class="ghost-btn primary" id="purchaseWebsite" data-i18n="purchaseWebsite">前往官网</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal" id="shareModal" hidden role="dialog" aria-modal="true" aria-labelledby="shareTitle">
-  <div class="box">
-    <h3 id="shareTitle">桌面图已经准备好了</h3>
-    <p class="sub" id="shareSub">图标换成了示例图标，文件名换成了色块，不会露出你的文件。图片已复制到剪贴板，可以直接粘贴到聊天、微博、小红书……</p>
-    <img id="shareImg" data-i18n-alt="sharePreviewAlt" alt="分享图预览">
-    <video id="shareVid" hidden autoplay loop muted playsinline controls></video>
-    <p class="path" id="sharePath"></p>
-    <div class="actions">
-      <button class="ghost-btn" id="shareReveal" data-i18n="openFolder">打开所在文件夹</button>
-      <button class="ghost-btn" id="shareOpen">打开图片</button>
-      <a class="ghost-btn" id="shareDownload" hidden download="Deskland.png">保存图片</a>
-      <button class="ghost-btn primary" id="shareClose" data-i18n="ok">好的</button>
     </div>
   </div>
 </div>
@@ -384,11 +351,10 @@
 const host = window.chrome && window.chrome.webview;
 const send = m => { if (host) host.postMessage(JSON.stringify(m)); };
 
-const state = { registry0: null, registry: null, theme: 'beach', params: {}, screen: null, icons: null,
+const state = { registry0: null, registry: null, theme: 'beach', params: {}, screen: null,
   langSetting: 'auto', langSys: 'zh-CN', autostartWarn: false, autostartSw: '',
   updateVersion: '', updateStatus: '', updateProgress: -1, updateError: '' };
 const $ = id => document.getElementById(id);
-const frame = $('preview');
 
 /* ---------- 界面语言：文字表在 i18n/<语言>.json（ui：界面文字；themes：主题名和参数——简体中文的就是 themes.json 本身） ---------- */
 // 增加语言时同步宿主 I18n.Supported 与体验版导出的语言列表。
@@ -463,7 +429,7 @@ async function setLang(code) {
 // 换了语言：界面上的字都重新填一遍（预览不用重新加载）
 function rerenderTexts() {
   if (!state.screen) return;
-  renderHead(); renderThemes(); renderControls(); updateFoot(); shareBusy(shareState); showAutostartWarn(); showUpdate(); updatePurchaseText();
+  renderHead(); renderThemes(); renderControls(); showAutostartWarn(); showUpdate(); updatePurchaseText();
 }
 $('lang').addEventListener('change', e => {
   state.langSetting = e.target.value;
@@ -524,19 +490,18 @@ $('themes').addEventListener('click', e => {
   if (b.dataset.id === state.theme) return;
   state.theme = b.dataset.id;
   send({ t: 'theme', id: state.theme });
-  if (seedOf(state.theme) === undefined) setSeed(newSeed(), false);   // 还没有种子：给一个，桌面和预览从一开始就是同一张
+  if (seedOf(state.theme) === undefined) setSeed(newSeed());   // 还没有种子：给一个，桌面从一开始就是同一张
   showTheme();
 });
 
-/* ---------- 刷新：换一张（新的种子，按主题存进设置；桌面和预览用同一个种子） ---------- */
+/* ---------- 刷新：换一张（新的种子，按主题存进设置） ---------- */
 const newSeed = () => Math.floor(Math.random() * 1e6);
 const seedOf = id => (state.params[id] || {}).seed;
-function setSeed(v, live) {
+function setSeed(v) {
   (state.params[state.theme] = state.params[state.theme] || {}).seed = v;
   send({ t: 'set', theme: state.theme, key: 'seed', value: v });
-  if (live) toPreview({ t: 'settings', v: { seed: v } });
 }
-$('reseed').addEventListener('click', () => setSeed(newSeed(), true));
+$('reseed').addEventListener('click', () => setSeed(newSeed()));
 
 /* ---------- 参数控件（按清单自动生成） ---------- */
 function renderControls() {
@@ -564,7 +529,7 @@ function renderControls() {
 function fill(inp) { inp.style.setProperty('--p', ((inp.value - inp.min) / (inp.max - inp.min) * 100) + '%'); }
 const paramOf = key => themeById(state.theme).groups.flatMap(g => g.params).find(x => x.key === key);
 
-// 改一个参数：更新界面，并排队发给宿主和预览（拖动时每帧最多发一次）
+// 改一个参数：更新界面，并排队发给宿主（拖动时每帧最多发一次）
 let pending = {}, scheduled = false;
 function setParam(key, v) {
   if (key === 'adaptive') {
@@ -603,7 +568,6 @@ function flush() {
   scheduled = false;
   const batch = pending; pending = {};
   for (const k in batch) send({ t: 'set', theme: state.theme, key: k, value: batch[k] });
-  toPreview({ t: 'settings', v: batch });
   flashSaved();
 }
 let savedT = 0;
@@ -656,8 +620,7 @@ $('updateProgram').addEventListener('click', () => {
   if (state.updateVersion) send({ t: 'updateProgram' });
 });
 
-/* ---------- 实时预览：iframe 按整块桌面的尺寸排版，再整体缩小 ---------- */
-const toPreview = m => { if (frame.contentWindow) frame.contentWindow.postMessage(JSON.stringify(m), '*'); };
+/* ---------- 静态主题预览：按屏幕比例排版，不加载主题页面 ---------- */
 function screenCss() {
   const k = window.devicePixelRatio || 1;
   return { w: Math.round(state.screen.w / k), h: Math.round(state.screen.h / k) };
@@ -670,21 +633,8 @@ function layoutPreview() {
   const k = Math.min(stage.width / s.w, maxHeight / s.h);
   $('previewBox').style.width = Math.floor(s.w * k) + 'px';
   $('previewBox').style.height = Math.floor(s.h * k) + 'px';
-  frame.style.width = s.w + 'px'; frame.style.height = s.h + 'px';
-  frame.style.transform = `scale(${k})`;
 }
 addEventListener('resize', layoutPreview);
-addEventListener('message', e => {
-  if (e.source !== frame.contentWindow) return;
-  const m = JSON.parse(e.data);
-  if (m.t === 'ready') {                 // 预览页面加载好了：先给设置，再给图标
-    toPreview({ t: 'settings', v: valuesOf(themeById(state.theme)) });
-    if (state.icons) toPreview(state.icons);
-  }
-});
-function updateFoot() {
-  $('previewFoot').textContent = t('livePreview');
-}
 
 function renderHead() {
   const th = themeById(state.theme);
@@ -697,68 +647,17 @@ function showTheme() {
   renderHead();
   renderThemes();
   renderControls();
-  updateFoot();
   layoutPreview();
-  frame.src = themeById(state.theme).page + '?preview=1';
+  const th = themeById(state.theme);
+  $('preview').style.background = th.thumb || '#ccc';
+  $('preview').src = thumbUrl(th.thumb, th.id);
 }
-
-/* ---------- 分享：宿主让壁纸页面画一张图 / 录一段动画（示例图标、名字是色块），保存、复制到剪贴板，再把预览发回来 ---------- */
-let shareState = null;
-function shareBusy(which) {                                  // which：null（空闲）/ 'image' / 'video'
-  shareState = which;
-  $('share').disabled = $('shareVideo').disabled = !!which;
-  $('shareText').textContent = t(which === 'image' ? 'generating' : 'shareImage');
-  $('shareVideoText').textContent = t(which === 'video' ? 'preparingRec' : 'shareVideo');
-}
-function shareProgress(p) { $('shareVideoText').textContent = p < 1 ? t('recording', { p: Math.round(p * 100) }) : t('savingVideo'); }
-function showShare(r) {
-  shareBusy(null);
-  if (!r.ok) { alert(t(r.kind === 'video' ? 'shareFailVideo' : 'shareFailImage', { msg: r.msg || t('unknownReason') })); return; }
-  const video = r.kind === 'video', inHost = !!host;
-  $('shareTitle').textContent = t(video ? 'shareReadyVideo' : 'shareReadyImage');
-  $('shareImg').hidden = video; $('shareVid').hidden = !video;
-  if (video) { $('shareVid').src = r.url; $('shareVid').poster = r.thumb || ''; } else { $('shareImg').src = r.thumb; $('shareVid').removeAttribute('src'); }
-  $('shareSub').textContent = t('sharePrivacy') +
-    (inHost ? t(video ? 'shareCopiedVideo' : 'shareCopiedImage') : t('shareBrowserHint', { btn: t(video ? 'saveVideo' : 'saveImage') }));
-  $('sharePath').textContent = r.path ? t('savedTo', { path: r.path }) : '';
-  $('shareOpen').textContent = t(video ? 'openVideo' : 'openImage');
-  $('shareReveal').hidden = $('shareOpen').hidden = !inHost;
-  $('shareDownload').hidden = inHost;
-  if (!inHost) {
-    $('shareDownload').href = r.full;
-    $('shareDownload').textContent = t(video ? 'saveVideo' : 'saveImage');
-    $('shareDownload').download = 'Deskland.' + (video ? (r.ext || 'mp4') : 'png');
-  }
-  $('shareModal').hidden = false;
-  $('shareClose').focus();
-}
-function closeShare() { $('shareModal').hidden = true; $('shareVid').pause(); }
-$('share').addEventListener('click', () => {
-  shareBusy('image');
-  if (host) { send({ t: 'share' }); return; }
-  setTimeout(() => {                                         // 没有宿主：直接让预览里的页面画一张（让按钮先显示"正在生成…"）
-    try {
-      const r = frame.contentWindow.desklandSnapshot();
-      showShare({ ok: true, thumb: r.thumb, full: r.canvas.toDataURL('image/png') });
-    } catch (e) { showShare({ ok: false, msg: e.message }); }
-  }, 30);
-});
-$('shareVideo').addEventListener('click', () => {
-  shareBusy('video');
-  if (host) { send({ t: 'shareVideo' }); return; }
-  frame.contentWindow.desklandRecord(shareProgress).then(r => {   // 没有宿主：让预览里的页面录一段
-    const url = URL.createObjectURL(r.blob);
-    showShare({ ok: true, kind: 'video', url, full: url, thumb: r.poster, ext: r.mime === 'video/webm' ? 'webm' : 'mp4' });
-  }, e => showShare({ ok: false, kind: 'video', msg: e.message }));
-});
 $('purchaseLater').addEventListener('click', closePurchase);
 $('purchaseModal').addEventListener('click', e => { if (e.target === $('purchaseModal')) closePurchase(); });
 $('purchaseWebsite').addEventListener('click', () => {
   if (host) send({ t: 'openWebsite' });
   else window.open('https://deskland.app/', '_blank', 'noopener');
 });
-$('shareClose').addEventListener('click', closeShare);
-$('shareModal').addEventListener('click', e => { if (e.target === $('shareModal')) closeShare(); });
 
 /* ---------- 使用帮助 ---------- */
 let helpReturnFocus = null;
@@ -777,9 +676,7 @@ $('helpCloseX').addEventListener('click', closeHelp);
 $('helpDone').addEventListener('click', closeHelp);
 $('helpModal').addEventListener('click', e => { if (e.target === $('helpModal')) closeHelp(); });
 
-addEventListener('keydown', e => { if (e.key === 'Escape') { closeShare(); closeHelp(); closePurchase(); } });
-$('shareOpen').addEventListener('click', () => send({ t: 'openShare' }));
-$('shareReveal').addEventListener('click', () => send({ t: 'revealShare' }));
+addEventListener('keydown', e => { if (e.key === 'Escape') { closeHelp(); closePurchase(); } });
 
 /* ---------- 和宿主通信 ---------- */
 function onHost(m) {
@@ -814,16 +711,8 @@ function onHost(m) {
     state.langSetting = m.v;
     state.langSys = m.sys || state.langSys;
     setLang(m.eff).then(rerenderTexts);
-  } else if (m.t === 'icons') {
-    state.icons = m;
-    toPreview(m);
-    updateFoot();
   } else if (m.t === 'autostart') {
     $('autostart').checked = !!m.v;
-  } else if (m.t === 'recProgress') {
-    shareProgress(m.p);
-  } else if (m.t === 'shareResult') {
-    showShare(m);
   }
 }
 
@@ -835,7 +724,6 @@ function mockHost() {
   for (const [c, row] of [[6, 0], [6, 1], [7, 3], [8, 3], [8, 4], [12, 1], [13, 1], [14, 1], [13, 2], [14, 2], [20, 0], [21, 0], [19, 5], [20, 5]]) cell(c, row);
   const bl = browserLang();
   onHost({ t: 'init', theme: 'beach', params: {}, screen: { w: W * k, h: H * k }, autostart: false, lang: 'auto', langEff: bl, langSys: bl });
-  onHost({ t: 'icons', vis: true, r });
   if (new URLSearchParams(location.search).has('updateDemo')) onHost({ t: 'updateState', version: '0.2.0', status: 'available', progress: -1 });
 }
 

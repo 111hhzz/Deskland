@@ -1,11 +1,12 @@
 // Deskland · 桌面宿主（原型）
 //
-// 做四件事：
+// 主要工作：
 //   1. 把一个无边框窗口挂到桌面图标下面（壁纸层），里面用 WebView2 显示当前主题的页面（如 prototype/flat.html?wallpaper=1）
-//   0. 设置窗口（prototype/settings.html）：选主题、调参数，实时同步到壁纸并保存到 settings.json；一键分享（壁纸页面画一张打好马赛克的桌面图）
+//   0. 设置窗口（prototype/settings.html）：静态缩略图预览、选主题、调参数，立即同步到壁纸并保存到 settings.json
 //   2. 每 400ms 读取桌面图标的真实位置（桌面 ListView 的跨进程消息），有变化才发给页面
 //   3. 前台窗口最大化 / 全屏时暂停动画；托盘图标可以暂停、重新载入、退出（退出后恢复原壁纸）
 //   4. 资源管理器重建壁纸层时（例如按 Win+D），我们的窗口会被连带销毁 → 自动重新挂载
+//   5. 只读观察桌面空白处左键，给壁纸页面发 {"t":"ripple","x":物理像素,"y":物理像素}；点击始终放行
 //
 // 用 Windows 自带的 .NET Framework 编译器编译（C# 5 语法），见 build.ps1。
 
@@ -323,6 +324,7 @@ class HostContext : ApplicationContext
     readonly EventWaitHandle exitEvent, menuEvent, settingsEvent;
     readonly HotkeyWindow hotkey = new HotkeyWindow();
     readonly Queue<DateTime> restarts = new Queue<DateTime>();
+    readonly DesktopClickHook clickHook;
     WallpaperForm form, dead;
     SettingsForm settingsWin;
     DateTime nextStart = DateTime.MaxValue, saveDue = DateTime.MaxValue;
@@ -395,6 +397,7 @@ class HostContext : ApplicationContext
         tray.DoubleClick += delegate { OpenSettings(); };   // 双击托盘图标：直接打开设置
         tray.Visible = true;
         ShowWelcomeOnce(hotkeyOk);
+        clickHook = new DesktopClickHook();
 
         watch = new System.Windows.Forms.Timer();
         watch.Interval = 500;
@@ -487,7 +490,6 @@ class HostContext : ApplicationContext
                     "autostartWarn", autoStartSw != null, "autostartSw", autoStartSw ?? "",
                     "lang", Settings.Lang, "langEff", I18n.Code, "langSys", I18n.Sys)));
                 if (updateVersion != null) PostUpdateState();
-                if (form != null && form.LastIcons != "") settingsWin.Post(form.LastIcons);
                 break;
             case "set":
             {
@@ -540,22 +542,8 @@ class HostContext : ApplicationContext
                 settingsWin.Post(Json.Stringify(Json.Obj("t", "lang", "v", Settings.Lang, "eff", I18n.Code, "sys", I18n.Sys)));
                 break;
             }
-            case "share":
-                if (form == null) { PostShareResult(false, null, I18n.T("errNotReady")); break; }
-                form.RequestSnapshot(OnShareImage);
-                break;
-            case "shareVideo":
-                if (form == null) { PostShareResult(false, null, I18n.T("errNotReady")); break; }
-                form.RequestRecording(OnShareVideo);
-                break;
-            case "openShare":
-                if (lastShare != null && File.Exists(lastShare)) Process.Start(lastShare);
-                break;
             case "openWebsite":
                 Process.Start("https://deskland.app/");
-                break;
-            case "revealShare":
-                if (lastShare != null && File.Exists(lastShare)) Process.Start("explorer.exe", "/select,\"" + lastShare + "\"");
                 break;
             case "updateProgram":
                 if (updateUrl != null) Process.Start(updateUrl);
@@ -564,83 +552,6 @@ class HostContext : ApplicationContext
                 SetAutoStart(m["v"] is bool && (bool)m["v"]);
                 settingsWin.Post(Json.Stringify(Json.Obj("t", "autostart", "v", IsAutoStart())));
                 break;
-        }
-    }
-
-    // ---- 一键分享：壁纸页面画好的图 → 存到"图片\Deskland"，复制到剪贴板，缩略图发回设置页 ----
-    string lastShare;                                   // 最近一张分享图的路径（设置页只能让我们打开这一张）
-    void OnShareImage(string thumb, string png, string err)
-    {
-        if (err != null || png == null) { PostShareResult(false, null, err ?? I18n.T("errNoImage")); Log.Write("生成分享图失败：" + err); return; }
-        try
-        {
-            int comma = png.IndexOf(',');
-            byte[] bytes = Convert.FromBase64String(comma >= 0 ? png.Substring(comma + 1) : png);
-            string dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "Deskland Preview");
-            Directory.CreateDirectory(dir);
-            string path = Path.Combine(dir, "Deskland " + DateTime.Now.ToString("yyyy-MM-dd HHmmss") + ".png");
-            File.WriteAllBytes(path, bytes);
-            lastShare = path;
-            try
-            {
-                using (var ms = new MemoryStream(bytes))
-                using (var img = Image.FromStream(ms))
-                {
-                    var data = new DataObject();
-                    data.SetImage(new Bitmap(img));                       // 一般的程序（聊天软件等）认这个
-                    data.SetData("PNG", false, new MemoryStream(bytes));  // 认 PNG 的程序（浏览器、Office）用这个，更清楚
-                    Clipboard.SetDataObject(data, true);
-                }
-            }
-            catch (Exception ex) { Log.Write("复制分享图到剪贴板失败：" + ex.Message); }
-            Log.Write("已生成分享图：" + path);
-            if (settingsWin != null)
-                settingsWin.Post(Json.Stringify(Json.Obj("t", "shareResult", "ok", true, "thumb", thumb, "path", path)));
-        }
-        catch (Exception ex)
-        {
-            Log.Write("保存分享图失败：" + ex);
-            PostShareResult(false, null, ex.Message);
-        }
-    }
-    void PostShareResult(bool ok, string path, string msg)
-    {
-        if (settingsWin != null) settingsWin.Post(Json.Stringify(Json.Obj("t", "shareResult", "ok", ok, "path", path, "msg", msg)));
-    }
-    // 分享动画：存成 MP4（不支持时是 WebM），把文件放到剪贴板（在聊天窗口里直接粘贴就能发出去），
-    // 设置页用 https://share.local/文件名 直接播放
-    void OnShareVideo(string mime, string poster, string video, string err)
-    {
-        if (err != null || video == null) { PostShareResult(false, null, err ?? I18n.T("errNoVideo")); Log.Write("录分享动画失败：" + err); return; }
-        try
-        {
-            int comma = video.IndexOf(',');
-            byte[] bytes = Convert.FromBase64String(comma >= 0 ? video.Substring(comma + 1) : video);
-            string dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "Deskland Preview");
-            Directory.CreateDirectory(dir);
-            string name = "Deskland " + DateTime.Now.ToString("yyyy-MM-dd HHmmss") + (mime == "video/webm" ? ".webm" : ".mp4");
-            string path = Path.Combine(dir, name);
-            File.WriteAllBytes(path, bytes);
-            lastShare = path;
-            try
-            {
-                var files = new System.Collections.Specialized.StringCollection();
-                files.Add(path);
-                Clipboard.SetFileDropList(files);
-            }
-            catch (Exception ex) { Log.Write("复制分享动画到剪贴板失败：" + ex.Message); }
-            Log.Write("已录好分享动画：" + path + "（" + (bytes.Length / 1024) + " KB）");
-            if (settingsWin != null)
-            {
-                settingsWin.MapShareFolder(dir);
-                settingsWin.Post(Json.Stringify(Json.Obj("t", "shareResult", "ok", true, "kind", "video", "thumb", poster, "path", path,
-                    "url", "https://share.local/" + Uri.EscapeDataString(name))));
-            }
-        }
-        catch (Exception ex)
-        {
-            Log.Write("保存分享动画失败：" + ex);
-            PostShareResult(false, null, ex.Message);
         }
     }
 
@@ -787,8 +698,7 @@ class HostContext : ApplicationContext
         }
         form = new WallpaperForm(pageDir, page, manualPause);
         form.SettingsJson = SettingsMessage;
-        form.IconsChanged += delegate(string json) { if (settingsWin != null) settingsWin.Post(json); };
-        form.RecordProgress += delegate(string p) { if (settingsWin != null) settingsWin.Post("{\"t\":\"recProgress\",\"p\":" + p + "}"); };
+        clickHook.Wallpaper = form;
         form.HandleDestroyed += OnFormGone;
         form.Show();
     }
@@ -798,6 +708,7 @@ class HostContext : ApplicationContext
         var f = (WallpaperForm)sender;
         if (f != form) return;
         form = null;
+        clickHook.Wallpaper = null;
         dead = f;                                        // 稍后在计时器里释放，避免在销毁回调里重入
         if (exiting) return;
         if (f.Fatal) { Exit(); return; }
@@ -834,6 +745,7 @@ class HostContext : ApplicationContext
         if (saveDue != DateTime.MaxValue) Settings.Save();
         if (settingsWin != null) { try { settingsWin.Close(); } catch { } }
         hotkey.Dispose();
+        clickHook.Stop();
         tray.Visible = false;
         if (form != null) form.Shutdown();
         Log.Write("退出");
@@ -871,6 +783,52 @@ class HotkeyWindow : NativeWindow, IDisposable
         if (registered) Native.UnregisterHotKey(Handle, 1);
         registered = false;
         if (Handle != IntPtr.Zero) DestroyHandle();
+    }
+}
+
+// 只读观察主屏桌面左键：放行所有点击，仅把桌面根窗口的点击位置发给当前壁纸页面。
+class DesktopClickHook
+{
+    readonly Native.LowLevelMouseProc proc;
+    IntPtr hook;
+    WallpaperForm wallpaper;
+
+    public WallpaperForm Wallpaper { set { wallpaper = value; } }
+
+    public DesktopClickHook()
+    {
+        proc = OnMouse;
+        hook = Native.SetWindowsHookEx(Native.WH_MOUSE_LL, proc, Native.GetModuleHandle(null), 0);
+        if (hook == IntPtr.Zero) Log.Write("桌面点击钩子注册失败（WH_MOUSE_LL）");
+    }
+
+    public void Stop()
+    {
+        if (hook == IntPtr.Zero) return;
+        Native.UnhookWindowsHookEx(hook);
+        hook = IntPtr.Zero;
+    }
+
+    IntPtr OnMouse(int nCode, IntPtr wParam, IntPtr lParam)
+    {
+        // 先交给后续钩子，观察逻辑出错也不会拦截用户的点击。
+        IntPtr next = Native.CallNextHookEx(hook, nCode, wParam, lParam);
+        try
+        {
+            if (nCode < 0 || wParam != (IntPtr)Native.WM_LBUTTONDOWN || wallpaper == null) return next;
+            var data = (Native.MSLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(Native.MSLLHOOKSTRUCT));
+            Rectangle scr = Screen.PrimaryScreen.Bounds;
+            if (!scr.Contains(data.pt.X, data.pt.Y)) return next;
+            IntPtr root = Native.GetAncestor(Native.WindowFromPoint(data.pt), Native.GA_ROOT);
+            if (root == IntPtr.Zero) return next;
+            var cls = new StringBuilder(64);
+            Native.GetClassName(root, cls, 64);
+            string c = cls.ToString();
+            if (c != "Progman" && c != "WorkerW") return next;
+            wallpaper.Post(Json.Stringify(Json.Obj("t", "ripple", "x", data.pt.X - scr.X, "y", data.pt.Y - scr.Y)));
+        }
+        catch { }
+        return next;
     }
 }
 
@@ -955,6 +913,8 @@ class SettingsForm : Form
             await web.EnsureCoreWebView2Async(null);
             if (IsDisposed) return;
             var core = web.CoreWebView2;
+            try { core.MemoryUsageTargetLevel = CoreWebView2MemoryUsageTargetLevel.Low; }
+            catch (Exception ex) { Log.Write("设置窗口内存级别调整失败：" + ex.Message); }
             core.SetVirtualHostNameToFolderMapping("app.local", pageDir, CoreWebView2HostResourceAccessKind.Allow);
             core.Settings.AreDefaultContextMenusEnabled = false;
             core.Settings.IsStatusBarEnabled = false;
@@ -964,7 +924,7 @@ class SettingsForm : Form
                 try { host.OnSettingsMessage(a.TryGetWebMessageAsString()); }
                 catch (Exception ex) { Log.Write("处理设置消息失败：" + ex.Message); }
             };
-            string settingsUrl = "https://app.local/settings.html?v=" + Uri.EscapeDataString(Application.ProductVersion);
+            string settingsUrl = "https://app.local/settings.html?v=" + Uri.EscapeDataString(Application.ProductVersion) + "&ui=2";
             Log.Write("设置页面：" + settingsUrl);
             core.Navigate(settingsUrl);
         }
@@ -983,13 +943,10 @@ class SettingsForm : Form
         catch { }
     }
 
-    // 分享的图片 / 动画所在的文件夹：映射成 https://share.local/，设置页可以直接显示、播放
-    bool shareMapped;
-    public void MapShareFolder(string dir)
+    protected override void OnFormClosed(FormClosedEventArgs e)
     {
-        if (shareMapped || IsDisposed || web.CoreWebView2 == null) return;
-        web.CoreWebView2.SetVirtualHostNameToFolderMapping("share.local", dir, CoreWebView2HostResourceAccessKind.Allow);
-        shareMapped = true;
+        try { web.Dispose(); } catch { }
+        base.OnFormClosed(e);
     }
 }
 
@@ -1010,8 +967,6 @@ class WallpaperForm : Form
 
     string page;                                        // 当前主题的页面（themes.json 里的 page）
     public Func<string> SettingsJson;                   // 页面就绪时先发给它的设置消息
-    public event Action<string> IconsChanged;           // 图标变化时转给设置窗口的预览
-    public string LastIcons { get { return lastIcons; } }
     protected override bool ShowWithoutActivation { get { return true; } }
 
     public WallpaperForm(string pageDir, string page, bool manualPause)
@@ -1042,68 +997,6 @@ class WallpaperForm : Form
 
     public void SetManualPause(bool v) { manualPause = v; PollForeground(); }
 
-    // ---- 一键分享：请页面画一张打好马赛克的桌面图（页面不截屏，只用图标的位置） ----
-    Action<string, string, string> snapshotDone;           // (缩略图, 整张 PNG, 出错信息)
-    System.Windows.Forms.Timer snapshotTimeout;
-    public void RequestSnapshot(Action<string, string, string> done)
-    {
-        if (web.CoreWebView2 == null) { done(null, null, I18n.T("errNotReady")); return; }
-        if (snapshotDone != null) { done(null, null, I18n.T("errBusyImage")); return; }
-        snapshotDone = done;
-        snapshotTimeout = new System.Windows.Forms.Timer();
-        snapshotTimeout.Interval = 20000;
-        snapshotTimeout.Tick += delegate { FinishSnapshot(null, null, I18n.T("errImageTimeout")); };
-        snapshotTimeout.Start();
-        try { web.CoreWebView2.PostWebMessageAsString("{\"t\":\"snapshot\"}"); }
-        catch (InvalidOperationException ex) { FinishSnapshot(null, null, I18n.T("errNotReady")); WebDead(ex); }
-        catch (COMException ex) { FinishSnapshot(null, null, I18n.T("errNotReady")); WebDead(ex); }
-    }
-    void OnSnapshot(string msg)
-    {
-        string[] p = msg.Split(new[] { '|' }, 3);
-        if (p.Length < 3) FinishSnapshot(null, null, I18n.T("errBadData"));
-        else if (p[1] == "error") FinishSnapshot(null, null, p[2]);
-        else FinishSnapshot(p[1], p[2], null);
-    }
-    void FinishSnapshot(string thumb, string png, string err)
-    {
-        if (snapshotTimeout != null) { snapshotTimeout.Stop(); snapshotTimeout.Dispose(); snapshotTimeout = null; }
-        var done = snapshotDone;
-        snapshotDone = null;
-        if (done != null) done(thumb, png, err);
-    }
-
-    // ---- 分享动画：按当前图标布局录制主题动画，途中发进度，录完发 "record|格式|封面|整段视频" ----
-    Action<string, string, string, string> recordDone;    // (格式, 封面, 整段视频, 出错信息)
-    System.Windows.Forms.Timer recordTimeout;
-    public event Action<string> RecordProgress;            // 0..1（字符串）
-    public void RequestRecording(Action<string, string, string, string> done)
-    {
-        if (web.CoreWebView2 == null) { done(null, null, null, I18n.T("errNotReady")); return; }
-        if (recordDone != null) { done(null, null, null, I18n.T("errBusyVideo")); return; }
-        recordDone = done;
-        recordTimeout = new System.Windows.Forms.Timer();
-        recordTimeout.Interval = 45000;
-        recordTimeout.Tick += delegate { FinishRecord(null, null, null, I18n.T("errVideoTimeout")); };
-        recordTimeout.Start();
-        try { web.CoreWebView2.PostWebMessageAsString("{\"t\":\"record\"}"); }
-        catch (InvalidOperationException ex) { FinishRecord(null, null, null, I18n.T("errNotReady")); WebDead(ex); }
-        catch (COMException ex) { FinishRecord(null, null, null, I18n.T("errNotReady")); WebDead(ex); }
-    }
-    void OnRecord(string msg)
-    {
-        string[] p = msg.Split(new[] { '|' }, 4);
-        if (p.Length >= 3 && p[1] == "error") FinishRecord(null, null, null, msg.Substring(13));
-        else if (p.Length < 4) FinishRecord(null, null, null, I18n.T("errBadData"));
-        else FinishRecord(p[1], p[2], p[3], null);
-    }
-    void FinishRecord(string mime, string poster, string video, string err)
-    {
-        if (recordTimeout != null) { recordTimeout.Stop(); recordTimeout.Dispose(); recordTimeout = null; }
-        var done = recordDone;
-        recordDone = null;
-        if (done != null) done(mime, poster, video, err);
-    }
     public void Reload()
     {
         if (web.CoreWebView2 == null) return;
@@ -1127,7 +1020,7 @@ class WallpaperForm : Form
         Log.Write("WebView2 失效（运行时更新或进程退出），重新挂载壁纸窗口：" + ex.Message);
         Shutdown();
     }
-    string PageUrl { get { return "https://app.local/" + page + "?wallpaper=1"; } }
+    string PageUrl { get { return "https://app.local/" + page + "?wallpaper=1&ui=2"; } }
 
     // 切换主题：换页面；新页面就绪后会重新收到设置和图标
     public void LoadPage(string newPage)
@@ -1162,14 +1055,11 @@ class WallpaperForm : Form
             core.Settings.AreDevToolsEnabled = true;
             core.Settings.IsStatusBarEnabled = false;
             // 页面就绪（发来 "ready"）：先发设置，再发图标和暂停状态（岸线要按设置里的离岸距离来算）
-            // 一键分享：页面画好分享图后发来 "snapshot|缩略图|整张 PNG"（都是 data URL；整张图很大，不走 JSON）
             core.WebMessageReceived += delegate(object s, CoreWebView2WebMessageReceivedEventArgs a)
             {
                 string msg = null;
                 try { msg = a.TryGetWebMessageAsString(); } catch { }
-                if (msg != null && msg.StartsWith("snapshot|")) { OnSnapshot(msg); return; }
-                if (msg != null && msg.StartsWith("recprogress|")) { if (RecordProgress != null) RecordProgress(msg.Substring(12)); return; }
-                if (msg != null && msg.StartsWith("record|")) { OnRecord(msg); return; }
+                if (msg != "ready") return;
                 if (SettingsJson != null) core.PostWebMessageAsString(SettingsJson());
                 lastIcons = ""; lastPause = -1; PollIcons(); PollForeground();
             };
@@ -1354,7 +1244,6 @@ class WallpaperForm : Form
         string json = sb.ToString();
         if (json == lastIcons) return;
         lastIcons = json;
-        if (IconsChanged != null) IconsChanged(json);
         Post(json);
         Log.Write(string.Format("图标变化：{0} 个，可见={1}", rects.Count, visible));
     }
@@ -1582,6 +1471,7 @@ class DesktopIconLocator : IDisposable
 static class Native
 {
     public const int GWL_STYLE = -16, GWL_EXSTYLE = -20, WS_EX_LAYERED = 0x00080000, WS_EX_TRANSPARENT = 0x00000020;
+    public const int WH_MOUSE_LL = 14, WM_LBUTTONDOWN = 0x0201, GA_ROOT = 2;
     public const uint LWA_ALPHA = 0x2, SWP_NOSIZE = 0x0001, SWP_NOMOVE = 0x0002;
     public const uint MOD_ALT = 0x1, MOD_CONTROL = 0x2, MOD_NOREPEAT = 0x4000;
     public const int SW_SHOW = 5, SW_RESTORE = 9;
@@ -1604,7 +1494,9 @@ static class Native
 
     [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left, Top, Right, Bottom; }
     [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X, Y; }
+    [StructLayout(LayoutKind.Sequential)] public struct MSLLHOOKSTRUCT { public POINT pt; public uint mouseData, flags, time; public IntPtr dwExtraInfo; }
     public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+    public delegate IntPtr LowLevelMouseProc(int nCode, IntPtr wParam, IntPtr lParam);
 
     [DllImport("user32.dll")] public static extern bool SetProcessDpiAwarenessContext(IntPtr value);
     [DllImport("user32.dll")] public static extern bool SetProcessDPIAware();
@@ -1625,6 +1517,12 @@ static class Native
     [DllImport("user32.dll")] public static extern bool IsZoomed(IntPtr h);
     [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int GetClassName(IntPtr h, StringBuilder sb, int max);
+    [DllImport("user32.dll")] public static extern IntPtr WindowFromPoint(POINT pt);
+    [DllImport("user32.dll")] public static extern IntPtr GetAncestor(IntPtr h, int flags);
+    [DllImport("user32.dll")] public static extern IntPtr SetWindowsHookEx(int id, LowLevelMouseProc proc, IntPtr module, uint thread);
+    [DllImport("user32.dll")] public static extern bool UnhookWindowsHookEx(IntPtr hook);
+    [DllImport("user32.dll")] public static extern IntPtr CallNextHookEx(IntPtr hook, int nCode, IntPtr wParam, IntPtr lParam);
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] public static extern IntPtr GetModuleHandle(string module);
     [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RECT r);
     [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
     [DllImport("user32.dll")] public static extern bool RedrawWindow(IntPtr h, IntPtr rect, IntPtr rgn, uint flags);

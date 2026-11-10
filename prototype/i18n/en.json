@@ -43,6 +43,7 @@
     "serverInvalid": "The server returned an unrecognized response. Try again later or contact support if this continues.",
     "downloadInvalid": "The download was incomplete or failed security verification, so installation was stopped. Try again or contact support if this keeps happening.",
     "livePreview": "Live preview",
+    "themePreview": "Theme preview",
     "previewIcons": "Live preview · using the {n} icons on your desktop",
     "previewNoIcons": "Live preview · desktop icons are hidden",
     "refresh": "Refresh",
