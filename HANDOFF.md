@@ -90,6 +90,20 @@ git push origin master:main                       # 上云（用户说"同步到
 
 参考实现：magpie（<https://github.com/yetone/magpie>）用 Wails 的 `--wails-draggable: drag` 触发 OS 模态拖拽循环，页面侧零特殊处理——这是当前采用的方向。
 
+### 4.7 设置窗口拖动抖动（本次：强制 WebView2 走 window-to-visual 宿主）
+**症状：** `b8b7188` 回退后窗口外框跟手，但**里面的 WebView2 内容在窗口里小幅游动**（用户两段录屏 + 明确描述）。magpie 的抖动远小于本程序——差别在宿主模式：Wails 默认走 window-to-visual，而 WinForms `WebView2` 默认走 windowed（内容在子 HWND `Chrome_WidgetWin_1` 里，拖动时子窗口与外框由两条路径合成，易错位）。
+
+**改动（`host/DesktopHost.cs` `Main`）：** 在 `Application.EnableVisualStyles()` 之前加一行：
+```csharp
+Environment.SetEnvironmentVariable("COREWEBVIEW2_FORCED_HOSTING_MODE", "COREWEBVIEW2_HOSTING_MODE_WINDOW_TO_VISUAL");
+```
+- 必须在 `Main` 里最早设，WebView2 创建浏览器环境时读取；`SettingsForm` 与 `WallpaperForm` 共享同一进程，两边一起切。
+- 已验证：设置窗口的 `Chrome_WidgetWin_1` 子 HWND 消失（只剩 `WindowsForms10` 面板 + `Chrome_WidgetWin_0` 视觉表面），说明切换生效。
+- 代价：此进程内 Pointer Lock / Gamepad API 不可用（本程序不用）；壁纸窗口也切到同一宿主，需用户肉眼确认壁纸渲染正常。
+- 文档：<https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/windowed-vs-visual-hosting>
+
+**用户明确要求（记住）：** 云端推送必须用户逐次同意，默认只本地提交。前几轮多次因此被否决。
+
 ## 5. 关键文件速查
 
 | 文件 | 职责 |

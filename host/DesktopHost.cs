@@ -62,6 +62,11 @@ static class Program
         }
         // 按物理像素工作：桌面图标坐标、屏幕尺寸都是物理像素
         if (!Native.SetProcessDpiAwarenessContext(new IntPtr(-4))) Native.SetProcessDPIAware();
+        // 设置窗口拖动时 WebView2 内容在窗口里小幅游动（窗口外框跟手、内容抖）。
+        // 默认的 windowed 宿主把内容放在子 HWND 里，拖动时子窗口与外框由两条路径合成，容易错位。
+        // 切到 window-to-visual 宿主（Wails/magpie 默认就是这种），内容由父窗口的 DirectComposition 直接合成，跟手。
+        // 代价：Pointer Lock / Gamepad API 在此进程内不可用（本程序不用）。
+        Environment.SetEnvironmentVariable("COREWEBVIEW2_FORCED_HOSTING_MODE", "COREWEBVIEW2_HOSTING_MODE_WINDOW_TO_VISUAL");
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
         // 任何意外都写进日志，不弹框也不静默退出
