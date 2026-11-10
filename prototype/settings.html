@@ -35,10 +35,14 @@
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; }
   html { background: transparent; }   /* 未就绪阶段 body 隐藏时透出宿主同色底，避免 WebView2 默认白闪 */
-  /* 拖动期间抑制 CSS 过渡/动画，降低每帧重排成本；松手后由 .is-settling 播放落定微动效 */
-  html.is-dragging * { transition: none !important; animation-play-state: paused !important; }
-  @keyframes deskland-settle { from { opacity: .97; } to { opacity: 1; } }
-  html.is-settling body { animation: deskland-settle 220ms cubic-bezier(.2, .7, .3, 1) both; }
+  /* 拖动期间抑制 CSS 过渡/动画；body 用 GPU 合成的 transform:scale 跟住窗口大小，跳过逐帧 Layout/Paint。
+     宿主直接把字面 transform 写到 body.style，避免 var() 在 scale() 双参里被当成无效值。 */
+  html.is-dragging *:not(body) { transition: none !important; animation-play-state: paused !important; }
+  body { transform-origin: top left; transition: none; }
+  html.is-frozen body { width: var(--frozen-w); height: var(--frozen-h); will-change: transform; }
+  /* 松手：transform 从 scale(...) 过渡到 none，纯合成，无重排成本。
+     is-settling 必须显式声明 transition，否则 body 继承自 html 的 transition:none 会压住动画。 */
+  html.is-settling body { transform: none !important; transition: transform 180ms cubic-bezier(.2, .7, .3, 1) !important; }
   body {
     background: var(--bg); color: var(--text); overflow: hidden;
     font: 13px/1.5 "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", system-ui, sans-serif;
@@ -639,25 +643,53 @@ function layoutPreview() {
   $('previewBox').style.width = Math.floor(s.w * k) + 'px';
   $('previewBox').style.height = Math.floor(s.h * k) + 'px';
 }
-addEventListener('resize', layoutPreview);
+addEventListener('resize', () => { if (!window.__desklandIsFrozen()) layoutPreview(); });
 
-/* 宿主在拖动标题栏/边框时调用：拖动中抑制过渡，松手后给一次落定微动效 */
-let settleTimer = 0;
-window.__desklandBeginWindowDrag = () => {
+/* 宿主拖动设置窗口时调用：把 body 锁在拖动开始的逻辑尺寸，只用 transform:scale 跟住窗口，
+   松手后用 180ms 的 transform 过渡把 scale 平滑收尾到 1，然后通知宿主切回 Dock=Fill。 */
+let settleTimer = 0, dragScaleX = 1, dragScaleY = 1;
+window.__desklandIsFrozen = () => document.documentElement.classList.contains('is-frozen');
+window.__desklandBeginWindowDrag = (baseW, baseH) => {
   clearTimeout(settleTimer);
-  document.documentElement.classList.remove('is-settling');
-  document.documentElement.classList.add('is-dragging');
+  const root = document.documentElement;
+  root.classList.remove('is-settling');
+  root.style.setProperty('--frozen-w', baseW + 'px');
+  root.style.setProperty('--frozen-h', baseH + 'px');
+  document.body.style.transform = 'scale(1, 1)';           // 字面值，避免 var() 在 scale() 里失效
+  root.classList.add('is-frozen', 'is-dragging');
+  dragScaleX = dragScaleY = 1;
+};
+window.__desklandUpdateDragScale = (sx, sy) => {
+  dragScaleX = sx; dragScaleY = sy;
+  document.body.style.transform = 'scale(' + sx + ', ' + sy + ')';
 };
 window.__desklandEndWindowDrag = () => {
   const root = document.documentElement;
-  root.classList.remove('is-dragging', 'is-settling');
-  if (root.classList.contains('ready')) {
-    void root.offsetWidth;                                  // 复位过渡状态，确保重复松手能重放
-    root.classList.add('is-settling');
-    clearTimeout(settleTimer);
-    settleTimer = setTimeout(() => root.classList.remove('is-settling'), 260);
+  if (!root.classList.contains('ready') || !root.classList.contains('is-frozen')) {
+    window.__desklandForceSettle(); return;
   }
+  // 顺序关键：is-settling 声明了 transform 过渡；下一帧摘 is-dragging 后，body.style.transform
+  // 被强制清空，浏览器看到 scale(sx,sy) → none 的过渡，自然就走了 180ms 动画。
+  root.classList.add('is-settling');
+  root.classList.remove('is-dragging');
+  document.body.style.transform = '';                       // 触发 transition: scale(...) → none
+  clearTimeout(settleTimer);
+  settleTimer = setTimeout(() => { window.__desklandForceSettle(); }, 240);   // transitionend 的兜底
 };
+window.__desklandForceSettle = () => {
+  clearTimeout(settleTimer);
+  const root = document.documentElement;
+  root.classList.remove('is-dragging', 'is-settling', 'is-frozen');
+  root.style.removeProperty('--frozen-w');
+  root.style.removeProperty('--frozen-h');
+  document.body.style.transform = '';
+  dragScaleX = dragScaleY = 1;
+  layoutPreview();
+  try { if (host) send({ t: 'dragSettleDone' }); } catch { }
+};
+document.documentElement.addEventListener('transitionend', e => {
+  if (e.propertyName === 'transform' && e.target === document.body) window.__desklandForceSettle();
+});
 
 function renderHead() {
   const th = themeById(state.theme);
