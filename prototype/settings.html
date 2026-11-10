@@ -35,7 +35,10 @@
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; }
   html { background: transparent; }   /* 未就绪阶段 body 隐藏时透出宿主同色底，避免 WebView2 默认白闪 */
-  html.is-dragging * { transition: none !important; animation-play-state: paused !important; }   /* 拖动期间暂停过渡/动画，降低重绘 */
+  /* 拖动期间抑制 CSS 过渡/动画，降低每帧重排成本；松手后由 .is-settling 播放落定微动效 */
+  html.is-dragging * { transition: none !important; animation-play-state: paused !important; }
+  @keyframes deskland-settle { from { opacity: .97; } to { opacity: 1; } }
+  html.is-settling body { animation: deskland-settle 220ms cubic-bezier(.2, .7, .3, 1) both; }
   body {
     background: var(--bg); color: var(--text); overflow: hidden;
     font: 13px/1.5 "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", system-ui, sans-serif;
@@ -637,6 +640,24 @@ function layoutPreview() {
   $('previewBox').style.height = Math.floor(s.h * k) + 'px';
 }
 addEventListener('resize', layoutPreview);
+
+/* 宿主在拖动标题栏/边框时调用：拖动中抑制过渡，松手后给一次落定微动效 */
+let settleTimer = 0;
+window.__desklandBeginWindowDrag = () => {
+  clearTimeout(settleTimer);
+  document.documentElement.classList.remove('is-settling');
+  document.documentElement.classList.add('is-dragging');
+};
+window.__desklandEndWindowDrag = () => {
+  const root = document.documentElement;
+  root.classList.remove('is-dragging', 'is-settling');
+  if (root.classList.contains('ready')) {
+    void root.offsetWidth;                                  // 复位过渡状态，确保重复松手能重放
+    root.classList.add('is-settling');
+    clearTimeout(settleTimer);
+    settleTimer = setTimeout(() => root.classList.remove('is-settling'), 260);
+  }
+};
 
 function renderHead() {
   const th = themeById(state.theme);

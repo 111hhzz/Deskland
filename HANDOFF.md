@@ -25,7 +25,8 @@
 | （无 tag） | `813ca53` | 发布脚本：portable / source ZIP + GitHub release 创建与上传 |
 | （无 tag） | `001b21b` | 发布脚本：上传 NSIS Setup.exe，PAT 改从环境变量 / `.gh_token` 读取 |
 | （无 tag） | `182814d` | 设置窗口白闪/拖影修复：主题同色背景（BackColor + DefaultBackgroundColor + html 透明） |
-| （无 tag） | `d37a4c5` | 设置窗口拖动时冻结 WebView2 布局（ResizeBegin/End + is-dragging）——**用户反馈观感问题，待返工** |
+| （无 tag） | `d37a4c5` | 设置窗口拖动时冻结 WebView2 布局（ResizeBegin/End + is-dragging）——**用户反馈观感问题，已在下一提交返工** |
+| （无 tag） | *(本次)* | 拖动观感返工：取消尺寸冻结，拖动全程 WebView2 平滑跟随；松手 220ms 落定微动效 |
 
 **当前 HEAD**：`d37a4c5`（本地 = 远端 `main`）。`v0.1.3` tag 已推送。`host/bin/`、`host/lib/`、`dist/` 已被 `.gitignore` 忽略；`.gh_token`（PAT，勿提交/外传）也已 gitignore。
 
@@ -69,10 +70,15 @@ git push origin master:main                       # 上云（用户说"同步到
 - `settings.html`：`html { background: transparent; }`，保留 `body { background: var(--bg) }` 与 `html:not(.ready) body { visibility: hidden }`。
 - **未设** `TransparencyKey`/`AllowTransparency`；**未加** `--disable-gpu-compositing`/`--force-cpu-draw`。
 
-### 4.6 设置窗口拖动冻结布局（`d37a4c5`）——待返工
-- `SettingsForm` 订阅 `ResizeBegin`/`ResizeEnd`；`ResizeBegin` 记录 `web.Size`、`ClientSize`，`web.Dock=None` 固定尺寸，加 `is-dragging`；`ResizeEnd` 恢复 `Dock=Fill`，尺寸变才 `PerformLayout()`，移除 class。
-- `settings.html`：`html.is-dragging * { transition:none !important; animation-play-state:paused !important; }`。
-- **用户反馈观感问题**：拖动时会"抽一下"（WebView2 与窗体相对位置突变），拖动结束也无过渡动画。**下一轮需返工**：保留性能优化思路，但改为人眼友好的方式——拖动期间 WebView2 平滑跟随（而非突然固定尺寸），或松开后给一个短过渡；不要粗暴冻结尺寸。返工前先确认是否保留 `is-dragging` CSS 或移除。
+### 4.6 设置窗口拖动观感（本次返工，替换 `d37a4c5`）
+- `SettingsForm` 仍订阅 `ResizeBegin`/`ResizeEnd`，但**不再冻结尺寸**：WebView2 全程 `Dock=Fill`，拖动时随窗体连续跟随，消除"抽一下"。
+- `ResizeBegin` → 调用页面 `window.__desklandBeginWindowDrag()` 加 `html.is-dragging`；`ResizeEnd` → `window.__desklandEndWindowDrag()` 摘掉 `is-dragging` 并加 `is-settling`。
+- `settings.html`：
+  - `html.is-dragging * { transition:none !important; animation-play-state:paused !important; }`（拖动期间抑制过渡，降低重排）。
+  - `@keyframes deskland-settle { from{opacity:.97} to{opacity:1} }`，`html.is-settling body { animation: deskland-settle 220ms cubic-bezier(.2,.7,.3,1) both; }`，260ms 后自动摘除 class（允许重复松手重放）。
+  - 页面未 `ready` 时 `EndWindowDrag` 只清 class 不播动画，避免开场白闪复现。
+- CDP + 真实拖动截图验证：拖动中 `is-dragging` 生效、过渡抑制；松手 `is-settling` 挂上、`animation-name=deskland-settle` 启动；260ms 后自动清除。截图显示内容连续跟随，无错位/残影。
+- 之前 `d37a4c5` 的"冻结尺寸再恢复"做法已移除（`webSizeAtDragBegin`/`clientAtDragBegin`/`dragging` 字段删除）。
 
 ## 5. 关键文件速查
 
@@ -117,11 +123,8 @@ powershell -ExecutionPolicy Bypass -File tools\create-release.ps1
 
 ## 8. 待办 / 交给下一个 AI
 
-### 8.1 优先：设置窗口拖动观感返工（用户 2026-11-10 反馈）
-- 现象：`d37a4c5` 的冻结布局方案在拖动时"抽一下"（WebView2 相对窗体突变），拖动结束也无过渡动画。
-- 目标：保留"减少拖动中逐帧布局重算"的性能收益，但改为平滑跟随——拖动期间 WebView2 随窗体连续移动（不突然固定尺寸），或松开后给一个短过渡动画（如 150–250ms 内容淡入/尺寸补间）。
-- 候选方案（不预设结论，先复现）：a) 拖动期间只暂停 CSS 过渡/动画（保留 `is-dragging`），不冻结 Dock/Size；b) 拖动结束用 CSS transition 让内容回位；c) 移除 `ResizeBegin/End` 的 Dock 冻结，仅保留 `is-dragging`。
-- 硬约束：不引入 `TrySuspendAsync`/`Resume`（需 WebView2 不可见）；不改 WebView2 架构；保持 C# 5、无新依赖、正常退出无孤儿进程。
+### 8.1 （已完成 2026-11-10）设置窗口拖动观感返工
+- 见 4.6。用户反馈的"抽一下 + 无过渡动画"已修复；如仍觉得落定动画不明显可加长到 300ms 或换成轻微缩放，但需先量化，不预设。
 
 ### 8.2 历史 / 可选下一步（未做）
 - 把"穿透"状态持久化进 `settings.json`，重启恢复勾选。
@@ -139,7 +142,9 @@ powershell -ExecutionPolicy Bypass -File tools\create-release.ps1
 
 ## 10. 当前现场（下一轮接手时）
 
-- 最后一次验证：`host/build.ps1` 编译通过；headless Chrome 渲染 `settings.html` 正常（浅色主题、无布局异常）；`d37a4c5` 已推送远端 `main`。
+- 最后一次验证：`host/build.ps1` 编译通过；CDP 检查 `settings.html` 的拖动钩子与 class 切换正常；Win32 模拟拖动（12 步）截图显示拖动中内容连续跟随、松手无跳变；`--exit` 后 `Deskland.exe` 进程清零。
+- 当前现场：`Deskland.exe` 已正常退出；WebView2 子进程（`msedgewebview2.exe`）可能有其他程序（如 `GUI.for.Clash`）的实例，勿误杀；`%LOCALAPPDATA%\DesklandPreview\settings.json` 主题/参数用户保留，勿擅改。
+- 本次改动只在本地，**未推送云端**（用户明确要求不同意就不推）。
 - 当前无 `Deskland.exe`、无 `DesklandPreview` WebView2 进程；`%LOCALAPPDATA%\DesklandPreview\settings.json` 主题和参数由用户保留，勿擅改。
 - 复现命令：`host/bin/Deskland.exe --settings` 打开设置，拖动标题栏/边框复现"抽动"；`--autostart` 启动壁纸；`--exit` 退出。若重新编译，先正常退出当前实例。
 - 回退：如需回退到返工前，用 `git checkout 182814d -- host/DesktopHost.cs prototype/settings.html` 只还原这两处（或 `git revert d37a4c5`），保留其它功能；不要整仓 `reset --hard`。
