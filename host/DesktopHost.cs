@@ -859,11 +859,6 @@ class SettingsForm : Form
     readonly WebView2 web;
     readonly HostContext host;
     readonly string pageDir;
-    Size webSizeAtDragBegin;        // 拖动开始时 WebView2 的逻辑尺寸（冻结尺寸的基准）
-    bool dragging;                  // ResizeBegin..ResizeEnd 之间
-    bool settlePending;             // 已通知页面播放落定动画，等 dragSettleDone 回信
-    bool scaleDirty;                // 本帧还有未下发的 scale，用来做 rAF 风格的节流
-    readonly System.Windows.Forms.Timer settleFallback;
 
     public SettingsForm(string pageDir, HostContext host)
     {
@@ -886,103 +881,6 @@ class SettingsForm : Form
         web.CreationProperties.UserDataFolder = Path.Combine(Log.DataDir, "WebView2");
         Controls.Add(web);
 
-        // 拖动期间：WebView2 尺寸钉在 ResizeBegin 时的值（Dock=None），页面用 GPU 合成的
-        // transform:scale 跟住窗口大小，跳过逐帧 Layout/Paint。松手后页面用 180ms 的 CSS
-        // transform 过渡把 scale 从当前值平滑收尾到 1，动画结束回一条 dragSettleDone，
-        // 那时才把 web.Dock=Fill 切到真实客户区——transform 已经是 identity，不会二次跳变。
-        // 注意：不能用 TrySuspendAsync/Resume，它们要求 WebView2 不可见，不适用于窗口拖动。
-        ResizeBegin += OnSettingsResizeBegin;
-        Resize += OnSettingsResize;
-        ResizeEnd += OnSettingsResizeEnd;
-        settleFallback = new System.Windows.Forms.Timer();
-        settleFallback.Interval = 800;   // 180ms 动画 + 页面响应留白：页面拖死/失焦时兜底，别永久卡在冻结态
-        settleFallback.Tick += delegate { ForceSettle(); };
-    }
-
-    void OnSettingsResizeBegin(object sender, EventArgs e)
-    {
-        dragging = true;
-        settlePending = false;
-        scaleDirty = false;
-        webSizeAtDragBegin = web.Size;
-        // 顺序很重要：先把 Dock 切掉再写 Size，否则 DockStyles 会立刻覆盖
-        web.Dock = DockStyle.None;
-        web.Size = webSizeAtDragBegin;
-        RunOnPage("window.__desklandBeginWindowDrag && window.__desklandBeginWindowDrag(" +
-                  webSizeAtDragBegin.Width + "," + webSizeAtDragBegin.Height + ")");
-        settleFallback.Start();
-    }
-
-    void OnSettingsResize(object sender, EventArgs e)
-    {
-        if (!dragging) return;
-        if (scaleDirty) return;          // 上一帧的 scale 还没下发：只刷新基准，等下一次 Resize 再发
-        scaleDirty = true;
-        BeginInvoke(new Action(delegate
-        {
-            scaleDirty = false;
-            if (!dragging || IsDisposed) return;
-            float sx = webSizeAtDragBegin.Width > 0 ? (float)ClientSize.Width / webSizeAtDragBegin.Width : 1f;
-            float sy = webSizeAtDragBegin.Height > 0 ? (float)ClientSize.Height / webSizeAtDragBegin.Height : 1f;
-            RunOnPage("window.__desklandUpdateDragScale && window.__desklandUpdateDragScale(" +
-                      sx.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + "," +
-                      sy.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + ")");
-        }));
-    }
-
-    void OnSettingsResizeEnd(object sender, EventArgs e)
-    {
-        if (!dragging) return;
-        dragging = false;
-        settlePending = true;            // 通知页面走 180ms 落定动画，动画完再回 dragSettleDone
-        // 不立即 Dock=Fill：等页面把 scale 过渡到 1 并回 dragSettleDone 再切
-        RunOnPage("window.__desklandEndWindowDrag && window.__desklandEndWindowDrag()");
-    }
-
-    // 页面回信"落定动画播完了，scale=1"：此时再 Dock=Fill，transform 已经是 identity，不会跳
-    void OnDragSettleDone()
-    {
-        if (!settlePending) return;
-        settlePending = false;
-        settleFallback.Stop();
-        if (IsDisposed) return;
-        if (!dragging) web.Dock = DockStyle.Fill;
-    }
-
-    // 兜底：ResizeEnd 没来（Alt+F4、失焦、页面脚本失败等）。先让页面走同样的落定动画；
-    // 定时器再触发（页面确实死了）才硬切 Dock=Fill。
-    void ForceSettle()
-    {
-        if (!dragging && !settlePending) { settleFallback.Stop(); return; }
-        if (dragging)
-        {
-            dragging = false;
-            settlePending = true;
-            RunOnPage("window.__desklandEndWindowDrag && window.__desklandEndWindowDrag()");
-            return;                              // 给页面一个完整动画周期
-        }
-        // settlePending 已 true 但还没等到 dragSettleDone：页面脚本死了，硬复位
-        settleFallback.Stop();
-        settlePending = false;
-        if (IsDisposed) return;
-        RunOnPage("window.__desklandForceSettle && window.__desklandForceSettle()");
-        web.Dock = DockStyle.Fill;
-    }
-
-    async void RunOnPage(string js)
-    {
-        try
-        {
-            if (web.CoreWebView2 != null) await web.ExecuteScriptAsync(js);
-        }
-        catch { }   // 页面未就绪或核心失效时忽略：仅影响拖动过渡，不影响功能
-    }
-
-    protected override void OnFormClosing(FormClosingEventArgs e)
-    {
-        settleFallback.Stop();
-        settleFallback.Dispose();
-        base.OnFormClosing(e);
     }
 
     // 设置窗口底色跟随系统深浅色（与标题栏一致）：浅 #ffffff / 深 #171717。
@@ -1035,16 +933,7 @@ class SettingsForm : Form
             core.Settings.IsZoomControlEnabled = false;
             core.WebMessageReceived += delegate(object s, CoreWebView2WebMessageReceivedEventArgs a)
             {
-                string msg = null;
-                try { msg = a.TryGetWebMessageAsString(); } catch { }
-                var parsed = msg != null ? Json.Parse(msg) as System.Collections.Generic.Dictionary<string, object> : null;
-                if (parsed != null)
-                {
-                    object type;
-                    parsed.TryGetValue("t", out type);
-                    if (type as string == "dragSettleDone") { OnDragSettleDone(); return; }
-                }
-                try { host.OnSettingsMessage(msg); }
+                try { host.OnSettingsMessage(a.TryGetWebMessageAsString()); }
                 catch (Exception ex) { Log.Write("处理设置消息失败：" + ex.Message); }
             };
             string settingsUrl = "https://app.local/settings.html?v=" + Uri.EscapeDataString(Application.ProductVersion) + "&ui=2";

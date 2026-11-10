@@ -26,10 +26,11 @@
 | （无 tag） | `001b21b` | 发布脚本：上传 NSIS Setup.exe，PAT 改从环境变量 / `.gh_token` 读取 |
 | （无 tag） | `182814d` | 设置窗口白闪/拖影修复：主题同色背景（BackColor + DefaultBackgroundColor + html 透明） |
 | （无 tag） | `d37a4c5` | 设置窗口拖动时冻结 WebView2 布局（ResizeBegin/End + is-dragging）——**用户反馈观感问题，已在下一提交返工** |
-| （无 tag） | *(本次)* | 拖动观感返工：取消尺寸冻结，拖动全程 WebView2 平滑跟随；松手 220ms 落定微动效 |
-| （无 tag） | *(本次二)* | 拖动性能返工：尺寸冻结恢复 + GPU 合成层 `transform:scale` + 180ms 落定过渡 |
+| （无 tag） | `3289a78` | 拖动观感返工：取消尺寸冻结，拖动全程 WebView2 平滑跟随；松手 220ms 落定微动效——**用户反馈拉伸 + 错位，已在下一提交返工** |
+| （无 tag） | `8119543` | 拖动性能返工：尺寸冻结恢复 + GPU 合成层 `transform:scale` + 180ms 落定过渡——**用户反馈仍拉伸/错位/抽动，已在下一提交回退** |
+| （无 tag） | *(本次)* | 拖动逻辑整体回退到 magpie 式原生行为：删掉全部自定义拖拽/缩放/落定代码，`SettingsForm` 不再订阅 `ResizeBegin/Resize/ResizeEnd`，WebView2 保持 `Dock=Fill` 由系统模态循环处理移动与缩放，页面侧零特殊处理 |
 
-**当前 HEAD**：`d37a4c5`（本地 = 远端 `main`）。`v0.1.3` tag 已推送。`host/bin/`、`host/lib/`、`dist/` 已被 `.gitignore` 忽略；`.gh_token`（PAT，勿提交/外传）也已 gitignore。
+**当前 HEAD**：`8119543` + *(本次)* 回退改动（本地领先远端 `main` 两个提交）。`v0.1.3` tag 已推送。`host/bin/`、`host/lib/`、`dist/` 已被 `.gitignore` 忽略；`.gh_token`（PAT，勿提交/外传）也已 gitignore。
 
 ## 3. 回退 / 恢复（防误改误删）
 
@@ -71,28 +72,23 @@ git push origin master:main                       # 上云（用户说"同步到
 - `settings.html`：`html { background: transparent; }`，保留 `body { background: var(--bg) }` 与 `html:not(.ready) body { visibility: hidden }`。
 - **未设** `TransparencyKey`/`AllowTransparency`；**未加** `--disable-gpu-compositing`/`--force-cpu-draw`。
 
-### 4.6 设置窗口拖动观感（本次返工，替换 `d37a4c5`）
-**（本次二 · GPU 合成层缩放 + 落定动画，覆盖前一次返工）**
-- `SettingsForm`（`host/DesktopHost.cs`）：
-  - `ResizeBegin`：记 `webSizeAtDragBegin = web.Size`，切 `web.Dock=None` 再写回 `web.Size`（顺序必须先 Dock 后 Size，否则 DockStyles 立刻覆盖），通知页面 `BeginWindowDrag(baseW, baseH)`，启动 800ms 兜底 `settleFallback` 定时器。
-  - `Resize`（dragging 中）：算 `sx = ClientSize.W / baseW`、`sy = ClientSize.H / baseH`，`scaleDirty` rAF 风格节流后调 `UpdateDragScale(sx, sy)`。
-  - `ResizeEnd`：`dragging=false; settlePending=true`，通知 `EndWindowDrag`，**不立即** `Dock=Fill`；等页面 `dragSettleDone` 回信后再切。
-  - `WebMessageReceived` lambda 里直接识别 `{"t":"dragSettleDone"}` 调 `OnDragSettleDone()`，绕过 `HostContext.OnSettingsMessage`（拖动是 `SettingsForm` 自身职责）。
-  - `ForceSettle` 兜底：第一次触发走页面正常动画；第二次（页面脚本死了）才硬切 `Dock=Fill` + `ForceSettle`。
-  - `OnFormClosing` 停/释放定时器。
-- `settings.html`（`prototype/settings.html`）：
-  - `html.is-dragging *:not(body) { transition:none !important; animation-play-state:paused !important; }`（body 排除，避免它的 transform 过渡被抑制）。
-  - `body { transform-origin: top left; transition: none; }`（显式 `none` 切断从 html 继承 `transition:all`，否则松手动画被压住）。
-  - `html.is-frozen body { width: var(--frozen-w); height: var(--frozen-h); will-change: transform; }`——body 锁在拖动开始的逻辑尺寸。
-  - `html.is-settling body { transform:none !important; transition: transform 180ms cubic-bezier(.2,.7,.3,1) !important; }`。
-  - 钩子：`__desklandBeginWindowDrag(baseW, baseH)` 加 `is-frozen+is-dragging`、`__desklandUpdateDragScale(sx, sy)` 直接写 `body.style.transform = 'scale(sx, sy)'`（**字面值，不用 var()**——`scale(var(--sx), var(--sy))` 双参形式会被 Chromium 判为无效值而回退 identity）、`__desklandEndWindowDrag()` 摘 `is-dragging` + 清 body transform 触发过渡、`__desklandForceSettle()` 摘所有 class + 清内联 style + `layoutPreview()` + 回 `dragSettleDone`。
-  - `transitionend`（propertyName=transform, target=body）→ `ForceSettle`；240ms `settleTimer` 兜底。
-  - 页面 `resize` 事件里跳过 `layoutPreview()` 当 `is-frozen`，避免冻结尺寸触发预览框重算。
-  - 页面未 `ready` 时 `EndWindowDrag` 直接走 `ForceSettle`，避免开场白闪复现。
+### 4.6 设置窗口拖动（本次回退到 magpie 式原生行为，替换 `d37a4c5` / `3289a78` / `8119543`）
+**结论：任何页面侧介入都会带来人眼可见的副作用。拖动/缩放完全交给 WinForms 系统模态循环 + WebView2 `Dock=Fill`。**
 
-**（本次一 · 上一轮返工，已被本次二覆盖）**
-- 上一轮取消尺寸冻结、让 WebView2 全程 Dock=Fill 跟随，导致拖动中逐帧 Layout/Paint 又回来了——**用户明确反对这个方向**。本次二恢复 `d37a4c5` 的尺寸冻结核心思路，但用 GPU 合成 `transform:scale` 让内容视觉上仍跟住窗口。
-- 之前 `d37a4c5` 的"冻结尺寸再恢复"做法中，松手瞬间一次性重排到新尺寸的跳变是"抽一下"的根因；本次二用 180ms transform 过渡盖住这个跳变。
+历史三次尝试全部被用户否决：
+- `d37a4c5`：`ResizeBegin` 切 `Dock=None` 冻结尺寸，`ResizeEnd` 一次性恢复——松手瞬间重排跳变（"抽一下"）。
+- `3289a78`：取消冻结，`Dock=Fill` 全程跟随 + 220ms 落定动画——拖动中逐帧 Layout/Paint 又回来；放大时内容拉伸、拖动起步 1 帧错位。
+- `8119543`：恢复尺寸冻结 + GPU 合成层 `transform:scale` 跟住窗口 + 180ms 落定过渡——内容仍被水平拉伸（用户截图确认），起步错位与松手过渡观感均未通过。
+
+本次回退删除的代码（如需重新实现请先读 `git show 8119543` 避免踩同一坑）：
+- `SettingsForm` 字段：`webSizeAtDragBegin` / `dragging` / `settlePending` / `scaleDirty` / `settleFallback`。
+- `SettingsForm` 方法：`OnSettingsResizeBegin` / `OnSettingsResize` / `OnSettingsResizeEnd` / `OnDragSettleDone` / `ForceSettle` / `RunOnPage` / `OnFormClosing`（仅为停定时器）。
+- `WebMessageReceived` lambda 里对 `{"t":"dragSettleDone"}` 的识别；恢复为直接 `host.OnSettingsMessage(a.TryGetWebMessageAsString())`。
+- `settings.html` CSS：`html.is-dragging *:not(body)` / `body { transform-origin }` / `html.is-frozen body` / `html.is-settling body`。
+- `settings.html` JS：`__desklandIsFrozen` / `__desklandBeginWindowDrag` / `__desklandUpdateDragScale` / `__desklandEndWindowDrag` / `__desklandForceSettle` / `settleTimer` / `dragScaleX/Y` / `transitionend` 监听。
+- 页面 `resize` 监听恢复为无条件 `layoutPreview`。
+
+参考实现：magpie（<https://github.com/yetone/magpie>）用 Wails 的 `--wails-draggable: drag` 触发 OS 模态拖拽循环，页面侧零特殊处理——这是当前采用的方向。
 
 ## 5. 关键文件速查
 
@@ -137,10 +133,10 @@ powershell -ExecutionPolicy Bypass -File tools\create-release.ps1
 
 ## 8. 待办 / 交给下一个 AI
 
-### 8.1 （已完成 2026-11-10）设置窗口拖动观感返工
-- 见 4.6。**用户反馈的"拖动中大量 CSSRecalculateStyle/Layout/Paint"已修复**：24 帧 scale 更新期间 Layout/RecalcStyle/Paint 全部 0ms（CDP PerformanceObserver 实测）。
-- **用户反馈的"抽一下 + 无过渡动画"已修复**：松手后 scale 从 1.300 → 1.000 平滑衰减（CDP rAF 采样：t=3ms 1.300 → t=12ms 1.208 → t=28ms 1.135 → t=46ms 1.084 → t=63ms 1.054 → t=78ms 1.033 → t=95ms 1.020 → t=114ms 1.011 → t=146ms 1.002 → t=162ms 1.000），180ms cubic-bezier 缓动，符合设计。
-- 如仍觉得落定动画不明显可加长到 300ms 或换成轻微缩放，但需先量化，不预设。
+### 8.1 （已完成 2026-11-11）设置窗口拖动：整体回退到 magpie 式原生行为
+- 见 4.6。三次返工均被用户否决，最终选择删光所有自定义拖拽代码，让系统模态循环 + `Dock=Fill` 处理拖动/缩放。
+- **未做**：拖动期间 `CSSRecalculateStyle` / `Layout` / `Paint` 计数会随窗口尺寸变化逐帧发生，本方案不规避。用户已接受这一代价换取"零拉伸 / 零错位 / 零抽动"。后续若再想优化性能，需先解决拉伸和错位，不要直接重蹈 `8119543`。
+- 如再收到"拖动卡顿"反馈，可考虑只在**移动**（无尺寸变化）时禁用重绘、缩放仍走 `Dock=Fill`，但需用户先确认方向再动手。
 
 ### 8.2 历史 / 可选下一步（未做）
 - 把"穿透"状态持久化进 `settings.json`，重启恢复勾选。
@@ -158,10 +154,10 @@ powershell -ExecutionPolicy Bypass -File tools\create-release.ps1
 
 ## 10. 当前现场（下一轮接手时）
 
-- 最后一次验证：`host/build.ps1` 编译通过；CDP 检查 `settings.html` 拖动钩子、class 切换、scale 写入与 180ms 过渡曲线全部正常（松手后 scale 从 1.300 平滑衰减到 1.000）；24 帧 scale 更新期间 Layout/RecalcStyle/Paint 全部 0ms；`--exit` 后 `Deskland.exe` 进程清零。
-- 未做：真实鼠标拖动（Win32 SendInput）截图对比。CDP 手动调钩子已覆盖 DOM/渲染/性能，真实拖动只多验证系统事件到 `ResizeBegin/End` 的链路，下次顺手验。
+- 最后一次验证：`host/build.ps1` 编译通过（无 C# 5 告警）；`Deskland.exe` 启动正常出现 `Deskland Preview` 主窗口；`--exit` 后 `Deskland.exe` 进程清零；`rg` 扫描确认 `is-dragging` / `is-frozen` / `is-settling` / `__deskland*` / `dragSettleDone` 等所有拖动痕迹在 `host/DesktopHost.cs` 与 `prototype/settings.html` 中已清空。
+- 未做：真实鼠标拖动（Win32 SendInput）截图对比。本次只删代码、恢复系统默认路径，没有新增逻辑，风险面较小。
 - 当前现场：`Deskland.exe` 已正常退出；WebView2 子进程（`msedgewebview2.exe`）可能有其他程序（如 `GUI.for.Clash`）的实例，勿误杀；`%LOCALAPPDATA%\DesklandPreview\settings.json` 主题/参数用户保留，勿擅改。
 - 本次改动只在本地，**未推送云端**（用户明确要求不同意就不推）。
 - 当前无 `Deskland.exe`、无 `DesklandPreview` WebView2 进程；`%LOCALAPPDATA%\DesklandPreview\settings.json` 主题和参数由用户保留，勿擅改。
 - 复现命令：`host/bin/Deskland.exe --settings` 打开设置，拖动标题栏/边框复现"抽动"；`--autostart` 启动壁纸；`--exit` 退出。若重新编译，先正常退出当前实例。
-- 回退：如需回退到返工前，用 `git checkout 182814d -- host/DesktopHost.cs prototype/settings.html` 只还原这两处（或 `git revert d37a4c5`），保留其它功能；不要整仓 `reset --hard`。
+- 回退：如需回到 `8119543`（GPU 合成层缩放方案，用户已否决），`git revert <本次提交>`；如需回到 `182814d`（所有拖动返工之前），`git checkout 182814d -- host/DesktopHost.cs prototype/settings.html` 只还原这两处。不要整仓 `reset --hard`。
