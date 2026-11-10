@@ -3,7 +3,11 @@ $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $proxy = 'http://127.0.0.1:7890'
 $token = $env:GITHUB_TOKEN
-if (-not $token) { throw 'Set GITHUB_TOKEN environment variable to a GitHub PAT (repo scope).' }
+if (-not $token) {
+  $tokenFile = Join-Path (Join-Path $PSScriptRoot '..') '.gh_token'
+  if (Test-Path -LiteralPath $tokenFile) { $token = (Get-Content -LiteralPath $tokenFile -Raw).Trim() }
+}
+if (-not $token) { throw 'Set GITHUB_TOKEN environment variable (or create .gh_token) with a GitHub PAT (repo scope).' }
 $repo = '111hhzz/Deskland'
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $version = (Get-Content -LiteralPath (Join-Path $PSScriptRoot 'version.json') -Raw | ConvertFrom-Json).version
@@ -19,8 +23,12 @@ try {
   $existing = Invoke-WebRequest -Uri "$base/releases/tags/$tag" -UseBasicParsing -Proxy $proxy -Headers $headers
   $rj = $existing.Content | ConvertFrom-Json
   Write-Host ("Reusing release id=" + $rj.id + " tag=" + $rj.tag_name)
+  # Pre-existing asset names so we skip already-uploaded files (idempotent re-runs).
+  $existingAssets = @{}
+  foreach ($a in $rj.assets) { $existingAssets[$a.name] = $true }
 } catch {
   # Not found: create below.
+  $existingAssets = @{}
 }
 
 $notesPath = Join-Path (Join-Path $root 'dist') ("release-notes-" + $version + ".md")
@@ -46,10 +54,14 @@ if (-not $rj) {
 $assets = @(
   "Deskland-Preview-$version-win-x64-portable.zip",
   "Deskland-Preview-$version-win-x64-portable.zip.sha256",
+  "Deskland-Preview-$version-win-x64-Setup.exe",
+  "Deskland-Preview-$version-win-x64-Setup.exe.sha256",
+  "Deskland-Preview-$version-win-x64-Setup.exe.manifest.json",
   "Deskland-Preview-$version-source.zip",
   "Deskland-Preview-$version-source.zip.sha256"
 )
 foreach ($name in $assets) {
+  if ($existingAssets.ContainsKey($name)) { Write-Host ("Already uploaded, skipping: " + $name); continue }
   $path = Join-Path (Join-Path $root 'dist') $name
   if (-not (Test-Path -LiteralPath $path)) { Write-Warning ("missing asset: " + $name); continue }
   $label = [uri]::EscapeDataString($name)

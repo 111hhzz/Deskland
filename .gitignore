@@ -6,6 +6,7 @@
 /.vscode/
 /.idea/
 *.log
+.gh_token
 .DS_Store
 Thumbs.db
 desktop.ini
