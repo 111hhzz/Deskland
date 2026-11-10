@@ -859,6 +859,9 @@ class SettingsForm : Form
     readonly WebView2 web;
     readonly HostContext host;
     readonly string pageDir;
+    Size webSizeAtDragBegin;    // ResizeBegin 时固定的 WebView2 尺寸
+    Size clientAtDragBegin;     // ResizeBegin 时窗体的客户区尺寸（用于区分纯移动 vs 调整大小）
+    bool dragging;              // 拖动进行中标记
 
     public SettingsForm(string pageDir, HostContext host)
     {
@@ -880,6 +883,45 @@ class SettingsForm : Form
         web.CreationProperties = new CoreWebView2CreationProperties();
         web.CreationProperties.UserDataFolder = Path.Combine(Log.DataDir, "WebView2");
         Controls.Add(web);
+
+        // 拖动标题栏移动窗口或拖动边框调整大小时，先固定 WebView2 尺寸（Dock=None），
+        // 等拖动结束（ResizeEnd）再一次性恢复 Dock=Fill 并同步。这样拖动期间 WebView2
+        // 不跟随窗体每一帧尺寸变化，避免大量 CSSRecalculateStyle / Layout / Paint。
+        // 注意：不能用 TrySuspendAsync/Resume，它们要求 WebView2 不可见，不适用于窗口拖动。
+        ResizeBegin += OnSettingsResizeBegin;
+        ResizeEnd += OnSettingsResizeEnd;
+    }
+
+    void OnSettingsResizeBegin(object sender, EventArgs e)
+    {
+        dragging = true;
+        webSizeAtDragBegin = web.Size;
+        clientAtDragBegin = ClientSize;
+        web.Dock = DockStyle.None;
+        web.Size = webSizeAtDragBegin;   // 固定：拖动期间 WebView2 不跟随窗体尺寸变化
+        SetDraggingClass(true);
+    }
+
+    void OnSettingsResizeEnd(object sender, EventArgs e)
+    {
+        if (!dragging) return;
+        dragging = false;
+        SetDraggingClass(false);
+        web.Dock = DockStyle.Fill;
+        // 纯移动窗口（尺寸未变）：恢复 Dock=Fill 即可，web.Size 仍等于记录值，不会触发无意义重排；
+        // 调整了大小：一次 PerformLayout 把 WebView2 同步到新客户区，避免拖动中逐帧重算。
+        if (ClientSize != clientAtDragBegin) PerformLayout();
+    }
+
+    async void SetDraggingClass(bool on)
+    {
+        try
+        {
+            if (web.CoreWebView2 != null)
+                await web.ExecuteScriptAsync(on ? "document.documentElement.classList.add('is-dragging')"
+                                                : "document.documentElement.classList.remove('is-dragging')");
+        }
+        catch { }   // 页面未就绪或核心失效时忽略：仅影响 CSS 过渡暂停，不影响功能
     }
 
     // 设置窗口底色跟随系统深浅色（与标题栏一致）：浅 #ffffff / 深 #171717。

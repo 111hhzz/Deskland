@@ -35,6 +35,7 @@
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; }
   html { background: transparent; }   /* 未就绪阶段 body 隐藏时透出宿主同色底，避免 WebView2 默认白闪 */
+  html.is-dragging * { transition: none !important; animation-play-state: paused !important; }   /* 拖动期间暂停过渡/动画，降低重绘 */
   body {
     background: var(--bg); color: var(--text); overflow: hidden;
     font: 13px/1.5 "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", system-ui, sans-serif;
