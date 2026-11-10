@@ -872,7 +872,7 @@ class SettingsForm : Form
         float s = Native.GetDpiForSystem() / 96f;       // 进程按物理像素工作，窗口尺寸要自己按缩放比例算
         ClientSize = new Size((int)(1120 * s), (int)(800 * s));     // 左边主题排三列，右边上面预览、下面参数
         MinimumSize = new Size((int)(940 * s), (int)(680 * s));
-        BackColor = Color.White;
+        BackColor = GetCurrentThemeBackgroundColor();   // 跟随系统深浅色，加载/拖动期间避免白色拖影
 
         web = new WebView2();
         web.Dock = DockStyle.Fill;
@@ -882,9 +882,9 @@ class SettingsForm : Form
         Controls.Add(web);
     }
 
-    // 标题栏（系统原生那条）刷成和页面底色一样：settings.html 跟随系统深浅色（浅 #ffffff / 深 #171717），
-    // 标题栏也按系统深浅色取同一个颜色。DWMWA_CAPTION_COLOR / 深色模式要 Win11，旧系统调用失败就保持系统原样
-    void ThemeTitleBar()
+    // 设置窗口底色跟随系统深浅色（与标题栏一致）：浅 #ffffff / 深 #171717。
+    // 页面加载期 body 还是 visibility:hidden，WebView2 会透出这个底色；用它做同色底可消除白闪/拖影。
+    Color GetCurrentThemeBackgroundColor()
     {
         bool light = true;
         try
@@ -893,6 +893,17 @@ class SettingsForm : Form
             light = v == null || Convert.ToInt32(v) != 0;
         }
         catch { }
+        return light ? Color.White : Color.FromArgb(23, 23, 23);
+    }
+
+    // 标题栏（系统原生那条）刷成和页面底色一样：settings.html 跟随系统深浅色（浅 #ffffff / 深 #171717），
+    // 标题栏也按系统深浅色取同一个颜色。DWMWA_CAPTION_COLOR / 深色模式要 Win11，旧系统调用失败就保持系统原样
+    void ThemeTitleBar()
+    {
+        Color bg = GetCurrentThemeBackgroundColor();
+        BackColor = bg;                    // 窗体底色与页面/标题栏同色，拖动重绘间隙不露白
+        web.DefaultBackgroundColor = bg;   // WebView2 控制器底色同色，加载期不闪白
+        bool light = bg == Color.White;
         int dark = light ? 0 : 1;
         int color = light ? 0x00FFFFFF : 0x00171717;      // COLORREF 是 0x00BBGGRR
         Native.DwmSetWindowAttribute(Handle, 20, ref dark, 4);    // DWMWA_USE_IMMERSIVE_DARK_MODE：标题文字、按钮跟着深浅色
