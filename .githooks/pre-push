@@ -1,0 +1,38 @@
+#!/bin/sh
+# pre-push hook：推送前再次运行测试
+# 安装：cp .githooks/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-push
+
+set -e
+
+# 加载 .NET SDK 路径（硬编码，避免环境变量问题）
+export PATH="/c/Users/huang/AppData/Local/Microsoft/dotnet:$PATH"
+
+echo "════════════════════════════════════════════════════════════"
+echo "  pre-push: 推送前验证"
+echo "════════════════════════════════════════════════════════════"
+echo ""
+
+# 确保宿主已编译
+echo "▶ 编译宿主..."
+cd host
+if ! powershell -ExecutionPolicy Bypass -File build.ps1 2>&1; then
+    echo "❌ 编译失败"
+    exit 1
+fi
+cd ..
+
+# 运行测试
+echo ""
+echo "▶ 运行测试..."
+cd test/Deskland.Tests
+if ! dotnet test --no-build 2>&1; then
+    echo ""
+    echo "❌ 测试失败，阻止推送"
+    exit 1
+fi
+cd ../..
+
+echo ""
+echo "════════════════════════════════════════════════════════════"
+echo "  ✅ 验证通过，允许推送"
+echo "════════════════════════════════════════════════════════════"

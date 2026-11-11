@@ -1,5 +1,5 @@
 #!/bin/sh
-# pre-commit hook：提交前编译 + 运行测试
+# pre-commit hook：lint → typecheck → deslop → test
 # 安装：cp .githooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
 
 set -e
@@ -7,21 +7,117 @@ set -e
 # 加载 .NET SDK 路径（硬编码，避免环境变量问题）
 export PATH="/c/Users/huang/AppData/Local/Microsoft/dotnet:$PATH"
 
-echo "=== pre-commit: 编译宿主 ==="
+echo "════════════════════════════════════════════════════════════"
+echo "  pre-commit: 代码质量门禁"
+echo "════════════════════════════════════════════════════════════"
+echo ""
+
+# ─── 1. Lint: dotnet format ───────────────────────────────────
+echo "▶ [1/4] Lint: dotnet format --verify-no-changes"
+cd test/Deskland.Tests
+if ! dotnet format --verify-no-changes --verbosity quiet 2>&1; then
+    echo ""
+    echo "❌ Lint 失败：代码格式不符合规范"
+    echo "   修复命令: dotnet format"
+    exit 1
+fi
+cd ../..
+echo "   ✅ 格式检查通过"
+echo ""
+
+# ─── 2. Typecheck: dotnet build --warnaserror ─────────────────
+echo "▶ [2/4] Typecheck: dotnet build --warnaserror"
 cd host
-powershell -ExecutionPolicy Bypass -File build.ps1
+if ! powershell -ExecutionPolicy Bypass -File build.ps1 2>&1 | tee /tmp/deskland-build.log; then
+    echo ""
+    echo "❌ 编译失败"
+    exit 1
+fi
 cd ..
 
-echo ""
-echo "=== pre-commit: 编译测试项目 ==="
 cd test/Deskland.Tests
-dotnet build --no-restore
+if ! dotnet build --no-restore --warnaserror 2>&1; then
+    echo ""
+    echo "❌ Typecheck 失败：存在编译警告"
+    exit 1
+fi
 cd ../..
-
+echo "   ✅ 类型检查通过"
 echo ""
-echo "=== pre-commit: 运行测试 ==="
+
+# ─── 3. Deslop: 自定义屎山代码检查 ─────────────────────────────
+echo "▶ [3/4] Deslop: 屎山代码检查"
+
+DESLOP_FOUND=0
+
+# 检查 TODO/FIXME/HACK/XXX 注释（排除 bin/obj/.playwright 和 .md/.json）
+echo "   检查 TODO/FIXME/HACK/XXX..."
+DESLOP_HITS=$(grep -rn --include="*.cs" --include="*.html" --include="*.js" \
+    --exclude-dir="bin" --exclude-dir="obj" --exclude-dir=".playwright" \
+    -E "//\s*(TODO|FIXME|HACK|XXX|BUG|临时|暂时|先这样)" \
+    host/ prototype/ test/ 2>/dev/null || true)
+if [ -n "$DESLOP_HITS" ]; then
+    echo "   ⚠️  发现待办注释："
+    echo "$DESLOP_HITS" | head -5 | sed 's/^/      /'
+    DESLOP_FOUND=1
+fi
+
+# 检查调试输出 Console.WriteLine / System.Diagnostics.Debug.WriteLine
+# 排除测试项目和 Probe（它们用 Console.WriteLine 输出报告是正常的）
+echo "   检查调试输出..."
+DEBUG_HITS=$(grep -rn --include="*.cs" \
+    --exclude-dir="bin" --exclude-dir="obj" --exclude-dir=".playwright" \
+    -E "(Console\.WriteLine|System\.Diagnostics\.Debug\.WriteLine)" \
+    host/ 2>/dev/null | grep -v "Log\." || true)
+if [ -n "$DEBUG_HITS" ]; then
+    echo "   ⚠️  发现调试输出："
+    echo "$DEBUG_HITS" | head -5 | sed 's/^/      /'
+    DESLOP_FOUND=1
+fi
+
+# 检查空 catch 块（排除 bin/obj/.playwright）
+echo "   检查空 catch 块..."
+EMPTY_CATCH=$(grep -rn --include="*.cs" -A1 "catch" host/ 2>/dev/null \
+    --exclude-dir="bin" --exclude-dir="obj" --exclude-dir=".playwright" \
+    | grep -B1 "^\s*}$" | grep "catch" || true)
+if [ -n "$EMPTY_CATCH" ]; then
+    echo "   ⚠️  发现空 catch 块："
+    echo "$EMPTY_CATCH" | head -5 | sed 's/^/      /'
+    DESLOP_FOUND=1
+fi
+
+# 检查未使用的变量（简单检查：声明后未使用）
+echo "   检查敏感信息泄露..."
+SECRET_HITS=$(grep -rn --include="*.cs" --include="*.json" --include="*.html" --include="*.js" \
+    -E "(password\s*=\s*[\"'][^\"']+[\"']|secret\s*=\s*[\"'][^\"']+[\"']|token\s*=\s*[\"'][^\"']+[\"'])" \
+    host/ prototype/ test/ 2>/dev/null | grep -v "example\|placeholder\|sample\|\.md" || true)
+if [ -n "$SECRET_HITS" ]; then
+    echo "   ⚠️  发现硬编码敏感信息："
+    echo "$SECRET_HITS" | head -5 | sed 's/^/      /'
+    DESLOP_FOUND=1
+fi
+
+if [ "$DESLOP_FOUND" -eq 1 ]; then
+    echo ""
+    echo "❌ Deslop 失败：发现屎山代码"
+    echo "   请清理后重新提交"
+    exit 1
+fi
+echo "   ✅ Deslop 检查通过"
+echo ""
+
+# ─── 4. Test: dotnet test ─────────────────────────────────────
+echo "▶ [4/4] Test: dotnet test"
 cd test/Deskland.Tests
-dotnet test --no-build
-
+if ! dotnet test --no-build 2>&1; then
+    echo ""
+    echo "❌ 测试失败"
+    exit 1
+fi
+cd ../..
+echo "   ✅ 测试通过"
 echo ""
-echo "=== pre-commit: 全部通过 ==="
+
+echo "════════════════════════════════════════════════════════════"
+echo "  ✅ 全部检查通过，允许提交"
+echo "════════════════════════════════════════════════════════════"
