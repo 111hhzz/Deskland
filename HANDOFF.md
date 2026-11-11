@@ -29,8 +29,11 @@
 | （无 tag） | `3289a78` | 拖动观感返工：取消尺寸冻结，拖动全程 WebView2 平滑跟随；松手 220ms 落定微动效——**用户反馈拉伸 + 错位，已在下一提交返工** |
 | （无 tag） | `8119543` | 拖动性能返工：尺寸冻结恢复 + GPU 合成层 `transform:scale` + 180ms 落定过渡——**用户反馈仍拉伸/错位/抽动，已在下一提交回退** |
 | （无 tag） | *(本次)* | 拖动逻辑整体回退到 magpie 式原生行为：删掉全部自定义拖拽/缩放/落定代码，`SettingsForm` 不再订阅 `ResizeBegin/Resize/ResizeEnd`，WebView2 保持 `Dock=Fill` 由系统模态循环处理移动与缩放，页面侧零特殊处理 |
+| （无 tag） | *(本次)* | 设置窗口抖动修复：`SettingsForm.OnShown` 切 window-to-visual + 独立 UDF（`WebView2-Settings`），壁纸保持 windowed |
+| （无 tag） | *(本次)* | E2E 测试体系：C# xUnit + Playwright .NET，双端口 CDP，`TestProbe` 事件埋点，Win32 Probe 窗口结构断言 |
+| （无 tag） | *(本次)* | Git Hooks 代码质量门禁：pre-commit（lint+typecheck+deslop+test）+ pre-push（编译+test） |
 
-**当前 HEAD**：`8119543` + *(本次)* 回退改动（本地领先远端 `main` 两个提交）。`v0.1.3` tag 已推送。`host/bin/`、`host/lib/`、`dist/` 已被 `.gitignore` 忽略；`.gh_token`（PAT，勿提交/外传）也已 gitignore。
+**当前 HEAD**：拖动回退 + 抖动修复 + E2E 测试 + Git Hooks（本地领先远端 `main` 多个提交）。`v0.1.3` tag 已推送。`host/bin/`、`host/lib/`、`dist/`、`test/Deskland.Tests/bin/`、`test/Deskland.Tests/obj/` 已被 `.gitignore` 忽略；`.gh_token`（PAT，勿提交/外传）也已 gitignore。
 
 ## 3. 回退 / 恢复（防误改误删）
 
@@ -97,8 +100,9 @@ git push origin master:main                       # 上云（用户说"同步到
 
 **本次修法：** 把 env var 从 `Main` 挪进 `SettingsForm.OnShown`，并用独立用户数据目录让设置窗口单独一个浏览器进程：
 - `SettingsForm` 构造：`CreationProperties.UserDataFolder = Path.Combine(Log.DataDir, "WebView2-Settings")`（壁纸仍用 `"WebView2"`）。独立用户数据目录 → 独立 `msedgewebview2.exe` 浏览器进程 → env var 只影响设置那一个。
-- `SettingsForm.OnShown`：`EnsureCoreWebView2Async` 前 `SetEnvironmentVariable("COREWEBVIEW2_FORCED_HOSTING_MODE", "COREWEBVIEW2_HOSTING_MODE_WINDOW_TO_VISUAL")`，返回后立刻设为 `null` 清掉。
+- `SettingsForm.OnShown`（`async void`）：先 `await Task.Delay(50)` 轮询等待壁纸窗口 `IsWebView2Ready`（最多 10 秒），确保壁纸先完成初始化，再设 `COREWEBVIEW2_FORCED_HOSTING_MODE=WINDOW_TO_VISUAL`，`EnsureCoreWebView2Async` 返回后立刻 `finally` 清掉。
 - 壁纸：零改动，继续走 windowed，子 HWND 接收鼠标，穿透/图标/任务栏都不受影响。
+- **测试模式额外改动**：`WallpaperForm.OnShown` 里给 `CoreWebView2EnvironmentOptions.AdditionalBrowserArguments` 加 `--hosting-mode=windowed`，确保测试模式下壁纸不被设置窗口的环境变量污染（显式声明 Windowed 模式）。
 - 已验证（枚举 + CIM）：
   - 设置窗口 `Chrome_WidgetWin_1` 子 HWND 消失（只剩 `Chrome_WidgetWin_0` 视觉表面）→ 切换生效。
   - `Deskland.exe` 下挂两个 `msedgewebview2.exe`，`user-data-dir` 分别指向 `WebView2` 和 `WebView2-Settings` → 隔离成功。
@@ -128,6 +132,13 @@ git push origin master:main                       # 上云（用户说"同步到
 | `tools/build-portable.ps1` `build-source-zip.ps1` | 便携 ZIP / 源码 ZIP 打包 |
 | `tools/build-installer.ps1` | NSIS 安装包构建（需系统 NSIS + WebView2 bootstrapper） |
 | `tools/create-release.ps1` `verify-release.ps1` | 创建/上传 GitHub release（PAT 从 `GITHUB_TOKEN` 或 `.gh_token`） |
+| `test/Deskland.Tests/DesklandE2ETests.cs` | E2E 测试主类（8 个测试：DOM 断言 + 性能埋点） |
+| `test/Deskland.Tests/Deskland.Tests.csproj` | 测试项目文件（xUnit + Playwright .NET） |
+| `test/Deskland.Tests/xunit.runner.json` | xUnit 配置（禁用并行化） |
+| `test/win32-probe/Win32Probe.cs` | Win32 Probe 源码（6 个窗口结构断言） |
+| `test/win32-probe/build.ps1` | Win32 Probe 编译脚本 |
+| `.githooks/pre-commit` | pre-commit hook（lint + typecheck + deslop + test） |
+| `.githooks/pre-push` | pre-push hook（编译 + test） |
 
 ## 6. 构建与运行
 
@@ -169,59 +180,101 @@ powershell -ExecutionPolicy Bypass -File tools\create-release.ps1
 - 壁纸 / 主题切换延迟（早期反馈，`d37a4c5` 前未量化）：已通过 P2-2 性能埋点完成量化，见 8.3。
 
 ### 8.3 （已完成 2026-11-11）E2E 测试体系建设
-- **测试项目**：`test/Deskland.Tests`（xUnit + Playwright .NET + FlaUI）
-- **测试内容**：
-  - `DesklandE2ETests`：8 个测试（7 个 DOM 断言 + 1 个性能埋点）
-  - `test/win32-probe/Win32Probe.cs`：6 个窗口结构断言（独立 C# 程序）
-- **测试命令**：
+
+#### 测试架构
+
+| 层 | 工具 | 职责 |
+|------|------|------|
+| Web 层 | Playwright .NET（`ConnectOverCDPAsync`） | 连接 WebView2 CDP，DOM 断言 |
+| 原生 UI 层 | Win32 Probe（独立 C# 程序） | 窗口结构断言（`Chrome_WidgetWin_1` 存在性） |
+| 性能埋点 | `TestProbe` 静态类（嵌入宿主） | 启动首帧 / 主题切换耗时 |
+
+#### TestProbe 机制
+
+- **启用条件**：`--test` 参数 或 `DESKLAND_TEST=1` 环境变量
+- **事件文件**：`{DESKLAND_PROFILE_DIR或Log.DataDir}/test-events-{pid}.jsonl`
+- **信号**：
+  - `settings_opened`：设置窗口创建后
+  - `webview2_ready`：两个 WebView2 初始化完成后（含 `hwnd` 字段）
+  - `settings_ready`：设置页发 `{t:"ready"}`
+  - `firstframe`：壁纸页发 `{t:"firstframe"}` 或 `{t:"ready"}`
+  - `perf`：性能埋点（`path` + `ms`）
+- **页面侧信号**：
+  - `prototype/ripple.js`：双 rAF 后 `postMessage({t:'firstframe'})`
+  - `prototype/settings.html`：首个 rAF 后 `postMessage({t:'ready'})`
+
+#### 测试模式 CDP 端口注入
+
+- **壁纸窗口**（端口 9222）：`CoreWebView2EnvironmentOptions.AdditionalBrowserArguments = "--remote-debugging-port=9222 --hosting-mode=windowed"`
+- **设置窗口**（端口 9223）：`--remote-debugging-port=9223`（不设 hosting-mode，走环境变量）
+- **关键**：用 `CoreWebView2Environment.CreateAsync` 显式创建环境，避免进程级环境变量竞争
+
+#### 测试内容
+
+- `DesklandE2ETests`：8 个测试（7 个 DOM 断言 + 1 个性能埋点）
+- `test/win32-probe/Win32Probe.cs`：6 个窗口结构断言（独立 C# 程序）
+
+#### 运行命令
+
+```powershell
+cd test/Deskland.Tests
+dotnet test
+```
+
+#### Win32 Probe 手动运行
+
+```powershell
+$env:DESKLAND_PROFILE_DIR = "D:\tmp\deskland-test"
+$env:DESKLAND_TEST = "1"
+.\host\bin\Deskland.exe --test --settings
+# 另开终端：
+$env:DESKLAND_PROFILE_DIR = "D:\tmp\deskland-test"
+.\test\win32-probe\bin\Win32Probe.exe
+```
+
+#### 性能埋点数据（2026-11-11 实测）
+
+| 路径 | 耗时 |
+|------|------|
+| `startup_first_frame` | ~900ms |
+| `theme_switch` | ~1100ms |
+
+#### Git Hooks 代码质量门禁
+
+- **pre-commit**（`.githooks/pre-commit`）：
+  1. **Lint**：`dotnet format --verify-no-changes`
+  2. **Typecheck**：`dotnet build --warnaserror`（警告即错误）
+  3. **Deslop**：屎山代码检查（TODO/FIXME/HACK 注释、调试输出、空 catch、敏感信息）
+  4. **Test**：`dotnet test`
+- **pre-push**（`.githooks/pre-push`）：编译宿主 + 运行测试
+- **安装**：
   ```powershell
-  cd test/Deskland.Tests
-  dotnet test
+  cp .githooks/pre-commit .git/hooks/pre-commit
+  cp .githooks/pre-push .git/hooks/pre-push
+  chmod +x .git/hooks/pre-commit .git/hooks/pre-push
   ```
-- **Win32 Probe 手动运行**：
-  ```powershell
-  $env:DESKLAND_PROFILE_DIR = "D:\tmp\deskland-test"
-  $env:DESKLAND_TEST = "1"
-  .\host\bin\Deskland.exe --test --settings
-  # 另开终端：
-  $env:DESKLAND_PROFILE_DIR = "D:\tmp\deskland-test"
-  .\test\win32-probe\bin\Win32Probe.exe
-  ```
-- **性能埋点**：
-  - 启动首帧：~900ms
-  - 主题切换：~1100ms
-  - 事件文件：`test-profile/test-events-{pid}.jsonl`
-- **Git Hooks**：`.githooks/pre-commit` 代码质量门禁 + `.githooks/pre-push` 推送前验证
-  - 安装：
-    ```powershell
-    cp .githooks/pre-commit .git/hooks/pre-commit
-    cp .githooks/pre-push .git/hooks/pre-push
-    chmod +x .git/hooks/pre-commit .git/hooks/pre-push
-    ```
-  - **pre-commit 流程**：
-    1. **Lint**：`dotnet format --verify-no-changes`
-    2. **Typecheck**：`dotnet build --warnaserror`（警告即错误）
-    3. **Deslop**：屎山代码检查（TODO/FIXME/HACK 注释、调试输出、空 catch、敏感信息）
-    4. **Test**：`dotnet test`
-  - **pre-push 流程**：编译宿主 + 运行测试
-  - 触发：每次 `git commit` / `git push` 自动运行
-  - 失败：阻止提交/推送
-- **技术选型**：
-  - Playwright .NET 1.64.1（CDP 连接 WebView2）
-  - FlaUI 5.0.0（WinForms 原生控件，暂未使用）
-  - xUnit 2.5.3
-  - .NET 8.0 SDK
-- **注意事项**：
-  - 测试需要 .NET 8 SDK（`$env:LOCALAPPDATA\Microsoft\dotnet`）
-  - 测试会启动真实 Deskland 进程，确保 9222/9223 端口空闲
-  - 测试串行执行（`xunit.runner.json` 禁用并行化）
-  - 性能埋点信号只在 `--test` / `DESKLAND_TEST=1` 时启用
+
+#### 技术选型
+
+- Playwright .NET 1.64.1（CDP 连接 WebView2）
+- xUnit 2.5.3
+- .NET 8.0 SDK
+- ~~FlaUI 5.0.0~~（已移除，NU1701 与 .NET 8 不兼容；Win32 Probe 用 P/Invoke 替代）
+
+#### 注意事项
+
+- 测试需要 .NET 8 SDK（`$env:LOCALAPPDATA\Microsoft\dotnet`）
+- 测试会启动真实 Deskland 进程，确保 9222/9223 端口空闲
+- 测试串行执行（`xunit.runner.json` 禁用并行化）
+- 性能埋点信号只在 `--test` / `DESKLAND_TEST=1` 时启用
+- `host/DesktopHost.cs` 里 `TestProbe` 类约 20 行，仅测试模式生效
 
 ### 8.4 参考资源
 - Playwright .NET + WebView2 官方指南：https://playwright.dev/dotnet/docs/webview2
-- FlaUI（C# Windows UI 自动化）：https://github.com/FlaUI/FlaUI
+- Playwright .NET CDP 连接：https://playwright.dev/dotnet/docs/browsers#chromium-with-chrome-devtools-protocol
 - Git Hooks 最佳实践：https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks
 - C# 桌面应用 E2E 测试：https://learn.microsoft.com/en-us/dotnet/architecture/
+- WebView2 Windowed vs Visual Hosting：https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/windowed-vs-visual-hosting
 
 ## 9. 注意事项
 
@@ -233,10 +286,13 @@ powershell -ExecutionPolicy Bypass -File tools\create-release.ps1
 
 ## 10. 当前现场（下一轮接手时）
 
-- 最后一次验证：`host/build.ps1` 编译通过（无 C# 5 告警）；`Deskland.exe` 启动正常出现 `Deskland Preview` 主窗口；`--exit` 后 `Deskland.exe` 进程清零；`rg` 扫描确认 `is-dragging` / `is-frozen` / `is-settling` / `__deskland*` / `dragSettleDone` 等所有拖动痕迹在 `host/DesktopHost.cs` 与 `prototype/settings.html` 中已清空。
-- 未做：真实鼠标拖动（Win32 SendInput）截图对比。本次只删代码、恢复系统默认路径，没有新增逻辑，风险面较小。
-- 当前现场：`Deskland.exe` 已正常退出；WebView2 子进程（`msedgewebview2.exe`）可能有其他程序（如 `GUI.for.Clash`）的实例，勿误杀；`%LOCALAPPDATA%\DesklandPreview\settings.json` 主题/参数用户保留，勿擅改。
-- 本次改动只在本地，**未推送云端**（用户明确要求不同意就不推）。
-- 当前无 `Deskland.exe`、无 `DesklandPreview` WebView2 进程；`%LOCALAPPDATA%\DesklandPreview\settings.json` 主题和参数由用户保留，勿擅改。
-- 复现命令：`host/bin/Deskland.exe --settings` 打开设置，拖动标题栏/边框复现"抽动"；`--autostart` 启动壁纸；`--exit` 退出。若重新编译，先正常退出当前实例。
-- 回退：如需回到 `8119543`（GPU 合成层缩放方案，用户已否决），`git revert <本次提交>`；如需回到 `182814d`（所有拖动返工之前），`git checkout 182814d -- host/DesktopHost.cs prototype/settings.html` 只还原这两处。不要整仓 `reset --hard`。
+- **代码状态**：所有改动已提交本地（`master` 分支），未推送云端。
+- **测试状态**：`dotnet test` 8/8 通过；Win32 Probe 6/6 通过；pre-commit hook 验证通过（屎山代码被拦截）。
+- **进程状态**：当前无 `Deskland.exe` 进程；`msedgewebview2.exe` 可能有其他程序实例，勿误杀。
+- **用户数据**：`%LOCALAPPDATA%\DesklandPreview\settings.json` 主题和参数由用户保留，勿擅改。
+- **代理状态**：GitHub 代理已关闭，重开前一律不推。
+- **.NET SDK**：已安装 .NET 8.0.428，路径 `C:\Users\huang\AppData\Local\Microsoft\dotnet`，已加入用户 PATH。
+- **测试环境变量**：
+  - `DESKLAND_TEST=1`：启用 TestProbe
+  - `DESKLAND_PROFILE_DIR`：隔离测试数据目录
+- **回退**：如需回到 E2E 测试之前，`git log --oneline` 找到 `docs: 更新 git hooks 文档` 之前的提交，`git revert` 或 `git checkout` 对应文件。不要整仓 `reset --hard`。
