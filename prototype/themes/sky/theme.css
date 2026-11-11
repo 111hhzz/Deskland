@@ -1,0 +1,13 @@
+/* 天空主题 Token 值。
+ * 本文件只声明自定义属性，禁止写选择器；公共默认值见 ../base.css。
+ * scene-* 为 0-1 的 r g b 三元组，供 WebGL 着色器使用。 */
+:root {
+  --color-bg: #6fb3ea;
+  --scene-sky-day-top: 0.27 0.56 0.88;
+  --scene-sky-day-bottom: 0.62 0.82 0.96;
+  --scene-sky-dusk-top: 0.28 0.30 0.58;
+  --scene-sky-dusk-bottom: 0.98 0.66 0.42;
+  --scene-sky-night-top: 0.04 0.06 0.16;
+  --scene-sky-night-bottom: 0.20 0.26 0.44;
+  --scene-shadow: 0.56 0.66 0.52;
+}

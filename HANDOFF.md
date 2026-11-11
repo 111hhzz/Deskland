@@ -124,15 +124,19 @@ git push origin master:main                       # 上云（用户说"同步到
 |------|------|
 | `host/DesktopHost.cs` | 宿主主体：窗口挂载、WebView2 初始化、图标读取、Z 顺序、穿透开关、只读鼠标钩子、托盘、设置窗口 |
 | `host/Themes.cs` | 主题清单读取 + `Allowed()` 权限判定 |
-| `prototype/themes.json` | 主题清单（locked 预告 + 已解锁） |
-| `prototype/sky.html` `prototype/ripple.js` | 天空主题页；共用涟漪覆盖层 + 淡入函数 |
+| `host/SystemTheme.cs` | 系统深浅色：窗体底色、标题栏、WebView2 `PreferredColorScheme` |
+| `prototype/themes.json` | 主题清单注册表（locked 预告 + 已解锁；宿主/设置页/打包读它） |
+| `prototype/themes/` | 主题目录：`base.css`（公共样式 + Token 默认值）、`CONVENTIONS.md`（规范）、`<id>/theme.css` + `theme.json`、`_template/` |
+| `prototype/sky.html` `prototype/ripple.js` | 天空主题页；共用涟漪覆盖层 + 淡入函数（读取 Token） |
 | `prototype/settings.html` | 主题列表、参数、语言、静态缩略图预览；白闪/拖动相关 CSS |
-| `prototype/meadow.html` `flat.html` | 草地 / 沙滩主题 |
+| `prototype/meadow.html` `flat.html` | 草地 / 沙滩主题（页面引入 `themes/base.css` + `themes/<id>/theme.css`） |
 | `host/build.ps1` | 构建脚本（自动补 WebView2 SDK） |
 | `tools/build-portable.ps1` `build-source-zip.ps1` | 便携 ZIP / 源码 ZIP 打包 |
 | `tools/build-installer.ps1` | NSIS 安装包构建（需系统 NSIS + WebView2 bootstrapper） |
 | `tools/create-release.ps1` `verify-release.ps1` | 创建/上传 GitHub release（PAT 从 `GITHUB_TOKEN` 或 `.gh_token`） |
-| `test/Deskland.Tests/DesklandE2ETests.cs` | E2E 测试主类（8 个测试：DOM 断言 + 性能埋点） |
+| `test/Deskland.Tests/DesklandE2ETests.cs` | E2E 测试主类（11 个：DOM 断言 + 性能阈值 + 视觉基线 + Token 计算样式） |
+| `test/Deskland.Tests/ThemeConventionTests.cs` | 主题约定测试（5 个：目录/Token/红线，无浏览器） |
+| `test/Deskland.Tests/baselines/` | 5 张视觉基线截图（设置页浅/深 + 三个壁纸页） |
 | `test/Deskland.Tests/Deskland.Tests.csproj` | 测试项目文件（xUnit + Playwright .NET） |
 | `test/Deskland.Tests/xunit.runner.json` | xUnit 配置（禁用并行化） |
 | `test/win32-probe/Win32Probe.cs` | Win32 Probe 源码（6 个窗口结构断言） |
@@ -211,8 +215,10 @@ powershell -ExecutionPolicy Bypass -File tools\create-release.ps1
 
 #### 测试内容
 
-- `DesklandE2ETests`：8 个测试（7 个 DOM 断言 + 1 个性能埋点）
+- `ThemeConventionTests`：5 个约定测试（theme.css 只含 `:root`、base.css 无硬编码颜色、theme.json↔theme.css 一致、ready 主题有配套目录、Token 引用完整）
+- `DesklandE2ETests`：11 个测试（7 个 DOM 断言 + 启动性能 + theme_switch 阈值 + 5 张视觉基线 + Token 计算样式）
 - `test/win32-probe/Win32Probe.cs`：6 个窗口结构断言（独立 C# 程序）
+- 视觉基线：`VisualBaseline_FiveScreens` 冻结 `performance.now` / rAF / `Math.random` 后截图，比对 5 张基线（阈值 2%）；`DESKLAND_UPDATE_BASELINES=1` 可重新生成
 
 #### 运行命令
 
@@ -236,8 +242,8 @@ $env:DESKLAND_PROFILE_DIR = "D:\tmp\deskland-test"
 
 | 路径 | 耗时 |
 |------|------|
-| `startup_first_frame` | ~900ms |
-| `theme_switch` | ~1100ms |
+| `startup_first_frame` | ~920ms |
+| `theme_switch` | ~1150ms（阈值 3000ms） |
 
 #### Git Hooks 代码质量门禁
 
@@ -287,7 +293,7 @@ $env:DESKLAND_PROFILE_DIR = "D:\tmp\deskland-test"
 ## 10. 当前现场（下一轮接手时）
 
 - **代码状态**：所有改动已提交本地（`master` 分支），未推送云端。
-- **测试状态**：`dotnet test` 8/8 通过；Win32 Probe 6/6 通过；pre-commit hook 验证通过（屎山代码被拦截）。
+- **测试状态**：`dotnet test` 16/16 通过（约定 5 + E2E 11）；Win32 Probe 6/6 通过；pre-commit hook 验证通过（屎山代码被拦截）。
 - **进程状态**：当前无 `Deskland.exe` 进程；`msedgewebview2.exe` 可能有其他程序实例，勿误杀。
 - **用户数据**：`%LOCALAPPDATA%\DesklandPreview\settings.json` 主题和参数由用户保留，勿擅改。
 - **代理状态**：GitHub 代理已关闭，重开前一律不推。

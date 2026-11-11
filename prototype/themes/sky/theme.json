@@ -1,0 +1,22 @@
+{
+  "id": "sky",
+  "name": "天空",
+  "desc": "卡通风的蓝天白云，图标坐在一团团圆鼓鼓的云上；可选白天、傍晚、晚上",
+  "page": "sky.html",
+  "status": "ready",
+  "product": "free",
+  "tokens": {
+    "color": {
+      "bg": { "type": "color", "description": "页面 / 场景底色" }
+    },
+    "scene": {
+      "sky-day-top": { "type": "vec3", "description": "白天：天顶" },
+      "sky-day-bottom": { "type": "vec3", "description": "白天：地平线" },
+      "sky-dusk-top": { "type": "vec3", "description": "傍晚：天顶" },
+      "sky-dusk-bottom": { "type": "vec3", "description": "傍晚：地平线" },
+      "sky-night-top": { "type": "vec3", "description": "晚上：天顶" },
+      "sky-night-bottom": { "type": "vec3", "description": "晚上：地平线" },
+      "shadow": { "type": "vec3", "description": "角色 / 云影" }
+    }
+  }
+}

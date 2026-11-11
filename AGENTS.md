@@ -82,7 +82,10 @@ $env:DESKLAND_PROFILE_DIR = "D:\tmp\deskland-test"
 - **E2E 测试**：Playwright .NET 连接 WebView2 CDP，断言 DOM 状态
 - **Win32 Probe**：独立 C# 程序，断言窗口结构（`Chrome_WidgetWin_1` 存在性）
 - **性能埋点**：`TestProbe.Signal("perf", new { path, ms })`，只在 `--test` 模式启用
-- **禁止**：像素对比视觉回归（WebGL 动画导致大量误报）
+- **视觉基线**：`VisualBaseline_FiveScreens` 比对 5 张截图（设置页浅/深 + 三个壁纸页）。
+  壁纸页用固定 `performance.now` / `requestAnimationFrame` / 确定性 PRNG 冻结画面，避免 WebGL 逐帧误报；
+  允许 2% 像素差异。基线在 `test/Deskland.Tests/baselines/`，`DESKLAND_UPDATE_BASELINES=1` 可重新生成。
+- **禁止**：对运行中的 WebGL 动画做全图像素 diff（会大量误报）；应冻结画面或改用计算样式断言
 
 ## 常见问题
 
@@ -102,6 +105,13 @@ $env:DESKLAND_PROFILE_DIR = "D:\tmp\deskland-test"
 ### Q: Git hook 不生效？
 - 检查 `.git/hooks/pre-commit` 是否存在
 - 确保有执行权限：`chmod +x .git/hooks/pre-commit`
+
+## 主题开发
+
+- 主题文件位置、Design Token 命名、运行时切换方式见 [prototype/themes/CONVENTIONS.md](prototype/themes/CONVENTIONS.md)。
+- 新增主题：复制 `prototype/themes/_template/`，改 `theme.json` / `theme.css`，在 `themes.json` 加一条记录，
+  并把页面放到 `prototype/themes/<id>/<id>.html`。**不需要改宿主 C#**（打包脚本会自动发现 `themes/` 目录）。
+- 红线：`theme.css` 只能写 `:root` 自定义属性；`base.css` 是唯一能写选择器的地方，且禁止硬编码颜色。
 
 ## 参考资源
 

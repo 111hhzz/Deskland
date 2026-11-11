@@ -20,6 +20,11 @@ $themeFiles = @('flat.html', 'meadow.html', 'sky.html', 'settings.html', 'thumbs
   'i18n\en.json', 'i18n\zh-CN.json', 'thumbs\beach.webp', 'thumbs\meadow.webp', 'thumbs\sky.webp',
   'assets\beach-coconut-palm-v2.png', 'assets\beach-coconut-palm-curved.png', 'assets\beach-coconut-palm-airy.png', 'assets\beach-coconut-palm-windswept.png', 'assets\beach-coconut-palm-arch.png',
   'assets\meadow-black-kitten.png', 'assets\meadow-kite-boy-level-face.png', 'assets\meadow-kite-boy-diagonal-run.png')
+# 主题目录自动发现（base.css / CONVENTIONS.md / <id>/theme.css / <id>/theme.json ...）；模板不打进运行时包。
+$themesRoot = Join-Path $root 'prototype\themes'
+foreach ($f in @(Get-ChildItem -LiteralPath $themesRoot -Recurse -File | Where-Object { $_.FullName -notmatch '\\_template\\' })) {
+  $themeFiles += 'themes\' + $f.FullName.Substring($themesRoot.Length + 1)
+}
 foreach ($t in $themeFiles) { $files += 'prototype\' + $t }
 
 $stage = Join-Path $dist ('portable-' + [Guid]::NewGuid().ToString('N'))

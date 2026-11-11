@@ -1,0 +1,16 @@
+{
+  "id": "my-theme",
+  "name": "我的主题",
+  "desc": "一句话描述这个主题的画面。",
+  "page": "themes/my-theme/my-theme.html",
+  "status": "ready",
+  "product": "free",
+  "tokens": {
+    "color": {
+      "bg": { "type": "color", "description": "页面 / 场景底色" }
+    },
+    "scene": {
+      "ground-mid": { "type": "vec3", "description": "着色器：主色调（0-1 的 r g b 三元组）" }
+    }
+  }
+}

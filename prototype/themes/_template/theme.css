@@ -1,0 +1,6 @@
+/* <主题名> 的 Token 值。
+ * 只声明自定义属性，禁止写选择器；公共默认值见 ../base.css，命名规则见 ../CONVENTIONS.md。 */
+:root {
+  --color-bg: #1aa3c4;
+  --scene-ground-mid: 0.62 0.75 0.42;
+}

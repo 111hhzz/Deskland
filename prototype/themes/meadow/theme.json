@@ -1,0 +1,20 @@
+{
+  "id": "meadow",
+  "name": "草地",
+  "desc": "钢笔淡彩的草地，图标藏在白云里，云影是一块块深绿",
+  "page": "meadow.html",
+  "status": "ready",
+  "product": "free",
+  "tokens": {
+    "color": {
+      "bg": { "type": "color", "description": "页面 / 场景底色" }
+    },
+    "scene": {
+      "ground-light": { "type": "vec3", "description": "草地亮部" },
+      "ground-mid": { "type": "vec3", "description": "草地主色" },
+      "ground-deep": { "type": "vec3", "description": "草地深色块" },
+      "ink": { "type": "vec3", "description": "画草的墨绿短线" },
+      "shadow": { "type": "vec3", "description": "云影" }
+    }
+  }
+}

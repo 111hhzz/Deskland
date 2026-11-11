@@ -1,0 +1,11 @@
+/* 草地主题 Token 值。
+ * 本文件只声明自定义属性，禁止写选择器；公共默认值见 ../base.css。
+ * scene-* 为 0-1 的 r g b 三元组，供 WebGL 着色器使用。 */
+:root {
+  --color-bg: #a6c46e;
+  --scene-ground-light: 0.76 0.83 0.52;
+  --scene-ground-mid: 0.62 0.75 0.42;
+  --scene-ground-deep: 0.52 0.68 0.36;
+  --scene-ink: 0.24 0.38 0.18;
+  --scene-shadow: 0.56 0.66 0.52;
+}

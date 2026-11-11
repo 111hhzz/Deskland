@@ -1,0 +1,26 @@
+{
+  "id": "beach",
+  "name": "沙滩",
+  "desc": "海岸线绕着你的文件弯曲，海浪一层层冲上沙滩",
+  "page": "flat.html",
+  "status": "ready",
+  "product": "free",
+  "tokens": {
+    "color": {
+      "bg": { "type": "color", "description": "页面 / 场景底色" }
+    },
+    "scene": {
+      "sea-0": { "type": "vec3", "description": "海水：最浅（近岸）" },
+      "sea-1": { "type": "vec3", "description": "海水：浅" },
+      "sea-2": { "type": "vec3", "description": "海水：中" },
+      "sea-3": { "type": "vec3", "description": "海水：深" },
+      "sea-4": { "type": "vec3", "description": "海水：最深（远海）" },
+      "sand-0": { "type": "vec3", "description": "沙滩：干沙" },
+      "sand-1": { "type": "vec3", "description": "沙滩：湿沙" },
+      "sand-2": { "type": "vec3", "description": "沙滩：水带" },
+      "sand-3": { "type": "vec3", "description": "沙滩：深水痕迹" },
+      "foam": { "type": "vec3", "description": "浪花" },
+      "wetsand": { "type": "vec3", "description": "湿沙底色" }
+    }
+  }
+}

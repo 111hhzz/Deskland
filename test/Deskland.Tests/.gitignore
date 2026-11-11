@@ -6,6 +6,7 @@ obj/
 test-profile/
 test-results/
 *.trx
+baselines/actual-*.png
 
 # Node.js (已弃用，但保留以防万一)
 node_modules/

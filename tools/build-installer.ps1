@@ -36,17 +36,27 @@ $WebView2Bootstrapper = [IO.Path]::GetFullPath($WebView2Bootstrapper)
 
 # A fixed source list prevents other editions or private working files entering this package.
 $sources = @('.gitattributes', '.gitignore', 'AGENTS.md', 'LICENSE', 'NOTICE', 'README.md', 'THIRD_PARTY_NOTICES.md', 'TRADEMARKS.md',
-    'host\DesktopHost.cs', 'host\DesklandPreview.ico', 'host\README.md', 'host\app.manifest', 'host\build.ps1', 'host\inspect.ps1',
+    'host\DesktopHost.cs', 'host\SystemTheme.cs', 'host\DesklandPreview.ico', 'host\README.md', 'host\app.manifest', 'host\build.ps1', 'host\inspect.ps1',
     'tools\build-installer.ps1', 'tools\installer.nsi', 'tools\version.json')
-$themeFiles = @('flat.html', 'meadow.html', 'sky.html', 'settings.html', 'thumbs-data.js', 'share.js', 'ripple.js', 'serve.mjs', 'themes.json', 'beach-palms.js', 'meadow-boy.js', 'meadow-cat.js',
+$themeCoreFiles = @('flat.html', 'meadow.html', 'sky.html', 'settings.html', 'thumbs-data.js', 'share.js', 'ripple.js', 'serve.mjs', 'themes.json', 'beach-palms.js', 'meadow-boy.js', 'meadow-cat.js',
     'i18n\en.json', 'i18n\zh-CN.json', 'thumbs\beach.webp', 'thumbs\meadow.webp',
     'assets\beach-coconut-palm-v2.png', 'assets\beach-coconut-palm-curved.png', 'assets\beach-coconut-palm-airy.png', 'assets\beach-coconut-palm-windswept.png', 'assets\beach-coconut-palm-arch.png',
     'assets\meadow-black-kitten.png', 'assets\meadow-kite-boy-level-face.png', 'assets\meadow-kite-boy-diagonal-run.png')
+# 主题目录自动发现（base.css / CONVENTIONS.md / <id>/theme.css / <id>/theme.json ...）：新增主题不用再改本脚本。
+$themesRoot = Join-Path $root 'prototype\themes'
+$themeDirAll = @(Get-ChildItem -LiteralPath $themesRoot -Recurse -File | ForEach-Object { 'themes\' + $_.FullName.Substring($themesRoot.Length + 1) })
+$themeDirRuntime = @($themeDirAll | Where-Object { $_ -notlike 'themes\_template\*' })
+$themeFiles = $themeCoreFiles + $themeDirRuntime
 $themes = (Get-Content -LiteralPath (Join-Path $root 'prototype\themes.json') -Raw -Encoding UTF8 | ConvertFrom-Json).themes
 $ready = @($themes | Where-Object { $_.status -eq 'ready' })
 $locked = @($themes | Where-Object { $_.locked -eq $true })
-if ($themes.Count -ne 13 -or $ready.Count -ne 3 -or $locked.Count -ne 10 -or (($ready.id | Sort-Object) -join ',' -ne 'beach,meadow,sky')) {
-    throw 'Expected three usable themes (beach,meadow,sky) and ten locked preview cards'
+if ($ready.Count -eq 0) { throw 'Expected at least one usable theme' }
+foreach ($theme in $ready) {
+    if (-not $theme.page) { throw 'Ready theme missing page: ' + $theme.id }
+    if (-not (Test-Path -LiteralPath (Join-Path $root ('prototype\' + $theme.page)))) { throw 'Ready theme page missing: ' + $theme.page }
+    foreach ($f in @('theme.css', 'theme.json')) {
+        if (-not (Test-Path -LiteralPath (Join-Path $root ('prototype\themes\' + $theme.id + '\' + $f)))) { throw "Theme '$($theme.id)' missing themes/$($theme.id)/$f" }
+    }
 }
 foreach ($theme in $locked) {
     if ($theme.page -or $theme.groups) { throw 'Locked themes must not contain page source or settings' }
@@ -60,6 +70,7 @@ foreach ($theme in $themes) {
     if ($themeFiles -notcontains $thumbFile) { $themeFiles += $thumbFile }
 }
 $sources += $themeFiles | ForEach-Object { 'prototype\' + $_ }
+$sources += $themeDirAll | Where-Object { $_ -like 'themes\_template\*' } | ForEach-Object { 'prototype\' + $_ }
 $sourceStage = Join-Path $payload 'source-stage'
 foreach ($file in $sources) {
     $target = Join-Path $sourceStage $file

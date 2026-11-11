@@ -1,0 +1,188 @@
+/* Deskland 主题公共样式（唯一允许写选择器的地方）。
+ *
+ * 所有视觉值都通过 CSS 自定义属性（Design Token）引用；Token 的默认值在本文件 :root 里，
+ * 各主题用 themes/<id>/theme.css 覆盖。主题 CSS 只声明 Token，不写选择器。
+ * 命名规则见 themes/CONVENTIONS.md。
+ */
+
+:root {
+  /* ---- 颜色 ---- */
+  --color-bg: #1aa3c4;                       /* 页面 / 场景底色（主题必须覆盖） */
+  --color-surface: rgba(20, 52, 64, .74);    /* 面板底 */
+  --color-surface-2: rgba(255, 255, 255, .06);
+  --color-surface-active: rgba(255, 255, 255, .17);
+  --color-border: rgba(255, 255, 255, .14);
+  --color-text: #eef6f5;
+  --color-text-muted: #d4e4e2;
+  --color-accent: #7fe3d6;
+  --color-taskbar-bg: rgba(28, 32, 38, .6);
+  --color-taskbar-border: rgba(255, 255, 255, .08);
+  --color-app-hover-bg: rgba(255, 255, 255, .08);
+  --color-icon-hover-bg: rgba(255, 255, 255, .16);
+  --color-icon-hover-border: rgba(255, 255, 255, .24);
+  --color-icon-sel-bg: rgba(0, 120, 215, .34);
+  --color-icon-sel-border: rgba(140, 200, 255, .7);
+  --color-label: #fff;
+  --color-ripple: rgba(255, 255, 255, .8);
+  --color-ripple-glow: rgba(255, 255, 255, .55);
+  --color-ripple-inset: rgba(255, 255, 255, .35);
+  --color-ghost-bg: rgba(255, 255, 255, .88);
+  --color-ghost-label: rgba(255, 255, 255, .75);
+  --color-stat-bg: rgba(0, 0, 0, .25);
+  --color-btn-bg: rgba(255, 255, 255, .1);
+  --color-btn-border: rgba(255, 255, 255, .1);
+  --color-btn-hover-bg: rgba(255, 255, 255, .18);
+  --color-nogl: #fff;
+
+  /* ---- 字体 ---- */
+  --font-main: "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", system-ui, sans-serif;
+  --font-mono: Consolas, "Cascadia Mono", monospace;
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-md: 14px;
+  --font-size-lg: 16px;
+
+  /* ---- 动效 ---- */
+  --motion-fade: 250ms;
+  --motion-settle: .22s;
+  --motion-born: .45s;
+  --motion-ripple: .65s;
+  --motion-ease-out: ease-out;
+  --motion-ease-settle: cubic-bezier(.2, .8, .3, 1);
+  --motion-ease-spring: cubic-bezier(.2, .9, .3, 1.2);
+
+  /* ---- 圆角 ---- */
+  --radius-sm: 4px;
+  --radius-button: 5px;
+  --radius-md: 7px;
+  --radius-lg: 12px;
+  --radius-icon: 9px;
+
+  /* ---- 尺寸 ---- */
+  --taskbar-size: 48px;
+  --icon-cell-width: 76px;
+  --icon-glyph-size: 48px;
+  --icon-label-max: 72px;
+  --panel-width: 284px;
+  --panel-offset: 14px;
+  --app-size: 40px;
+  --app-icon-size: 24px;
+
+  /* ---- 模糊 / 饱和 ---- */
+  --blur-taskbar: 28px;
+  --saturate-taskbar: 1.6;
+  --blur-panel: 18px;
+  --saturate-panel: 1.3;
+
+  /* ---- 层叠 ---- */
+  --z-icon-drag: 10;
+  --z-taskbar: 40;
+  --z-ripple: 45;
+  --z-panel: 50;
+
+  /* ---- 阴影 ---- */
+  --shadow-panel: 0 12px 32px rgba(0, 0, 0, .25);
+  --shadow-glyph: drop-shadow(0 1px 1px rgba(0, 0, 0, .25)) drop-shadow(3px 6px 4px rgba(90, 80, 110, .25));
+  --shadow-ghost: 3px 6px 8px rgba(40, 60, 90, .28);
+  --text-shadow-label: 0 0 2px rgba(0, 0, 0, .95), 0 1px 3px rgba(0, 0, 0, .85);
+
+  /* ---- 不透明度 ---- */
+  --opacity-icon-drag: .88;
+  --opacity-muted: .6;
+  --opacity-faint: .5;
+  --opacity-seg: .75;
+
+  /* ---- 场景（WebGL 调色板；值为 0-1 的 r g b 三元组，由主题 theme.css 覆盖） ---- */
+  --scene-cloud-hi: 1.0 1.0 0.99;
+  --scene-cloud-body: 0.90 0.93 0.96;
+  --scene-cloud-shade: 0.80 0.85 0.90;
+  --scene-light-dir: -0.6 -0.8;
+  --scene-shadow-offset: 115.0 156.0;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: var(--color-bg); }
+body { font-family: var(--font-main); }
+#art { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; }
+#desktop { position: fixed; left: 0; top: 0; right: 0; bottom: var(--taskbar-size); }
+
+.icon {
+  position: absolute; width: var(--icon-cell-width); padding: 4px 2px 5px;
+  display: flex; flex-direction: column; align-items: center;
+  border: 1px solid transparent; border-radius: var(--radius-sm);
+  user-select: none; touch-action: none; cursor: default;
+}
+.icon:hover { background: var(--color-icon-hover-bg); border-color: var(--color-icon-hover-border); }
+.icon.sel { background: var(--color-icon-sel-bg); border-color: var(--color-icon-sel-border); }
+.icon.drag { opacity: var(--opacity-icon-drag); z-index: var(--z-icon-drag); transform: scale(1.04); }
+.icon.settle { transition: left var(--motion-settle) var(--motion-ease-settle), top var(--motion-settle) var(--motion-ease-settle); }
+.icon.born { animation: born var(--motion-born) var(--motion-ease-spring); }
+@keyframes born { from { opacity: 0; transform: scale(.6); } }
+.glyph { width: var(--icon-glyph-size); height: var(--icon-glyph-size); filter: var(--shadow-glyph); pointer-events: none; }
+.glyph svg { width: 100%; height: 100%; display: block; }
+.label {
+  margin-top: 3px; max-width: var(--icon-label-max); font-size: var(--font-size-sm); line-height: 15px; color: var(--color-label); text-align: center;
+  text-shadow: var(--text-shadow-label);
+  word-break: break-all; overflow: hidden;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  pointer-events: none;
+}
+
+#taskbar {
+  position: fixed; left: 0; right: 0; bottom: 0; height: var(--taskbar-size);
+  background: var(--color-taskbar-bg); backdrop-filter: blur(var(--blur-taskbar)) saturate(var(--saturate-taskbar)); -webkit-backdrop-filter: blur(var(--blur-taskbar)) saturate(var(--saturate-taskbar));
+  border-top: 1px solid var(--color-taskbar-border);
+  display: flex; align-items: center; justify-content: center; z-index: var(--z-taskbar);
+}
+#taskbar .apps { display: flex; gap: 4px; }
+#taskbar .app { width: var(--app-size); height: var(--app-size); border-radius: var(--radius-sm); display: grid; place-items: center; }
+#taskbar .app:hover { background: var(--color-app-hover-bg); }
+#taskbar .app svg { width: var(--app-icon-size); height: var(--app-icon-size); }
+#clock { position: absolute; right: var(--panel-offset); color: var(--color-label); font-size: var(--font-size-sm); line-height: 16px; text-align: right; }
+
+#panel {
+  position: fixed; top: var(--panel-offset); right: var(--panel-offset); width: var(--panel-width); max-height: calc(100vh - var(--taskbar-size) - 28px); overflow: auto;
+  background: var(--color-surface); backdrop-filter: blur(var(--blur-panel)) saturate(var(--saturate-panel)); -webkit-backdrop-filter: blur(var(--blur-panel)) saturate(var(--saturate-panel));
+  color: var(--color-text); border: 1px solid var(--color-border); border-radius: var(--radius-lg);
+  font-size: var(--font-size-sm); line-height: 1.4; box-shadow: var(--shadow-panel); z-index: var(--z-panel);
+}
+#panel.hidden { display: none; }
+/* 壁纸模式（?wallpaper=1，由桌面宿主程序加载）：真实图标和任务栏由 Windows 自己画 */
+body.wall #panel, body.wall #taskbar, body.wall #desktop { display: none; }
+/* 预览模式（?preview=1，设置窗口里）：用半透明的方块示意真实图标的位置 */
+#ghosts { position: fixed; inset: 0; pointer-events: none; display: none; }
+body.preview #ghosts { display: block; }
+.ghost { position: absolute; }
+.ghost i { position: absolute; left: 50%; top: 4px; width: var(--icon-glyph-size); height: var(--icon-glyph-size); margin-left: calc(var(--icon-glyph-size) / -2); border-radius: var(--radius-icon);
+  background: var(--color-ghost-bg); box-shadow: var(--shadow-ghost); }
+.ghost b { position: absolute; left: 14%; right: 14%; top: 60px; height: 10px; border-radius: var(--radius-button); background: var(--color-ghost-label); }
+#panel header { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px 10px; }
+#panel header b { font-size: var(--font-size-md); letter-spacing: .06em; }
+#panel header span { margin-left: 8px; opacity: var(--opacity-muted); }
+#panel.collapsed .body { display: none; }
+.ibtn { background: none; border: 0; color: inherit; opacity: var(--opacity-muted); cursor: pointer; font-size: var(--font-size-lg); line-height: 1; padding: 2px 4px; }
+.ibtn:hover { opacity: 1; }
+#panel .body { padding: 0 14px 14px; }
+.sec { margin-top: 12px; }
+.sec > .t { opacity: var(--opacity-muted); margin-bottom: 6px; }
+.seg { display: grid; grid-template-columns: repeat(4, 1fr); background: var(--color-surface-2); border-radius: var(--radius-md); padding: 2px; gap: 2px; }
+.seg button { background: none; border: 0; color: inherit; padding: 5px 0; border-radius: var(--radius-button); cursor: pointer; font: inherit; opacity: var(--opacity-seg); white-space: nowrap; }
+.seg button:hover { opacity: 1; }
+.seg button.on { background: var(--color-surface-active); opacity: 1; }
+.slider { margin-top: 9px; }
+.slider .row { display: flex; justify-content: space-between; }
+.slider .row span:last-child { opacity: var(--opacity-muted); font-variant-numeric: tabular-nums; }
+input[type=range] { width: 100%; margin: 4px 0 0; accent-color: var(--color-accent); }
+.toggles { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 8px; }
+.toggles label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.toggles input { accent-color: var(--color-accent); margin: 0; }
+.btns { display: flex; gap: 6px; }
+.btns button {
+  flex: 1; font: inherit; color: inherit; cursor: pointer; padding: 7px 0; border-radius: var(--radius-md);
+  background: var(--color-btn-bg); border: 1px solid var(--color-btn-border);
+}
+.btns button:hover { background: var(--color-btn-hover-bg); }
+#stats { margin-top: 12px; padding: 8px 10px; border-radius: var(--radius-md); background: var(--color-stat-bg); font-family: var(--font-mono); font-size: var(--font-size-xs); line-height: 1.6; color: var(--color-text-muted); }
+#stats .live { color: var(--color-accent); }
+.hint { margin-top: 10px; opacity: var(--opacity-faint); font-size: var(--font-size-xs); line-height: 1.6; }
+#nogl { position: fixed; inset: 0; display: none; place-items: center; color: var(--color-nogl); font-size: var(--font-size-lg); }
