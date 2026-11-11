@@ -166,7 +166,51 @@ powershell -ExecutionPolicy Bypass -File tools\create-release.ps1
 - 把"穿透"状态持久化进 `settings.json`，重启恢复勾选。
 - 从壁纸页消息 `{"t":"clickthrough","v":...}` 驱动 `SetClickThrough`。
 - 继续解锁其它 locked 主题（大海/湖泊/森林…）：只有缩略图和文案、无页面实现，需以 `flat.html`/`meadow.html`/`sky.html` 为底座自研，且缺原作者美术素材。
-- 壁纸 / 主题切换延迟（早期反馈，`d37a4c5` 前未量化）：需复现并量化三类路径（启动首帧、动画恢复、切换耗时），不预设根因；当前仍无耗时埋点。
+- 壁纸 / 主题切换延迟（早期反馈，`d37a4c5` 前未量化）：已通过 P2-2 性能埋点完成量化，见 8.3。
+
+### 8.3 （已完成 2026-11-11）E2E 测试体系建设
+- **测试项目**：`test/Deskland.Tests`（xUnit + Playwright .NET + FlaUI）
+- **测试内容**：
+  - `DesklandE2ETests`：8 个测试（7 个 DOM 断言 + 1 个性能埋点）
+  - `test/win32-probe/Win32Probe.cs`：6 个窗口结构断言（独立 C# 程序）
+- **测试命令**：
+  ```powershell
+  cd test/Deskland.Tests
+  dotnet test
+  ```
+- **Win32 Probe 手动运行**：
+  ```powershell
+  $env:DESKLAND_PROFILE_DIR = "D:\tmp\deskland-test"
+  $env:DESKLAND_TEST = "1"
+  .\host\bin\Deskland.exe --test --settings
+  # 另开终端：
+  $env:DESKLAND_PROFILE_DIR = "D:\tmp\deskland-test"
+  .\test\win32-probe\bin\Win32Probe.exe
+  ```
+- **性能埋点**：
+  - 启动首帧：~900ms
+  - 主题切换：~1100ms
+  - 事件文件：`test-profile/test-events-{pid}.jsonl`
+- **Git Hooks**：`.githooks/pre-commit` 自动编译 + 测试
+  - 安装：`cp .githooks/pre-commit .git/hooks/pre-commit`
+  - 触发：每次 `git commit` 自动运行
+  - 失败：阻止提交
+- **技术选型**：
+  - Playwright .NET 1.64.1（CDP 连接 WebView2）
+  - FlaUI 5.0.0（WinForms 原生控件，暂未使用）
+  - xUnit 2.5.3
+  - .NET 8.0 SDK
+- **注意事项**：
+  - 测试需要 .NET 8 SDK（`$env:LOCALAPPDATA\Microsoft\dotnet`）
+  - 测试会启动真实 Deskland 进程，确保 9222/9223 端口空闲
+  - 测试串行执行（`xunit.runner.json` 禁用并行化）
+  - 性能埋点信号只在 `--test` / `DESKLAND_TEST=1` 时启用
+
+### 8.4 参考资源
+- Playwright .NET + WebView2 官方指南：https://playwright.dev/dotnet/docs/webview2
+- FlaUI（C# Windows UI 自动化）：https://github.com/FlaUI/FlaUI
+- Git Hooks 最佳实践：https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks
+- C# 桌面应用 E2E 测试：https://learn.microsoft.com/en-us/dotnet/architecture/
 
 ## 9. 注意事项
 
