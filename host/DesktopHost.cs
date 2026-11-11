@@ -62,11 +62,6 @@ static class Program
         }
         // 按物理像素工作：桌面图标坐标、屏幕尺寸都是物理像素
         if (!Native.SetProcessDpiAwarenessContext(new IntPtr(-4))) Native.SetProcessDPIAware();
-        // 设置窗口拖动时 WebView2 内容在窗口里小幅游动（窗口外框跟手、内容抖）。
-        // 默认的 windowed 宿主把内容放在子 HWND 里，拖动时子窗口与外框由两条路径合成，容易错位。
-        // 切到 window-to-visual 宿主（Wails/magpie 默认就是这种），内容由父窗口的 DirectComposition 直接合成，跟手。
-        // 代价：Pointer Lock / Gamepad API 在此进程内不可用（本程序不用）。
-        Environment.SetEnvironmentVariable("COREWEBVIEW2_FORCED_HOSTING_MODE", "COREWEBVIEW2_HOSTING_MODE_WINDOW_TO_VISUAL");
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
         // 任何意外都写进日志，不弹框也不静默退出
@@ -883,7 +878,10 @@ class SettingsForm : Form
         web.Dock = DockStyle.Fill;
         web.DefaultBackgroundColor = BackColor;
         web.CreationProperties = new CoreWebView2CreationProperties();
-        web.CreationProperties.UserDataFolder = Path.Combine(Log.DataDir, "WebView2");
+        // 设置窗口用独立的用户数据目录（→ 独立浏览器进程），以便单独切换宿主模式：
+        // 壁纸走默认 windowed（子 HWND 接收鼠标，穿透/图标/任务栏都靠这条路径）；
+        // 设置窗口切到 window-to-visual（无子 HWND，内容与外框同源合成，拖动跟手）。
+        web.CreationProperties.UserDataFolder = Path.Combine(Log.DataDir, "WebView2-Settings");
         Controls.Add(web);
 
     }
@@ -927,7 +925,11 @@ class SettingsForm : Form
         base.OnShown(e);
         try
         {
+            // 仅对本次 EnsureCoreWebView2Async 生效：创建完立刻清掉，不影响壁纸的 WebView2。
+            // 代价：设置窗口内 Pointer Lock / Gamepad 不可用（本程序不用）。
+            Environment.SetEnvironmentVariable("COREWEBVIEW2_FORCED_HOSTING_MODE", "COREWEBVIEW2_HOSTING_MODE_WINDOW_TO_VISUAL");
             await web.EnsureCoreWebView2Async(null);
+            Environment.SetEnvironmentVariable("COREWEBVIEW2_FORCED_HOSTING_MODE", null);
             if (IsDisposed) return;
             var core = web.CoreWebView2;
             try { core.MemoryUsageTargetLevel = CoreWebView2MemoryUsageTargetLevel.Low; }

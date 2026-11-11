@@ -90,19 +90,29 @@ git push origin master:main                       # 上云（用户说"同步到
 
 参考实现：magpie（<https://github.com/yetone/magpie>）用 Wails 的 `--wails-draggable: drag` 触发 OS 模态拖拽循环，页面侧零特殊处理——这是当前采用的方向。
 
-### 4.7 设置窗口拖动抖动（本次：强制 WebView2 走 window-to-visual 宿主）
+### 4.7 设置窗口拖动抖动（d0edbde → 本次：仅设置窗口切 window-to-visual）
 **症状：** `b8b7188` 回退后窗口外框跟手，但**里面的 WebView2 内容在窗口里小幅游动**（用户两段录屏 + 明确描述）。magpie 的抖动远小于本程序——差别在宿主模式：Wails 默认走 window-to-visual，而 WinForms `WebView2` 默认走 windowed（内容在子 HWND `Chrome_WidgetWin_1` 里，拖动时子窗口与外框由两条路径合成，易错位）。
 
-**改动（`host/DesktopHost.cs` `Main`）：** 在 `Application.EnableVisualStyles()` 之前加一行：
-```csharp
-Environment.SetEnvironmentVariable("COREWEBVIEW2_FORCED_HOSTING_MODE", "COREWEBVIEW2_HOSTING_MODE_WINDOW_TO_VISUAL");
-```
-- 必须在 `Main` 里最早设，WebView2 创建浏览器环境时读取；`SettingsForm` 与 `WallpaperForm` 共享同一进程，两边一起切。
-- 已验证：设置窗口的 `Chrome_WidgetWin_1` 子 HWND 消失（只剩 `WindowsForms10` 面板 + `Chrome_WidgetWin_0` 视觉表面），说明切换生效。
-- 代价：此进程内 Pointer Lock / Gamepad API 不可用（本程序不用）；壁纸窗口也切到同一宿主，需用户肉眼确认壁纸渲染正常。
+**第一次尝试（`d0edbde`）：** 在 `Main` 里设进程级 env var，**设置窗口跟手了，但壁纸的鼠标点击全失效**（拖图标、左右键、任务栏点击都点到壁纸下面去了）。根因：壁纸窗口是 `WS_EX_LAYERED` 分层子窗口、挂在 Progman 里位于图标层之下；windowed 模式下壁纸页面在自己的 `Chrome_WidgetWin_1` 子 HWND 里渲染，鼠标按 Z 序穿透到图标层；切到 window-to-visual 后子 HWND 消失，内容合成进壁纸 Form 本身，alpha=255 的整块表面开始拦截鼠标，点击就到不了图标层。**结论：壁纸必须保持 windowed。**
+
+**本次修法：** 把 env var 从 `Main` 挪进 `SettingsForm.OnShown`，并用独立用户数据目录让设置窗口单独一个浏览器进程：
+- `SettingsForm` 构造：`CreationProperties.UserDataFolder = Path.Combine(Log.DataDir, "WebView2-Settings")`（壁纸仍用 `"WebView2"`）。独立用户数据目录 → 独立 `msedgewebview2.exe` 浏览器进程 → env var 只影响设置那一个。
+- `SettingsForm.OnShown`：`EnsureCoreWebView2Async` 前 `SetEnvironmentVariable("COREWEBVIEW2_FORCED_HOSTING_MODE", "COREWEBVIEW2_HOSTING_MODE_WINDOW_TO_VISUAL")`，返回后立刻设为 `null` 清掉。
+- 壁纸：零改动，继续走 windowed，子 HWND 接收鼠标，穿透/图标/任务栏都不受影响。
+- 已验证（枚举 + CIM）：
+  - 设置窗口 `Chrome_WidgetWin_1` 子 HWND 消失（只剩 `Chrome_WidgetWin_0` 视觉表面）→ 切换生效。
+  - `Deskland.exe` 下挂两个 `msedgewebview2.exe`，`user-data-dir` 分别指向 `WebView2` 和 `WebView2-Settings` → 隔离成功。
+  - 编译通过，`--exit` 后进程清零。
+- **用户已验证（2026-11-11）：** 拖图标 / 左右键 / 任务栏点击恢复正常；设置窗口拖动抖动降到 magpie 水平；壁纸渲染与动画正常。
+- 代价：多一个浏览器进程（约 30-50 MB 常驻），换来"设置跟手 + 壁纸可点"两件事能同时成立。设置窗口内 Pointer Lock / Gamepad 不可用（本程序不用）。
 - 文档：<https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/windowed-vs-visual-hosting>
 
 **用户明确要求（记住）：** 云端推送必须用户逐次同意，默认只本地提交。前几轮多次因此被否决。
+
+### 4.8 设置页布局微调（本次）
+- header（`.top`）去掉 `justify-content: space-between`，改为 `display:flex` + 新增 `.spacer { flex: 1 }` 占位元素（HTML 里 `<div class="spacer">`）。效果：header 内容按内容宽度排、中间空白由 spacer 撑开，不再跟 body 宽度联动。
+- `.layout` 右内边距保持 `0 32px`（左右对称）。中途一度改成 `0 0 0 32px` 让 side 贴右边界，被用户否决，已回退。
+- **已知残留：** 拖动窗口（尤其从左侧拖）时，右栏 side 有一帧会贴到视口右缘、来不及跟左栏同步留白——这是 WebView2 重排滞后，CSS 层无零代价修法；要彻底盖住需给右栏上 `overflow:hidden` 兜底，但会牺牲静态观感，需用户先确认方向再动。
 
 ## 5. 关键文件速查
 
@@ -162,7 +172,7 @@ powershell -ExecutionPolicy Bypass -File tools\create-release.ps1
 
 - 本程序挂到桌面图标层之下当壁纸层，正常退出才还原；勿任务管理器强杀导致层数残留（重开一次再正常退出）。
 - `DesktopIconLocator` 与 Z 顺序钩子是**两个独立** `SetWinEventHook` 实例；`DesktopClickHook` 是另一个 `WH_MOUSE_LL` 全局钩子（只观察主屏桌面根窗口左键、先放行、退出卸载），不替代 `WS_EX_TRANSPARENT` 穿透开关。
-- 网络：GitHub 需代理 `127.0.0.1:7890`；若代理端口变化，需同步改 `create-release.ps1` / `verify-release.ps1` 里的硬编码地址和本仓库 git config。
+- 网络：GitHub 需代理 `127.0.0.1:7890`；**用户已关闭到 GitHub 的代理通道（2026-11-11），代理重开之前一律不推 GitHub**。若代理端口变化，需同步改 `create-release.ps1` / `verify-release.ps1` 里的硬编码地址和本仓库 git config。
 - PAT：存放在 `.gh_token`（已 gitignore），勿提交、勿外传。
 - 安装包未签名，Windows SmartScreen 可能提示"更多信息 → 仍要运行"。
 

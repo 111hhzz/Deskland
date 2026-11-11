@@ -43,11 +43,13 @@
   h1, h2, h3, p { margin: 0; }
 
   /* ---------- 顶栏：左边"主题"，右边开机自启 ---------- */
-  .top { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 22px 32px 24px; }
+  /* header 内容整体跟内容走、不被拉开；中间空白用 flex 占位 */
+  .top { display: flex; align-items: center; gap: 20px; padding: 22px 32px 24px; }
+  .top .spacer { flex: 1; }
   .brand { font-size: 25px; line-height: 1; font-weight: 750; letter-spacing: -1.2px; }
   .top .section-title { margin: 0; color: var(--text); font-size: 13px; letter-spacing: 0; padding: 5px 0; border-bottom: 2px solid var(--text); }
   .top-left { display: flex; align-items: center; gap: 28px; }
-  .top-right { display: flex; align-items: center; gap: 18px; }
+  .top-right { display: flex; flex: none; align-items: center; gap: 18px; }
   .lang-row { display: flex; flex: none; align-items: center; gap: 6px; color: var(--muted); }
   .lang-row svg { width: 15px; height: 15px; flex: none; }
   .lang-row select { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
@@ -267,6 +269,7 @@
     <div class="brand">Deskland Preview</div>
     <div class="section-title" data-i18n="themes">主题</div>
   </div>
+  <div class="spacer" aria-hidden="true"></div>
   <div class="top-right">
     <label class="lang-row">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M1.8 8h12.4M8 1.8c1.8 1.7 2.7 3.8 2.7 6.2S9.8 12.5 8 14.2C6.2 12.5 5.3 10.4 5.3 8S6.2 3.5 8 1.8z"/></svg>
