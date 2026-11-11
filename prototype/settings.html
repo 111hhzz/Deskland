@@ -738,6 +738,13 @@ fetch('themes.json').then(r => r.json()).then(reg => {
     send({ t: 'hello' });
   } else mockHost();
 });
+
+// 测试信号：DOMContentLoaded 后首个 rAF 发送 ready（供 Playwright 等待同步，替代 sleep）。
+if (host) {
+  requestAnimationFrame(() => {
+    host.postMessage(JSON.stringify({ t: 'ready' }));
+  });
+}
 </script>
 </body>
 </html>

@@ -1,0 +1,27 @@
+#!/bin/sh
+# pre-commit hook：提交前编译 + 运行测试
+# 安装：cp .githooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+
+set -e
+
+# 加载 .NET SDK 路径（硬编码，避免环境变量问题）
+export PATH="/c/Users/huang/AppData/Local/Microsoft/dotnet:$PATH"
+
+echo "=== pre-commit: 编译宿主 ==="
+cd host
+powershell -ExecutionPolicy Bypass -File build.ps1
+cd ..
+
+echo ""
+echo "=== pre-commit: 编译测试项目 ==="
+cd test/Deskland.Tests
+dotnet build --no-restore
+cd ../..
+
+echo ""
+echo "=== pre-commit: 运行测试 ==="
+cd test/Deskland.Tests
+dotnet test --no-build
+
+echo ""
+echo "=== pre-commit: 全部通过 ==="

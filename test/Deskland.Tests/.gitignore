@@ -1,0 +1,20 @@
+# Build outputs
+bin/
+obj/
+
+# Test artifacts
+test-profile/
+test-results/
+*.trx
+
+# Node.js (已弃用，但保留以防万一)
+node_modules/
+package-lock.json
+
+# Playwright
+.playwright/
+
+# IDE
+.vs/
+*.user
+*.suo

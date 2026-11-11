@@ -54,3 +54,12 @@
     setTimeout(() => { style.remove(); document.body.classList.remove('deskland-ready'); }, 300);
   }));
 })();
+
+// 测试信号：首帧渲染完成后通知宿主（供 Playwright 等待同步，替代 sleep）。
+(function () {
+  const host = window.chrome && window.chrome.webview;
+  if (!host) return;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    host.postMessage(JSON.stringify({ t: 'firstframe' }));
+  }));
+})();

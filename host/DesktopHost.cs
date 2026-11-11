@@ -20,6 +20,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Web.Script.Serialization;
 using System.Windows.Forms;
 using Microsoft.Web.WebView2.Core;
@@ -74,14 +75,18 @@ static class Program
         //   --defview：挂进图标层里、图标列表之下（实验：实测画不出来）；--legacy：挂进 WorkerW（换壁纸时会被连带销毁）
         string attach = "progman";
         bool autostart = false;                           // --autostart：开机自动启动，不弹设置窗口
+        bool testMode = Environment.GetEnvironmentVariable("DESKLAND_TEST") == "1";  // 测试模式：双端口 CDP + 事件日志
         foreach (string a in args)
         {
             if (a == "--legacy") attach = "legacy";
             else if (a == "--defview") attach = "defview";
             else if (a == "--autostart") autostart = true;
+            else if (a == "--test") testMode = true;
             else if (!a.StartsWith("--")) pageDir = a;
         }
+        TestProbe.Enabled = testMode;
         WallpaperForm.AttachMode = attach;
+        var startupTime = System.Diagnostics.Stopwatch.StartNew();
         Application.Run(new HostContext(pageDir, !autostart));
         GC.KeepAlive(mutex);
     }
@@ -91,6 +96,7 @@ static class Log
 {
     public static readonly string DataDir = InstallProfile.DataDir;
     public static readonly string FilePath = Path.Combine(DataDir, "host.log");
+    public static readonly string EventsPath = Path.Combine(DataDir, "test-events-" + Process.GetCurrentProcess().Id + ".jsonl");
 
     public static void Write(string msg)
     {
@@ -100,6 +106,30 @@ static class Log
             File.AppendAllText(FilePath, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss ") + msg + "\r\n");
         }
         catch { }
+    }
+}
+
+// 测试探针：仅在 --test / DESKLAND_TEST=1 时写入结构化事件，供 Playwright 等待同步。
+// 不替代真实画面/行为断言，只提供确定性信号。
+static class TestProbe
+{
+    public static readonly object Sync = new object();
+    public static bool Enabled;
+
+    public static void Signal(string name, object data = null)
+    {
+        if (!Enabled) return;
+        lock (Sync)
+        {
+            try
+            {
+                Directory.CreateDirectory(Log.DataDir);
+                var obj = Json.Obj("t", "probe", "event", name,
+                    "ts", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), "data", data);
+                File.AppendAllText(Log.EventsPath, Json.Stringify(obj) + "\n", Encoding.UTF8);
+            }
+            catch { }
+        }
     }
 }
 
@@ -326,6 +356,7 @@ class HostContext : ApplicationContext
     readonly Queue<DateTime> restarts = new Queue<DateTime>();
     readonly DesktopClickHook clickHook;
     WallpaperForm form, dead;
+    public WallpaperForm WallpaperForm { get { return form; } }
     SettingsForm settingsWin;
     DateTime nextStart = DateTime.MaxValue, saveDue = DateTime.MaxValue;
     bool manualPause, exiting;
@@ -427,6 +458,7 @@ class HostContext : ApplicationContext
             settingsWin = new SettingsForm(pageDir, this);
             settingsWin.FormClosed += delegate { settingsWin = null; };
             Log.Write("打开设置窗口");
+            TestProbe.Signal("settings_opened");
         }
         if (settingsWin.WindowState == FormWindowState.Minimized) settingsWin.WindowState = FormWindowState.Normal;
         settingsWin.Show();
@@ -923,13 +955,35 @@ class SettingsForm : Form
     protected override async void OnShown(EventArgs e)
     {
         base.OnShown(e);
+        // 等壁纸窗口的 WebView2 初始化完成再设置环境变量：
+        // COREWEBVIEW2_FORCED_HOSTING_MODE 是进程级环境变量，如果与壁纸窗口的
+        // EnsureCoreWebView2Async 并发执行，会污染壁纸窗口的宿主模式。
+        // 用 await Task.Delay 轮询等待，避免阻塞 UI 线程。
+        if (host != null)
+        {
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            while (sw.ElapsedMilliseconds < 10000)
+            {
+                if (host.WallpaperForm != null && host.WallpaperForm.IsWebView2Ready) break;
+                await Task.Delay(50);
+            }
+        }
         try
         {
             // 仅对本次 EnsureCoreWebView2Async 生效：创建完立刻清掉，不影响壁纸的 WebView2。
             // 代价：设置窗口内 Pointer Lock / Gamepad 不可用（本程序不用）。
             Environment.SetEnvironmentVariable("COREWEBVIEW2_FORCED_HOSTING_MODE", "COREWEBVIEW2_HOSTING_MODE_WINDOW_TO_VISUAL");
-            await web.EnsureCoreWebView2Async(null);
-            Environment.SetEnvironmentVariable("COREWEBVIEW2_FORCED_HOSTING_MODE", null);
+            // 测试模式：给设置窗口的浏览器进程单独开 CDP 端口（9223），与壁纸（9222）分离。
+            // 用 CoreWebView2Environment 显式创建环境，再传给 EnsureCoreWebView2Async：
+            // 同进程内两个 WebView2 的环境变量会互相覆盖，必须用独立环境。
+            CoreWebView2Environment env = null;
+            if (TestProbe.Enabled)
+            {
+                var options = new CoreWebView2EnvironmentOptions();
+                options.AdditionalBrowserArguments = "--remote-debugging-port=9223";
+                env = await CoreWebView2Environment.CreateAsync(null, web.CreationProperties.UserDataFolder, options);
+            }
+            await web.EnsureCoreWebView2Async(env);
             if (IsDisposed) return;
             var core = web.CoreWebView2;
             try { core.MemoryUsageTargetLevel = CoreWebView2MemoryUsageTargetLevel.Low; }
@@ -940,7 +994,17 @@ class SettingsForm : Form
             core.Settings.IsZoomControlEnabled = false;
             core.WebMessageReceived += delegate(object s, CoreWebView2WebMessageReceivedEventArgs a)
             {
-                try { host.OnSettingsMessage(a.TryGetWebMessageAsString()); }
+                string msg = null;
+                try { msg = a.TryGetWebMessageAsString(); } catch { }
+                try
+                {
+                    // 测试信号：页面 ready（DOMContentLoaded 后首帧）
+                    var parsed = Json.Parse(msg) as Dictionary<string, object>;
+                    object t;
+                    if (parsed != null && parsed.TryGetValue("t", out t) && (t as string) == "ready")
+                        TestProbe.Signal("settings_ready");
+                    host.OnSettingsMessage(msg);
+                }
                 catch (Exception ex) { Log.Write("处理设置消息失败：" + ex.Message); }
             };
             string settingsUrl = "https://app.local/settings.html?v=" + Uri.EscapeDataString(Application.ProductVersion) + "&ui=2";
@@ -952,6 +1016,10 @@ class SettingsForm : Form
             Log.Write("设置窗口启动失败：" + ex);
             MessageBox.Show(I18n.T("errSettings", "msg", ex.Message), "Deskland Preview");
             Close();
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("COREWEBVIEW2_FORCED_HOSTING_MODE", null);
         }
     }
 
@@ -983,6 +1051,10 @@ class WallpaperForm : Form
     bool manualPause, shuttingDown;
 
     public bool Fatal { get; private set; }
+    public bool IsWebView2Ready { get; private set; }
+    public DateTime StartupTime { get; set; }
+    public DateTime LastLoadPageTime { get; set; }
+    private bool isFirstLoad = true;
 
     string page;                                        // 当前主题的页面（themes.json 里的 page）
     public Func<string> SettingsJson;                   // 页面就绪时先发给它的设置消息
@@ -993,6 +1065,8 @@ class WallpaperForm : Form
         this.pageDir = pageDir;
         this.page = page;
         this.manualPause = manualPause;
+        StartupTime = DateTime.Now;
+        LastLoadPageTime = DateTime.Now;
         FormBorderStyle = FormBorderStyle.None;
         ShowInTaskbar = false;
         StartPosition = FormStartPosition.Manual;
@@ -1045,6 +1119,7 @@ class WallpaperForm : Form
     public void LoadPage(string newPage)
     {
         page = newPage;
+        LastLoadPageTime = DateTime.Now;
         if (web.CoreWebView2 == null) return;
         try { web.CoreWebView2.Navigate(PageUrl); }
         catch (InvalidOperationException ex) { WebDead(ex); }
@@ -1066,19 +1141,59 @@ class WallpaperForm : Form
                 Fail(I18n.T("errNoDesktop"));
                 return;
             }
-            await web.EnsureCoreWebView2Async(null);
+            // 测试模式：给壁纸窗口的浏览器进程单独开 CDP 端口（9222），与设置窗口（9223）分离。
+            // 用 CoreWebView2Environment 显式创建环境，再传给 EnsureCoreWebView2Async：
+            // 同进程内两个 WebView2 的环境变量会互相覆盖，必须用独立环境。
+            // 同时强制 --hosting-mode=windowed，确保壁纸窗口是 Windowed 模式（子 HWND 接收鼠标）。
+            CoreWebView2Environment env = null;
+            if (TestProbe.Enabled)
+            {
+                var options = new CoreWebView2EnvironmentOptions();
+                options.AdditionalBrowserArguments = "--remote-debugging-port=9222 --hosting-mode=windowed";
+                env = await CoreWebView2Environment.CreateAsync(null, web.CreationProperties.UserDataFolder, options);
+            }
+            await web.EnsureCoreWebView2Async(env);
             if (shuttingDown || IsDisposed) return;
             var core = web.CoreWebView2;
+            IsWebView2Ready = true;
+            TestProbe.Signal("webview2_ready", new { hwnd = Handle.ToInt64() });
             core.SetVirtualHostNameToFolderMapping("app.local", pageDir, CoreWebView2HostResourceAccessKind.Allow);
             core.Settings.AreDefaultContextMenusEnabled = false;
             core.Settings.AreDevToolsEnabled = true;
             core.Settings.IsStatusBarEnabled = false;
-            // 页面就绪（发来 "ready"）：先发设置，再发图标和暂停状态（岸线要按设置里的离岸距离来算）
+            // 页面就绪（发来 "ready" 或 {t:"firstframe"}）：先发设置，再发图标和暂停状态（岸线要按设置里的离岸距离来算）
             core.WebMessageReceived += delegate(object s, CoreWebView2WebMessageReceivedEventArgs a)
             {
                 string msg = null;
                 try { msg = a.TryGetWebMessageAsString(); } catch { }
-                if (msg != "ready") return;
+                bool isReady = msg == "ready";
+                bool isFirstFrame = false;
+                if (!isReady)
+                {
+                    try
+                    {
+                        var parsed = Json.Parse(msg) as Dictionary<string, object>;
+                        object t;
+                        if (parsed != null && parsed.TryGetValue("t", out t) && (t as string) == "firstframe")
+                            isFirstFrame = true;
+                    }
+                    catch { }
+                }
+                if (!isReady && !isFirstFrame) return;
+                TestProbe.Signal("firstframe");
+                // 性能埋点：启动首帧 / 主题切换耗时
+                var now = DateTime.Now;
+                if (isFirstLoad)
+                {
+                    var delta = (now - StartupTime).TotalMilliseconds;
+                    TestProbe.Signal("perf", new { path = "startup_first_frame", ms = delta });
+                    isFirstLoad = false;
+                }
+                else
+                {
+                    var delta = (now - LastLoadPageTime).TotalMilliseconds;
+                    TestProbe.Signal("perf", new { path = "theme_switch", ms = delta });
+                }
                 if (SettingsJson != null) core.PostWebMessageAsString(SettingsJson());
                 lastIcons = ""; lastPause = -1; PollIcons(); PollForeground();
             };
