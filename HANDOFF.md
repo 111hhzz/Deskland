@@ -112,7 +112,7 @@ git push origin master:main                       # 上云（用户说"同步到
 ### 4.8 设置页布局微调（本次）
 - header（`.top`）去掉 `justify-content: space-between`，改为 `display:flex` + 新增 `.spacer { flex: 1 }` 占位元素（HTML 里 `<div class="spacer">`）。效果：header 内容按内容宽度排、中间空白由 spacer 撑开，不再跟 body 宽度联动。
 - `.layout` 右内边距保持 `0 32px`（左右对称）。中途一度改成 `0 0 0 32px` 让 side 贴右边界，被用户否决，已回退。
-- **已知残留：** 拖动窗口（尤其从左侧拖）时，右栏 side 有一帧会贴到视口右缘、来不及跟左栏同步留白——这是 WebView2 重排滞后，CSS 层无零代价修法；要彻底盖住需给右栏上 `overflow:hidden` 兜底，但会牺牲静态观感，需用户先确认方向再动。
+- **用户已验证（2026-11-11）：** 拖动时 side 那一帧贴右边界的问题已消失（切 window-to-visual + 独立进程后重排滞后已可接受），无需额外 CSS 兜底。
 
 ## 5. 关键文件速查
 
