@@ -191,10 +191,21 @@ powershell -ExecutionPolicy Bypass -File tools\create-release.ps1
   - 启动首帧：~900ms
   - 主题切换：~1100ms
   - 事件文件：`test-profile/test-events-{pid}.jsonl`
-- **Git Hooks**：`.githooks/pre-commit` 自动编译 + 测试
-  - 安装：`cp .githooks/pre-commit .git/hooks/pre-commit`
-  - 触发：每次 `git commit` 自动运行
-  - 失败：阻止提交
+- **Git Hooks**：`.githooks/pre-commit` 代码质量门禁 + `.githooks/pre-push` 推送前验证
+  - 安装：
+    ```powershell
+    cp .githooks/pre-commit .git/hooks/pre-commit
+    cp .githooks/pre-push .git/hooks/pre-push
+    chmod +x .git/hooks/pre-commit .git/hooks/pre-push
+    ```
+  - **pre-commit 流程**：
+    1. **Lint**：`dotnet format --verify-no-changes`
+    2. **Typecheck**：`dotnet build --warnaserror`（警告即错误）
+    3. **Deslop**：屎山代码检查（TODO/FIXME/HACK 注释、调试输出、空 catch、敏感信息）
+    4. **Test**：`dotnet test`
+  - **pre-push 流程**：编译宿主 + 运行测试
+  - 触发：每次 `git commit` / `git push` 自动运行
+  - 失败：阻止提交/推送
 - **技术选型**：
   - Playwright .NET 1.64.1（CDP 连接 WebView2）
   - FlaUI 5.0.0（WinForms 原生控件，暂未使用）

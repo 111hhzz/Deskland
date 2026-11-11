@@ -44,7 +44,8 @@ $env:DESKLAND_PROFILE_DIR = "D:\tmp\deskland-test"
 
 **重要**：每次提交前必须运行测试，确保编译和测试通过。
 
-- 使用 `git commit` 会自动触发 pre-commit hook（编译 + 测试）
+- 使用 `git commit` 会自动触发 pre-commit hook（lint + typecheck + deslop + test）
+- 使用 `git push` 会自动触发 pre-push hook（编译 + test）
 - 提交信息格式：`type: 简短描述`
   - `feat:` 新功能
   - `fix:` 修复
@@ -52,6 +53,22 @@ $env:DESKLAND_PROFILE_DIR = "D:\tmp\deskland-test"
   - `docs:` 文档
   - `refactor:` 重构
   - `perf:` 性能优化
+
+**pre-commit 门禁**（按顺序执行，任一失败即阻止提交）：
+1. **Lint**：`dotnet format --verify-no-changes`
+2. **Typecheck**：`dotnet build --warnaserror`（编译警告即错误）
+3. **Deslop**：屎山代码检查
+   - TODO/FIXME/HACK/XXX 注释
+   - 调试输出（Console.WriteLine，host/ 目录）
+   - 空 catch 块
+   - 硬编码敏感信息（password/secret/token）
+4. **Test**：`dotnet test`
+
+**注意**：
+- `host/` 目录禁止 `Console.WriteLine`（用 `Log.Write`）
+- 禁止提交 TODO/FIXME 注释（先完成再提交）
+- 禁止空 catch 块（至少 `catch { Log.Write(ex.Message); }`）
+- 禁止硬编码密码/密钥/token
 
 ### 4. 代码风格
 
