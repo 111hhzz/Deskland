@@ -322,6 +322,18 @@ public class DesklandE2ETests : IAsyncLifetime
                 await _pageWallpaper.EvaluateAsync<string>($"{root}.getPropertyValue('--color-bg').trim()"));
             Assert.Equal(sceneValue,
                 await _pageWallpaper.EvaluateAsync<string>($"{root}.getPropertyValue('{sceneName}').trim()"));
+            // JS 侧确实把 Token 解析进了 SCENE（否则只会走 fallback，无法证明配置驱动）
+            if (page == "meadow.html")
+            {
+                Assert.Equal("0.62 0.75 0.42", await _pageWallpaper.EvaluateAsync<string>("window.__dbg.SCENE.groundMid.join(' ')"));
+                Assert.Equal("0.56 0.66 0.52", await _pageWallpaper.EvaluateAsync<string>("window.__dbg.SCENE.shadow.join(' ')"));
+                Assert.Equal("-0.6 -0.8", await _pageWallpaper.EvaluateAsync<string>("window.__dbg.SCENE.lightDir.join(' ')"));
+            }
+            else if (page == "sky.html")
+            {
+                Assert.Equal("0.27 0.56 0.88", await _pageWallpaper.EvaluateAsync<string>("window.__dbg.SCENE.skyDayTop.join(' ')"));
+                Assert.Equal("0.78 0.84 0.92", await _pageWallpaper.EvaluateAsync<string>("window.__dbg.SCENE.cloudShadow.join(' ')"));
+            }
             // 公共 Token（base.css）
             Assert.Equal("48px",
                 await _pageWallpaper.EvaluateAsync<string>($"{root}.getPropertyValue('--taskbar-size').trim()"));
@@ -335,6 +347,165 @@ public class DesklandE2ETests : IAsyncLifetime
             Assert.Equal("rgba(20, 52, 64, 0.74)",
                 await _pageWallpaper.EvaluateAsync<string>("getComputedStyle(document.querySelector('#panel')).backgroundColor"));
         }
+    }
+
+    /// <summary>
+    /// 应用模式（非 wallpaper）冒烟测试：导航到不带查询参数的 meadow.html，页面走浏览器模式，
+    /// 渲染演示桌面 / 任务栏 / 面板，并验证基础交互（选中、拖拽、布局切换、滑块、开关、换云、新建、快捷键）。
+    /// 视觉基线只覆盖 wallpaper 模式（图标/面板被 body.wall 隐藏），应用层逻辑靠本测试兜底。
+    /// </summary>
+    [Fact]
+    public async Task AppMode_SmokeTest()
+    {
+        await _pageWallpaper.GotoAsync("https://app.local/meadow.html");
+        await _pageWallpaper.WaitForSelectorAsync("#desktop .icon", new() { Timeout = 15000 });
+        await Task.Delay(800);                                  // 等布局 / 面板 / stats 稳定
+
+        // —— DOM 存在性 ——
+        Assert.True(await _pageWallpaper.Locator("#desktop .icon").CountAsync() >= 20, "演示桌面应有图标");
+        Assert.Equal(5, await _pageWallpaper.Locator("#taskbar .app").CountAsync());
+        Assert.True(await _pageWallpaper.Locator("#taskbar").IsVisibleAsync());
+        Assert.True(await _pageWallpaper.Locator("#panel").IsVisibleAsync());
+        Assert.Equal(3, await _pageWallpaper.Locator("#sliders input[type=range]").CountAsync());
+        Assert.Equal(4, await _pageWallpaper.Locator(".seg button").CountAsync());
+        Assert.Equal(3, await _pageWallpaper.Locator(".toggles input[type=checkbox]").CountAsync());
+        Assert.Equal(1, await _pageWallpaper.Locator("#btnAdd").CountAsync());
+        Assert.Equal(1, await _pageWallpaper.Locator("#btnSeed").CountAsync());
+        Assert.Contains("动画中", await _pageWallpaper.Locator("#stats").InnerTextAsync());
+        Assert.Matches(@"^\d{2}:\d{2}", await _pageWallpaper.Locator("#clock").InnerTextAsync());
+
+        // —— 交互 1：点击图标选中 ——
+        var icon = _pageWallpaper.Locator("#desktop .icon").First;
+        await icon.ClickAsync();
+        Assert.True(await icon.EvaluateAsync<bool>("el => el.classList.contains('sel')"));
+
+        // —— 交互 2：拖动图标改变位置 ——
+        var box = await icon.BoundingBoxAsync();
+        var before = await icon.EvaluateAsync<string>("el => el.style.left + ',' + el.style.top");
+        await _pageWallpaper.Mouse.MoveAsync(box.X + box.Width / 2, box.Y + box.Height / 2);
+        await _pageWallpaper.Mouse.DownAsync();
+        await _pageWallpaper.Mouse.MoveAsync(box.X + box.Width / 2 + 220, box.Y + box.Height / 2 + 120, new() { Steps = 10 });
+        await _pageWallpaper.Mouse.UpAsync();
+        await Task.Delay(500);
+        Assert.NotEqual(before, await icon.EvaluateAsync<string>("el => el.style.left + ',' + el.style.top"));
+
+        // —— 交互 3：面板折叠 / 展开 ——
+        await _pageWallpaper.Locator("#collapse").ClickAsync();
+        Assert.True(await _pageWallpaper.EvaluateAsync<bool>("document.getElementById('panel').classList.contains('collapsed')"));
+        await _pageWallpaper.Locator("#collapse").ClickAsync();
+        Assert.False(await _pageWallpaper.EvaluateAsync<bool>("document.getElementById('panel').classList.contains('collapsed')"));
+
+        // —— 交互 4：切换桌面布局 ——
+        var countBefore = await _pageWallpaper.Locator("#desktop .icon").CountAsync();
+        await _pageWallpaper.Locator(".seg button[data-v='arranged']").ClickAsync();
+        await Task.Delay(600);
+        Assert.NotEqual(countBefore, await _pageWallpaper.Locator("#desktop .icon").CountAsync());
+        Assert.True(await _pageWallpaper.Locator(".seg button[data-v='arranged']").EvaluateAsync<bool>("el => el.classList.contains('on')"));
+
+        // —— 交互 5：滑块改参数 ——
+        await _pageWallpaper.Locator("#sliders input[type=range]").First.EvaluateAsync(
+            "el => { el.value = '150'; el.dispatchEvent(new Event('input', { bubbles: true })); }");
+        Assert.Equal(150d, await _pageWallpaper.EvaluateAsync<double>("window.__dbg.P.sigma"));
+
+        // —— 交互 6：开关改参数 ——
+        await _pageWallpaper.Locator(".toggles input[data-key='debug']").CheckAsync();
+        Assert.True(await _pageWallpaper.EvaluateAsync<bool>("window.__dbg.P.debug"));
+
+        // —— 交互 7：换一种云（reseed）——
+        var seedBefore = await _pageWallpaper.EvaluateAsync<double>("window.__dbg.seed");
+        await _pageWallpaper.Locator("#btnSeed").ClickAsync();
+        await Task.Delay(300);
+        Assert.NotEqual(seedBefore, await _pageWallpaper.EvaluateAsync<double>("window.__dbg.seed"));
+
+        // —— 交互 8：新建文件 ——
+        var n = await _pageWallpaper.Locator("#desktop .icon").CountAsync();
+        await _pageWallpaper.Locator("#btnAdd").ClickAsync();
+        await Task.Delay(300);
+        Assert.Equal(n + 1, await _pageWallpaper.Locator("#desktop .icon").CountAsync());
+
+        // —— 交互 9：H 键隐藏 / 显示面板 ——
+        await _pageWallpaper.Keyboard.PressAsync("h");
+        Assert.True(await _pageWallpaper.EvaluateAsync<bool>("document.getElementById('panel').classList.contains('hidden')"));
+        await _pageWallpaper.Keyboard.PressAsync("h");
+        Assert.False(await _pageWallpaper.EvaluateAsync<bool>("document.getElementById('panel').classList.contains('hidden')"));
+    }
+
+    /// <summary>
+    /// 壁纸模式下的宿主绑定：DeskApp.setupHostMessages 应加 wall 类、
+    /// 挂好共享状态，并接收宿主 icons 消息初始化 icons。
+    /// （视觉基线只验证画面，宿主消息链路靠本测试兜底。）
+    /// </summary>
+    [Fact]
+    public async Task WallpaperMode_HostBindings()
+    {
+        await _pageWallpaper.GotoAsync("https://app.local/meadow.html?wallpaper=1");
+        await Task.Delay(2000);
+        Assert.True(await _pageWallpaper.EvaluateAsync<bool>("document.body.classList.contains('wall')"),
+            "wallpaper 模式应加 wall 类");
+        Assert.True(await _pageWallpaper.EvaluateAsync<bool>("Array.isArray(window.icons)"),
+            "宿主 icons 消息应已初始化 icons");
+        Assert.True(await _pageWallpaper.EvaluateAsync<bool>(
+            "typeof window.P === 'object' && typeof window.P.sigma === 'number'"),
+            "共享参数应挂到 window（boy/cat 脚本依赖）");
+        Assert.True(await _pageWallpaper.EvaluateAsync<bool>("typeof window.gl === 'object' && typeof window.cv === 'object'"),
+            "渲染上下文应挂到 window（boy/cat 脚本依赖）");
+    }
+
+    /// <summary>
+    /// 引擎骨架结构测试：在浏览器里动态 import 两个基类模块，
+    /// 校验导出、继承关系、钩子方法、事件订阅与 sceneToken 解析。
+    /// （骨架文件暂不被页面引用，此测试直接加载模块，验证其可被 ES module 正常解析。）
+    /// </summary>
+    [Fact]
+    public async Task EngineSkeleton_Structure()
+    {
+        await _pageWallpaper.GotoAsync("https://app.local/meadow.html");
+        await Task.Delay(500);
+        var r = await _pageWallpaper.EvaluateAsync<EngineInfo>(@"
+            async () => {
+              const base = await import('./engine/BaseEngine.js');
+              const scene = await import('./engine/SceneEngine.js');
+              const B = base.BaseEngine, S = scene.SceneEngine;
+              const names = ['buildShaders','buildResources','update','render','dispose','resize',
+                             'sceneToken','sceneTime','on','off','emit','start','stop','destroy'];
+              const e = new B(document.getElementById('art'));
+              let got = 0;
+              e.on('ping', () => got++);
+              e.emit('ping');
+              return {
+                Base: typeof B,
+                Scene: typeof S,
+                Inherits: S.prototype instanceof B,
+                Methods: names.filter(n => typeof S.prototype[n] === 'function').join(','),
+                EventWorks: got === 1,
+                SceneToken: JSON.stringify(e.sceneToken('--scene-ground-mid')),
+                Params: typeof e.defaultParams(),
+              };
+            }
+        ");
+        Assert.Equal("function", r.Base);
+        Assert.Equal("function", r.Scene);
+        Assert.True(r.Inherits, "SceneEngine 必须继承 BaseEngine");
+        Assert.Contains("buildShaders", r.Methods);
+        Assert.Contains("buildResources", r.Methods);
+        Assert.Contains("update", r.Methods);
+        Assert.Contains("render", r.Methods);
+        Assert.Contains("dispose", r.Methods);
+        Assert.Contains("sceneToken", r.Methods);
+        Assert.Contains("destroy", r.Methods);
+        Assert.True(r.EventWorks, "on/emit 事件订阅应工作");
+        Assert.Equal("[0.62,0.75,0.42]", r.SceneToken);
+    }
+
+    private sealed class EngineInfo
+    {
+        public string Base { get; set; } = "";
+        public string Scene { get; set; } = "";
+        public bool Inherits { get; set; }
+        public string Methods { get; set; } = "";
+        public bool EventWorks { get; set; }
+        public string SceneToken { get; set; } = "";
+        public string Params { get; set; } = "";
     }
 
     /// <summary>

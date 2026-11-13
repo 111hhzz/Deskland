@@ -276,23 +276,15 @@ uniform vec2 uCGrid;             // 格子数
 uniform float uCellG;            // 格子大小（px）
 out vec4 o;
 
-// ---- 调色板（天空主题：白云、蓝空；草地调色板保留但不再使用）----
-const vec3 G_LIGHT = vec3(0.76, 0.83, 0.52), G_MID = vec3(0.62, 0.75, 0.42);  // 草地：浅的黄绿 / 绿（大块水彩晕染）
-const vec3 G_DEEP = vec3(0.52, 0.68, 0.36);                                   // 草地里颜色深一点的几片
-const vec3 INK = vec3(0.24, 0.38, 0.18);                                      // 画草的墨绿短线
-const vec3 SHADOW = vec3(0.56, 0.66, 0.52);                                   // 云影：把草地压成深绿
-const vec3 CLOUD_HI = vec3(1.0, 1.0, 0.99);                                   // 云：朝光外沿的亮白
-const vec3 CLOUD_BODY = vec3(0.90, 0.93, 0.96), CLOUD_SH = vec3(0.80, 0.85, 0.90); // 云：主体 / 偏暗的圆（比大海主题少一些蓝；主体不能太白，白色的图标文字要看得清）
-const vec2 LIGHT = vec2(-0.6, -0.8);                                          // 太阳在左上方
-const vec2 SHADOW_OFF = vec2(115.0, 156.0);                                    // 云影落在右下方，离云远 → 云飘得高
+// ---- 调色板（由主题 theme.css 的 --scene-* Token 驱动，JS 读取后传入）----
+uniform vec3 uShadow, uCloudHi, uCloudBody, uCloudSh, uCloudShadow;
+uniform vec2 uLightDir, uShadowOff;
 const int CIRC_K = 36;
 
 // 天空：三种时段的上半 / 下半渐变（顶 → 地平线）
-const vec3 SKY_DAY_TOP    = vec3(0.27, 0.56, 0.88), SKY_DAY_BOT    = vec3(0.62, 0.82, 0.96);
-const vec3 SKY_DUSK_TOP   = vec3(0.28, 0.30, 0.58), SKY_DUSK_BOT   = vec3(0.98, 0.66, 0.42);
-const vec3 SKY_NIGHT_TOP  = vec3(0.04, 0.06, 0.16), SKY_NIGHT_BOT  = vec3(0.20, 0.26, 0.44);
-vec3 skyTop() { return uScheme == 1 ? SKY_DUSK_TOP : (uScheme == 2 ? SKY_NIGHT_TOP : SKY_DAY_TOP); }
-vec3 skyBot() { return uScheme == 1 ? SKY_DUSK_BOT : (uScheme == 2 ? SKY_NIGHT_BOT : SKY_DAY_BOT); }
+uniform vec3 uSkyDayTop, uSkyDayBot, uSkyDuskTop, uSkyDuskBot, uSkyNightTop, uSkyNightBot;
+vec3 skyTop() { return uScheme == 1 ? uSkyDuskTop : (uScheme == 2 ? uSkyNightTop : uSkyDayTop); }
+vec3 skyBot() { return uScheme == 1 ? uSkyDuskBot : (uScheme == 2 ? uSkyNightBot : uSkyDayBot); }
 
 float hash2(vec2 p) {
   vec3 p3 = fract(vec3(p.xyx) * 0.1031);
@@ -358,7 +350,7 @@ void main() {
   float inActor=step(0.0,actorUV.x)*step(0.0,actorUV.y)*step(actorUV.x,1.0)*step(actorUV.y,1.0);
   vec4 actor=texture(uActor,actorUV);
   float actorShadow=texture(uActorShadow,actorUV).r*inActor;
-  col=mix(col,col*SHADOW,actorShadow*0.85);
+  col=mix(col,col*uShadow,actorShadow*0.85);
   col=mix(col,actor.rgb,actor.a*inActor);
 #endif
 
@@ -370,13 +362,13 @@ void main() {
   float catShadow=catColor(catShadowUV).a;
   float inCat=step(0.,catUV.x)*step(0.,catUV.y)*step(catUV.x,1.)*step(catUV.y,1.);
   float inShadow=step(0.,catShadowUV.x)*step(0.,catShadowUV.y)*step(catShadowUV.x,1.)*step(catShadowUV.y,1.);
-  col=mix(col,col*SHADOW,catShadow*inShadow*.78);
+  col=mix(col,col*uShadow,catShadow*inShadow*.78);
   col=mix(col,cat.rgb,cat.a*inCat);
 #endif
 
   // ---------- 云投在天空上的影子（右下方）：淡淡的蓝灰 ----------
-  float sd = cloudDist(p - SHADOW_OFF);
-  col = mix(col, col * vec3(0.78, 0.84, 0.92), ss(3.0, -3.0, sd) * 0.5);
+  float sd = cloudDist(p - uShadowOff);
+  col = mix(col, col * uCloudShadow, ss(3.0, -3.0, sd) * 0.5);
 
   // ---------- 云：卡通画法（和大海主题一样）——一个个圆合起来，每个圆色调略有不同，
   //            只有朝光（左上）的外轮廓一道亮白，里面没有亮面；边缘干净 ----------
@@ -384,9 +376,9 @@ void main() {
   float d = cloudDist(p, true, fc);
   if (d < 1.5) {
     // 往光那边走一小段就出云了 → 这里是朝光的外沿（离外轮廓超过 21px 的地方不用算）
-    float hi = d > -21.0 ? ss(-1.0, 1.0, cloudDist(p + LIGHT * 20.0)) : 0.0;
-    vec3 cc = fc.y > -1e8 ? mix(CLOUD_BODY, CLOUD_SH, fc.w * 0.6) : mix(CLOUD_BODY, CLOUD_SH, 0.45);
-    cc = mix(cc, CLOUD_HI, hi);
+    float hi = d > -21.0 ? ss(-1.0, 1.0, cloudDist(p + uLightDir * 20.0)) : 0.0;
+    vec3 cc = fc.y > -1e8 ? mix(uCloudBody, uCloudSh, fc.w * 0.6) : mix(uCloudBody, uCloudSh, 0.45);
+    cc = mix(cc, uCloudHi, hi);
     col = mix(col, cc, ss(1.0, -1.0, d));
   }
   if (uDebug > 0.5) col = mix(col, vec3(0.9, 0.15, 0.15), 1.0 - ss(0.0, 1.5, abs(d)));
@@ -399,6 +391,44 @@ void main() {
 const cv = document.getElementById('art');
 const gl = cv.getContext('webgl2', { antialias: false });
 if (!gl) document.getElementById('nogl').style.display = 'grid';
+
+// 从主题 theme.css 读取场景调色板（--scene-*，0-1 的 r g b 或数值三元组）
+function sceneToken(name) {
+  const raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  if (!raw) return null;
+  const p = raw.split(/\s+/).map(Number);
+  return p.length >= 2 && p.every(Number.isFinite) ? p : null;
+}
+const SCENE = {
+  shadow:      sceneToken('--scene-shadow')         || [0.56, 0.66, 0.52],
+  cloudHi:     sceneToken('--scene-cloud-hi')       || [1.0, 1.0, 0.99],
+  cloudBody:   sceneToken('--scene-cloud-body')     || [0.90, 0.93, 0.96],
+  cloudSh:     sceneToken('--scene-cloud-shade')    || [0.80, 0.85, 0.90],
+  cloudShadow: sceneToken('--scene-cloud-shadow')   || [0.78, 0.84, 0.92],
+  lightDir:    sceneToken('--scene-light-dir')      || [-0.6, -0.8],
+  shadowOff:   sceneToken('--scene-shadow-offset')  || [115.0, 156.0],
+  skyDayTop:    sceneToken('--scene-sky-day-top')    || [0.27, 0.56, 0.88],
+  skyDayBot:    sceneToken('--scene-sky-day-bottom') || [0.62, 0.82, 0.96],
+  skyDuskTop:   sceneToken('--scene-sky-dusk-top')   || [0.28, 0.30, 0.58],
+  skyDuskBot:   sceneToken('--scene-sky-dusk-bottom')|| [0.98, 0.66, 0.42],
+  skyNightTop:  sceneToken('--scene-sky-night-top')  || [0.04, 0.06, 0.16],
+  skyNightBot:  sceneToken('--scene-sky-night-bottom')|| [0.20, 0.26, 0.44],
+};
+function setSceneUniforms(U) {
+  if (U.uShadow) gl.uniform3fv(U.uShadow, SCENE.shadow);
+  if (U.uCloudHi) gl.uniform3fv(U.uCloudHi, SCENE.cloudHi);
+  if (U.uCloudBody) gl.uniform3fv(U.uCloudBody, SCENE.cloudBody);
+  if (U.uCloudSh) gl.uniform3fv(U.uCloudSh, SCENE.cloudSh);
+  if (U.uCloudShadow) gl.uniform3fv(U.uCloudShadow, SCENE.cloudShadow);
+  if (U.uLightDir) gl.uniform2fv(U.uLightDir, SCENE.lightDir);
+  if (U.uShadowOff) gl.uniform2fv(U.uShadowOff, SCENE.shadowOff);
+  if (U.uSkyDayTop) gl.uniform3fv(U.uSkyDayTop, SCENE.skyDayTop);
+  if (U.uSkyDayBot) gl.uniform3fv(U.uSkyDayBot, SCENE.skyDayBot);
+  if (U.uSkyDuskTop) gl.uniform3fv(U.uSkyDuskTop, SCENE.skyDuskTop);
+  if (U.uSkyDuskBot) gl.uniform3fv(U.uSkyDuskBot, SCENE.skyDuskBot);
+  if (U.uSkyNightTop) gl.uniform3fv(U.uSkyNightTop, SCENE.skyNightTop);
+  if (U.uSkyNightBot) gl.uniform3fv(U.uSkyNightBot, SCENE.skyNightBot);
+}
 function program(fs) {
   const mk = (type, src) => {
     const s = gl.createShader(type);
@@ -839,6 +869,7 @@ function draw(now) {
     gl.uniform2f(U.uCGrid, cgW, cgH); gl.uniform1f(U.uCellG, CELL_G);
     gl.uniform1f(U.uEdge, P.edge);
     if (U.uScheme) gl.uniform1i(U.uScheme, P.scheme | 0);   // 0 白天 / 1 傍晚 / 2 晚上
+    setSceneUniforms(U);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   };
   render(PR, false);
@@ -948,7 +979,7 @@ setInterval(tickClock, 15000); tickClock();
 
 /* ---------- 启动 ---------- */
 window.__dbg = {
-  P, applyLayout,
+  P, SCENE, applyLayout,
   bench() {
     const ts = [];
     for (let i = 0; i < 10; i++) { const a = performance.now(); draw(performance.now()); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); ts.push(performance.now() - a); }

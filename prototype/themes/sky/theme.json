@@ -16,7 +16,8 @@
       "sky-dusk-bottom": { "type": "vec3", "description": "傍晚：地平线" },
       "sky-night-top": { "type": "vec3", "description": "晚上：天顶" },
       "sky-night-bottom": { "type": "vec3", "description": "晚上：地平线" },
-      "shadow": { "type": "vec3", "description": "角色 / 云影" }
+      "cloud-shadow": { "type": "vec3", "description": "云投在天空上的影子（淡蓝灰）" },
+      "shadow": { "type": "vec3", "description": "角色 / 猫影" }
     }
   }
 }
