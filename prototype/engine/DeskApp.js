@@ -6,13 +6,10 @@
 // 待引擎迁移稳定后，再消除这层全局污染。
 
 const CELL_W = 76, CELL_H = 100, GRID_X0 = 4, GRID_Y0 = 6, TASKBAR = 48;
-const STEP = 5;
-const DISPLAY_KEYS = ['showBoy', 'showCat', 'adaptive'];
-const SLIDERS = [
-  { key: 'sigma',  label: '云团大小', min: 40,  max: 200, step: 1,    fmt: v => v + ' px', act: 'field' },
-  { key: 'cover',  label: '草地上的云', min: 0,   max: 1,   step: 0.01, fmt: v => Math.round(v * 100) + '%' },
-  { key: 'flow',   label: '流动速度', min: 0,   max: 3,   step: 0.05, fmt: v => '×' + v.toFixed(2) },
-];
+// 面板配置（滑块 / 分段开关）由各主题引擎自己声明，DeskApp 只负责渲染与绑定：
+//   engine.sliders     [{ key, label, min, max, step, fmt, act }]
+//   engine.displayKeys [{ key, min, max }]
+// 新主题只加配置，不改这里。
 
 /* ======================================================================
    图标与布局数据
@@ -140,10 +137,12 @@ export class DeskApp {
   /* ---------------- 事件与面板 ---------------- */
 
   bindEvents() {
-    document.querySelector('.seg').addEventListener('click', e => {
+    // 所有分段按钮：data-v = 布局，data-scheme = 时段（天空主题）等主题特有的开关
+    document.querySelectorAll('.seg').forEach(seg => seg.addEventListener('click', e => {
       const b = e.target.closest('button'); if (!b) return;
-      this.layoutIcons(b.dataset.v); this.syncPanel();
-    });
+      if (b.dataset.v !== undefined) { this.layoutIcons(b.dataset.v); this.syncPanel(); }
+      else if (b.dataset.scheme !== undefined) { this.P.scheme = +b.dataset.scheme; this.syncPanel(); }
+    }));
     document.querySelectorAll('.toggles input').forEach(inp => inp.addEventListener('change', () => {
       this.P[inp.dataset.key] = inp.checked;
     }));
@@ -168,7 +167,7 @@ export class DeskApp {
 
   buildSliders() {
     const slidersEl = document.getElementById('sliders');
-    for (const s of SLIDERS) {
+    for (const s of this.engine.sliders) {
       const wrap = document.createElement('div');
       wrap.className = 'slider';
       wrap.innerHTML = `<div class="row"><span>${s.label}</span><span></span></div><input type="range" min="${s.min}" max="${s.max}" step="${s.step}" value="${this.P[s.key]}">`;
@@ -193,6 +192,7 @@ export class DeskApp {
 
   syncPanel() {
     document.querySelectorAll('.seg button').forEach(b => b.classList.toggle('on', b.dataset.v === this.layoutKind));
+    document.querySelectorAll('.seg button[data-scheme]').forEach(b => b.classList.toggle('on', (+b.dataset.scheme) === (this.P.scheme | 0)));
     document.querySelectorAll('.toggles input').forEach(inp => { inp.checked = this.P[inp.dataset.key]; });
   }
 
@@ -338,13 +338,17 @@ export class DeskApp {
     this.engine.commit(true);
   }
 
-  // 应用设置：只接受面板上有的参数；云团大小要重算场
+  // 应用设置：只接受引擎声明过的参数；云团大小要重算场
   applySettings(v) {
     if (typeof v.seed === 'number' && v.seed !== this.engine.seed) this.reseed(v.seed);
+    const sliders = this.engine.sliders, keys = this.engine.displayKeys;
     let field = false, adaptiveChanged = false;
     for (const k in v) {
-      if ((!SLIDERS.some(s => s.key === k) && !DISPLAY_KEYS.includes(k)) || typeof v[k] !== typeof this.P[k] || this.P[k] === v[k]) continue;
-      if (DISPLAY_KEYS.includes(k) && v[k] !== 0 && v[k] !== 1) continue;
+      const slider = sliders.find(s => s.key === k);
+      const key = keys.find(d => d.key === k);
+      if (!slider && !key) continue;
+      if (typeof v[k] !== typeof this.P[k] || this.P[k] === v[k]) continue;
+      if (key && (v[k] < key.min || v[k] > key.max)) continue;   // 超出主题声明范围的值不接受
       this.P[k] = v[k];
       if (k === 'adaptive') adaptiveChanged = true;
       if (k === 'sigma') field = true;
