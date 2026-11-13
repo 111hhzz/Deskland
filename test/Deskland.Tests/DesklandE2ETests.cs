@@ -59,11 +59,19 @@ public class DesklandE2ETests : IAsyncLifetime
 
     public async Task DisposeAsync()
     {
-        if (_wallpaperBrowser != null) await _wallpaperBrowser.CloseAsync();
-        if (_settingsBrowser != null) await _settingsBrowser.CloseAsync();
-        if (_playwright != null) _playwright.Dispose();
-        KillProcess("Deskland");
-        KillProcess("msedgewebview2");
+        try
+        {
+            if (_wallpaperBrowser != null) await _wallpaperBrowser.CloseAsync();
+            if (_settingsBrowser != null) await _settingsBrowser.CloseAsync();
+        }
+        finally
+        {
+            // 初始化失败时 _playwright 仍是 null；无论是否连上，都要把宿主收掉，
+            // 否则残留的 Deskland.exe 会一直占着 9222/9223，下一轮测试就连不上
+            if (_playwright != null) _playwright.Dispose();
+            KillProcess("Deskland");
+            KillProcess("msedgewebview2");
+        }
     }
 
     [Fact]
@@ -380,7 +388,7 @@ public class DesklandE2ETests : IAsyncLifetime
         Assert.True(await icon.EvaluateAsync<bool>("el => el.classList.contains('sel')"));
 
         // —— 交互 2：拖动图标改变位置 ——
-        var box = await icon.BoundingBoxAsync();
+        var box = await icon.BoundingBoxAsync() ?? throw new InvalidOperationException("icon has no bounding box");
         var before = await icon.EvaluateAsync<string>("el => el.style.left + ',' + el.style.top");
         await _pageWallpaper.Mouse.MoveAsync(box.X + box.Width / 2, box.Y + box.Height / 2);
         await _pageWallpaper.Mouse.DownAsync();
@@ -600,7 +608,7 @@ public class DesklandE2ETests : IAsyncLifetime
             try
             {
                 using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(1) };
-                var res = await client.GetAsync($"http://localhost:{port}/json/version");
+                var res = await client.GetAsync($"http://127.0.0.1:{port}/json/version");
                 if (res.IsSuccessStatusCode) return;
             }
             catch { }
