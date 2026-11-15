@@ -20,9 +20,11 @@ public class DesklandE2ETests : IAsyncLifetime
     private const int SettingsPort = 9223;
     private static readonly string RepoRoot = Path.GetFullPath(Path.Combine(
         AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
+    // 本机状态根（测试 profile 等），默认在工作区根的 .local\Deskland，可用 DESKLAND_LOCAL 覆盖
+    private static readonly string LocalRoot = Path.GetFullPath(Environment.GetEnvironmentVariable("DESKLAND_LOCAL")
+        ?? Path.Combine(RepoRoot, "..", ".local", "Deskland"));
     private static readonly string DesKlandBin = Path.Combine(RepoRoot, "host", "bin", "Deskland.exe");
-    private static readonly string TestProfile = Path.Combine(
-        AppContext.BaseDirectory, "test-profile");
+    private static readonly string TestProfile = Path.Combine(LocalRoot, "test-profile");
     private static readonly string BaselineDir = Path.Combine(RepoRoot, "test", "Deskland.Tests", "baselines");
     private static readonly bool UpdateBaselines =
         Environment.GetEnvironmentVariable("DESKLAND_UPDATE_BASELINES") == "1";
@@ -35,6 +37,7 @@ public class DesklandE2ETests : IAsyncLifetime
         KillProcess("Deskland");
         KillProcess("msedgewebview2");
         await Task.Delay(1000);
+        Directory.CreateDirectory(TestProfile);
 
         var env = new Dictionary<string, string?>
         {
@@ -279,7 +282,10 @@ public class DesklandE2ETests : IAsyncLifetime
         })
         {
             await _pageWallpaper.GotoAsync($"https://app.local/{page}?wallpaper=1");
-            await Task.Delay(2000);        // 等首帧、淡入与形态过渡
+            await Task.Delay(2000);        // 等首帧、淡入与宿主图标到达
+            // 测试把 performance.now 冻结了，页面只画一帧；手动走完形态过渡再画一帧，
+            // 否则取到的可能是"图标还没就位"的那一帧（与图标到达形成竞态）
+            await _pageWallpaper.EvaluateAsync("window.__dbg && window.__dbg.settle && window.__dbg.settle()");
             shots.Add(($"wallpaper-{id}", await _pageWallpaper.ScreenshotAsync()));
         }
 

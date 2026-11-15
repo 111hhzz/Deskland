@@ -4,10 +4,11 @@ param(
     [switch]$SkipBuild
 )
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'local.ps1')
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $version = (Get-Content -LiteralPath (Join-Path $PSScriptRoot 'version.json') -Raw | ConvertFrom-Json).version
 if ($version -notmatch '^\d+\.\d+\.\d+$') { throw 'Invalid package version' }
-$dist = Join-Path $root 'dist'
+$dist = Join-Path $script:DesklandLocal 'dist'
 $cache = Join-Path $dist 'installer-tools'
 $payload = Join-Path $dist ('payload-' + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Force $cache, $payload | Out-Null

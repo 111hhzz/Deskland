@@ -1,9 +1,10 @@
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'local.ps1')
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $proxy = 'http://127.0.0.1:7890'
 $token = $env:GITHUB_TOKEN
 if (-not $token) {
-  $tokenFile = Join-Path (Join-Path $PSScriptRoot '..') '.gh_token'
+  $tokenFile = Join-Path $script:DesklandLocal '.gh_token'
   if (Test-Path -LiteralPath $tokenFile) { $token = (Get-Content -LiteralPath $tokenFile -Raw).Trim() }
 }
 if (-not $token) { throw 'Set GITHUB_TOKEN environment variable (or create .gh_token) with a GitHub PAT (repo scope).' }

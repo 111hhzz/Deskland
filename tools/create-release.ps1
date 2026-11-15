@@ -1,10 +1,11 @@
 param([string]$Tag = 'v0.1.3', [string]$Name = 'Deskland Preview 0.1.3')
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+. (Join-Path $PSScriptRoot 'local.ps1')
 $proxy = 'http://127.0.0.1:7890'
 $token = $env:GITHUB_TOKEN
 if (-not $token) {
-  $tokenFile = Join-Path (Join-Path $PSScriptRoot '..') '.gh_token'
+  $tokenFile = Join-Path $script:DesklandLocal '.gh_token'
   if (Test-Path -LiteralPath $tokenFile) { $token = (Get-Content -LiteralPath $tokenFile -Raw).Trim() }
 }
 if (-not $token) { throw 'Set GITHUB_TOKEN environment variable (or create .gh_token) with a GitHub PAT (repo scope).' }
@@ -31,7 +32,7 @@ try {
   $existingAssets = @{}
 }
 
-$notesPath = Join-Path (Join-Path $root 'dist') ("release-notes-" + $version + ".md")
+$notesPath = Join-Path (Join-Path $script:DesklandLocal 'dist') ("release-notes-" + $version + ".md")
 if (-not (Test-Path -LiteralPath $notesPath)) { throw "Release notes missing: $notesPath" }
 $notes = [IO.File]::ReadAllText($notesPath, (New-Object Text.UTF8Encoding($false)))
 if (-not $rj) {
@@ -62,7 +63,7 @@ $assets = @(
 )
 foreach ($name in $assets) {
   if ($existingAssets.ContainsKey($name)) { Write-Host ("Already uploaded, skipping: " + $name); continue }
-  $path = Join-Path (Join-Path $root 'dist') $name
+  $path = Join-Path (Join-Path $script:DesklandLocal 'dist') $name
   if (-not (Test-Path -LiteralPath $path)) { Write-Warning ("missing asset: " + $name); continue }
   $label = [uri]::EscapeDataString($name)
   $upload = $rj.upload_url -replace '\{.*$', ''

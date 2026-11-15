@@ -80,6 +80,7 @@ window.__dbg = {
   kayaks: engine.kayaks,
   birds: engine.birds,
   applyLayout: k => app.layoutIcons(k),
+  settle: () => engine.settleAndRender(),   // 测试用：走完形态过渡并画一帧
   bench: () => engine.bench(),
 };
 

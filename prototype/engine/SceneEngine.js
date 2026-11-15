@@ -326,6 +326,13 @@ export class SceneEngine extends BaseEngine {
   hasField() { return !!this.FB; }
   setSeed(v) { this._seed = v; this.buildNoise(); }
 
+  // 测试用：形态过渡直接走完并立刻画一帧。视觉基线把 performance.now 冻结了，
+  // 页面只会画一帧，否则取到的可能是"图标还没就位"的那一帧。
+  settleAndRender() {
+    this.morphT0 = -1e9; this.curMix = 1; this.massT = -1e9;
+    this.render(performance.now());
+  }
+
   /* ======================================================================
      云的圆：每帧在 CPU 上算好所有的圆（几百个），按格子分好上传成一张小纹理，着色器只读自己格子里的几个
      - 图标周围的云团：固定的格子里各放一个圆（随机位置、随机大小），圆心要在云团里面，越靠云边圆越小

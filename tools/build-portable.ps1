@@ -1,5 +1,6 @@
 param([switch]$SkipBuild)
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'local.ps1')
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $version = (Get-Content -LiteralPath (Join-Path $PSScriptRoot 'version.json') -Raw | ConvertFrom-Json).version
 if ($version -notmatch '^\d+\.\d+\.\d+$') { throw 'Invalid package version' }
@@ -7,7 +8,7 @@ if ($version -notmatch '^\d+\.\d+\.\d+$') { throw 'Invalid package version' }
 if (-not $SkipBuild) { & (Join-Path $root 'host\build.ps1') }
 
 Add-Type -AssemblyName System.IO.Compression.FileSystem
-$dist = Join-Path $root 'dist'
+$dist = Join-Path $script:DesklandLocal 'dist'
 New-Item -ItemType Directory -Force $dist | Out-Null
 
 # Portable layout mirrors the installer's runtime + theme files.

@@ -1,6 +1,7 @@
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'local.ps1')
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-$cache = Join-Path (Join-Path $PSScriptRoot '..\dist') 'installer-tools'
+$cache = Join-Path (Join-Path $script:DesklandLocal 'dist') 'installer-tools'
 New-Item -ItemType Directory -Force $cache | Out-Null
 $proxy = 'http://127.0.0.1:7890'
 

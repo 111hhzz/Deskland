@@ -77,6 +77,7 @@ window.__dbg = {
   SCENE: engine.scene,
   get seed() { return engine.seed; },
   applyLayout: k => app.layoutIcons(k),
+  settle: () => engine.settleAndRender(),   // 测试用：走完形态过渡并画一帧
   bench: () => engine.bench(),
 };
 
