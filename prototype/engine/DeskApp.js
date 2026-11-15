@@ -132,6 +132,11 @@ export class DeskApp {
     Object.defineProperty(window, 'seed', {
       get: () => this.engine.seed, set: v => { this.engine.setSeed(v); }, configurable: true,
     });
+    // 旧脚本还会直接读场数组 / 双线性采样 / 场的动态值 / 确定性随机（beach-palms.js）
+    Object.defineProperty(window, 'FB', { get: () => this.engine.FB, configurable: true });
+    window.sampleArr = this.engine.sampleArr.bind(this.engine);
+    window.curS = this.engine.curS.bind(this.engine);
+    window.mulberry32 = this.mulberry32.bind(this);
   }
 
   /* ---------------- 事件与面板 ---------------- */
@@ -177,6 +182,7 @@ export class DeskApp {
         this.P[s.key] = +inp.value; out.textContent = s.fmt(this.P[s.key]);
         if (s.act === 'field') this.engine.refresh();
         else if (s.act === 'size') { this.engine.resize(); this.engine.refresh(); }
+        else if (s.act && this.engine.onSliderAction) this.engine.onSliderAction(s.act);
       });
       slidersEl.appendChild(wrap);
     }
@@ -233,6 +239,7 @@ export class DeskApp {
     return best;
   }
   addRipple(x, y, str = 1) {
+    if (this.engine.addRipple) this.engine.addRipple(x, y, str);   // 主题自己的着色器涟漪（flat）
     this.ripples.push({ x, y, t0: performance.now(), str });
     if (this.ripples.length > 6) this.ripples.shift();
   }
@@ -313,6 +320,7 @@ export class DeskApp {
         .forEach(([c, r], i) => this.addIcon(FILES[i], this.cellPos(Math.min(c, this.grid.cols - 1), Math.min(r, this.grid.rows - 1))));
     }
     this.engine.commit(true);
+    this.engine.onSceneChanged && this.engine.onSceneChanged('layout');
   }
   addFile() {
     const f = EXTRA[this.extraIdx++ % EXTRA.length];
@@ -336,6 +344,7 @@ export class DeskApp {
     this.engine.setSeed(v);
     if (!this.iconsSeen) return;
     this.engine.commit(true);
+    this.engine.onSceneChanged && this.engine.onSceneChanged('reseed');
   }
 
   // 应用设置：只接受引擎声明过的参数；云团大小要重算场
@@ -343,19 +352,22 @@ export class DeskApp {
     if (typeof v.seed === 'number' && v.seed !== this.engine.seed) this.reseed(v.seed);
     const sliders = this.engine.sliders, keys = this.engine.displayKeys;
     let field = false, adaptiveChanged = false;
+    const actions = [];
     for (const k in v) {
       const slider = sliders.find(s => s.key === k);
       const key = keys.find(d => d.key === k);
       if (!slider && !key) continue;
       if (typeof v[k] !== typeof this.P[k] || this.P[k] === v[k]) continue;
       if (key && (v[k] < key.min || v[k] > key.max)) continue;   // 超出主题声明范围的值不接受
-      this.P[k] = v[k];
+      this.P[k] = slider ? Math.min(slider.max, Math.max(slider.min, v[k])) : v[k];
       if (k === 'adaptive') adaptiveChanged = true;
-      if (k === 'sigma') field = true;
+      else if (slider && slider.act === 'field') field = true;
+      else if (slider && slider.act) actions.push(slider.act);
     }
     if (!this.engine.hasField()) return;
     if (adaptiveChanged) this.engine.commit();
     else if (field) this.engine.refresh();
+    for (const a of actions) this.engine.onSliderAction && this.engine.onSliderAction(a);
   }
 
   /* ---------------- 托管模式（宿主消息协议） ---------------- */
@@ -372,7 +384,8 @@ export class DeskApp {
       const g = document.createElement('div'); g.id = 'ghosts'; document.body.appendChild(g);
     }
     this.engine.icons = [];
-    this.engine.commit(true);                     // 先是一片草地（还不知道图标在哪）
+    this.engine.commit(true);                     // 先是一片海（还不知道图标在哪）
+    this.engine.onSceneChanged && this.engine.onSceneChanged('hostInit');
     this._firstIcons = true;
     if (this.PREVIEW) {
       addEventListener('message', ev => { if (ev.source === parent) this._handle(typeof ev.data === 'string' ? JSON.parse(ev.data) : ev.data); });
@@ -394,7 +407,8 @@ export class DeskApp {
     this.engine.icons = m.vis ? m.r.map(([l, t, r, b]) => ({ x: l / k, y: t / k, w: (r - l) / k, h: (b - t) / k })) : [];
     if (this.PREVIEW) this.drawGhosts();
     this.iconsSeen = true;
-    this.engine.commit(this._firstIcons);         // 第一次：云慢慢长出来；之后：云跟着图标平滑移动
+    this.engine.commit(this._firstIcons);         // 第一次：陆地从海里"长"出来；之后：岸线平滑移动
+    if (this._firstIcons) this.engine.onSceneChanged && this.engine.onSceneChanged('firstIcons');
     this._firstIcons = false;
   }
 }

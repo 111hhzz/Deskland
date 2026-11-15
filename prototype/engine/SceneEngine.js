@@ -87,7 +87,7 @@ export class SceneEngine extends BaseEngine {
      着色器与资源
      ====================================================================== */
   // 编译着色器：boy/cat 脚本也通过 window.program 调用它（过渡期），因此用箭头函数保持 this
-  program = (fs) => {
+  program = (fs, vsSrc = VS_SRC) => {
     const gl = this.gl;
     const mk = (type, src) => {
       const s = gl.createShader(type);
@@ -95,7 +95,7 @@ export class SceneEngine extends BaseEngine {
       if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) { console.error(gl.getShaderInfoLog(s)); throw new Error('shader'); }
       return s;
     };
-    const vs = mk(gl.VERTEX_SHADER, VS_SRC), fss = mk(gl.FRAGMENT_SHADER, fs);
+    const vs = mk(gl.VERTEX_SHADER, vsSrc), fss = mk(gl.FRAGMENT_SHADER, fs);
     const p = gl.createProgram();
     gl.attachShader(p, vs); gl.attachShader(p, fss);
     gl.linkProgram(p);
