@@ -1,8 +1,0 @@
-chore: 工作区重构——本机状态与 AI 文档移出仓库
-
-- 新增 tools/local.ps1：本机状态根（默认 <工作区根>/.local/Deskland，可用 DESKLAND_LOCAL 覆盖）
-- .gh_token / test-profile / dist 迁到本机状态根；打包与测试脚本改读它
-- AGENTS.md / HANDOFF.md 移到工作区根并从仓库取消跟踪（不入库、不推送）
-- 修 build-source-zip.ps1 白名单：补 prototype/engine、prototype/themes、test、.githooks、docs
-- 修视觉基线竞态：引擎加 settleAndRender()，截图前走完形态过渡，基线重新生成
-- HANDOFF.md 增加维护约定：每次改动项目后同步更新
