@@ -63,6 +63,18 @@ host\bin\Deskland.exe --exit
 
 Preview settings and logs are stored separately in `%LOCALAPPDATA%\DesklandPreview`.
 
+## Developing and testing
+
+One command to build the host and run the full test suite (xUnit + Playwright .NET, needs the .NET SDK):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools\ci.ps1
+```
+
+Add `-Package` to also build the installer, or `-SkipTests` to build only. The pre-commit hook runs `dotnet format --verify-no-changes`, `dotnet build --warnaserror`, a deslop check and `dotnet test`.
+
+Tests are organised in four layers: **unit** (theme conventions, no browser), **E2E** (Playwright .NET over the WebView2 CDP), **Win32** (window-structure probe) and **visual baseline** (frozen-frame pixel comparison).
+
 ## Browser preview
 
 ```powershell
@@ -172,6 +184,18 @@ host\bin\Deskland.exe --exit
 ```
 
 体验版的设置与日志独立保存在 `%LOCALAPPDATA%\DesklandPreview`。
+
+### 开发与测试
+
+一条命令构建宿主并跑完整测试（xUnit + Playwright .NET，需要 .NET SDK）：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools\ci.ps1
+```
+
+加 `-Package` 同时打包安装器，或加 `-SkipTests` 只构建。pre-commit 钩子会依次跑 `dotnet format --verify-no-changes`、`dotnet build --warnaserror`、屎山检查与 `dotnet test`。
+
+测试分四层：**单元**（主题约定，无浏览器）、**E2E**（Playwright .NET 经 WebView2 CDP）、**Win32**（窗口结构探针）与**视觉基线**（冻结画面像素比对）。
 
 ### 浏览器预览
 
