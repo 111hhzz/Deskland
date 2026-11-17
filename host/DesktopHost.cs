@@ -1454,6 +1454,16 @@ class WallpaperForm : Form
         if (parent != IntPtr.Zero && Native.IsWindow(parent))
             Native.RedrawWindow(parent, IntPtr.Zero, IntPtr.Zero, 0x1 | 0x4 | 0x80 | 0x100);
         Close();
+        // 仅 RedrawWindow 不够：Explorer 的壁纸层不会因子窗口移除而自动重贴壁纸，
+        // 会残留窗口最后一帧的表面（本机实测为壁纸窗口的 BackColor）。发送未公开的
+        // Progman 消息 0x052C,0xD,1 让资源管理器重建壁纸层，从而恢复系统壁纸。
+        IntPtr progman = Native.FindWindow("Progman", null);
+        if (progman != IntPtr.Zero)
+        {
+            IntPtr res;
+            Native.SendMessageTimeout(progman, 0x052C, new IntPtr(0xD), new IntPtr(1), 0, 1000, out res);
+            Log.Write("已请求资源管理器重建壁纸层（0x052C）");
+        }
     }
 
     protected override void OnHandleDestroyed(EventArgs e)
