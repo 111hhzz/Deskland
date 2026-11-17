@@ -407,6 +407,7 @@ export class DeskApp {
     this.engine.icons = m.vis ? m.r.map(([l, t, r, b]) => ({ x: l / k, y: t / k, w: (r - l) / k, h: (b - t) / k })) : [];
     if (this.PREVIEW) this.drawGhosts();
     this.iconsSeen = true;
+    window.__desklandIcons = true;   // 测试同步信号：宿主图标已到达（场已按图标重算）
     this.engine.commit(this._firstIcons);         // 第一次：陆地从海里"长"出来；之后：岸线平滑移动
     if (this._firstIcons) this.engine.onSceneChanged && this.engine.onSceneChanged('firstIcons');
     this._firstIcons = false;

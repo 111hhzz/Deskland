@@ -68,11 +68,5 @@
   }));
 })();
 
-// 测试信号：首帧渲染完成后通知宿主（供 Playwright 等待同步，替代 sleep）。
-(function () {
-  const host = window.chrome && window.chrome.webview;
-  if (!host) return;
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    host.postMessage(JSON.stringify({ t: 'firstframe' }));
-  }));
-})();
+// 首帧信号已移到各主题页：引擎就绪（init 分片完成）后由页面发出，
+// 静态画面（页面背景）在 init 分片期间已先渲染，不再作为首帧判定。

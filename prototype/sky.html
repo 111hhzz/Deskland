@@ -85,6 +85,12 @@ engine.init().then(ok => {
   if (!ok) return;                 // 没有 WebGL2：BaseEngine 已经显示 #nogl
   app.start();
   engine.start();                  // 主循环由 BaseEngine 驱动（update + render）
+  // 等主循环画出第一帧（云 / 场就绪）再报首帧，保证测试与视觉基线取到完整画面
+  requestAnimationFrame(() => {
+    window.__desklandReady = true;   // 测试同步信号：引擎已就绪（首帧）
+    const host = window.chrome && window.chrome.webview;
+    if (host) host.postMessage(JSON.stringify({ t: 'firstframe' }));
+  });
 });
 </script>
 <script src="ripple.js"></script>   <!-- 桌面点击涟漪（只读鼠标钩子） -->
