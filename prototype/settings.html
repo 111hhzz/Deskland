@@ -170,9 +170,13 @@
   .controls { flex: 1; min-height: 0; overflow-y: auto; border-top: 1px solid var(--line); padding-right: 4px; margin-right: -4px; }
   .controls::-webkit-scrollbar { width: 8px; }
   .controls::-webkit-scrollbar-thumb { background: var(--track); border-radius: 4px; }
-  .group { padding: 16px 0 10px; border-bottom: 1px solid var(--line); }
+  .group { padding: 12px 0 8px; border-bottom: 1px solid var(--line); }
   .group:last-child { border-bottom: 0; }
-  .group h3 { font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: .04em; margin-bottom: 6px; }
+  .group > summary { font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: .04em; margin-bottom: 6px;
+    cursor: pointer; list-style: none; display: flex; align-items: center; gap: 5px; }
+  .group > summary::-webkit-details-marker { display: none; }
+  .group > summary::before { content: "▸"; font-size: 9px; transition: transform .15s; }
+  .group[open] > summary::before { transform: rotate(90deg); }
   .param { padding: 6px 0; }
   .param .row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
   .param .label { font-weight: 600; }
@@ -537,7 +541,7 @@ function renderControls() {
   const theme = themeById(state.theme), vals = valuesOf(theme);
   if (!theme.groups) { $('controls').innerHTML = '<div class="empty">' + t('noParams') + '</div>'; return; }
   $('controls').innerHTML = theme.groups.map(g => `
-    <div class="group"><h3>${g.name}</h3>
+    <details class="group" open><summary>${g.name}</summary>
       ${g.params.map(p => `
         <div class="param${vals[p.key] !== p.default ? ' changed' : ''}" id="p-${p.key}">
           <div class="row"><span class="label">${p.label}${p.hint ? `<span class="hint">${p.hint}</span>` : ''}</span>
@@ -552,7 +556,7 @@ function renderControls() {
           </div>`}
         </div>`).join('')}
       ${g.soon ? `<div class="soon">${t('comingSoon')}${g.soon.map(s => `<span class="chip">${s}</span>`).join('')}</div>` : ''}
-    </div>`).join('');
+    </details>`).join('');
   $('controls').querySelectorAll('input[type=range]').forEach(fill);
 }
 function fill(inp) { inp.style.setProperty('--p', ((inp.value - inp.min) / (inp.max - inp.min) * 100) + '%'); }
