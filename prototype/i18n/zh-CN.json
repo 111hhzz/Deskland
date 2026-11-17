@@ -3,6 +3,7 @@
   "ui": {
     "adaptive": "自适应",
     "themes": "主题",
+    "searchThemes": "搜索主题",
     "collectionTitle": "选一片风景。",
     "collectionSubtitle": "让图标成为风景的一部分。",
     "language": "语言",

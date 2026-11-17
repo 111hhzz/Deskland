@@ -105,6 +105,11 @@
   /* 按宽度自动排几列，主题多了就往下滚（以后会有很多辑、上百个主题） */
   .theme-list { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(172px, 1fr));
     align-content: start; gap: 16px; padding: 4px 8px 18px 4px; margin-left: -4px; margin-right: -8px; }
+  .theme-search { width: 100%; margin: 0 0 16px; padding: 9px 12px 9px 34px; border: 1px solid var(--line); border-radius: 12px;
+    background: var(--panel-2) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 20 20' fill='none' stroke='%2380807c' stroke-width='1.7' stroke-linecap='round'><circle cx='9' cy='9' r='5.5'/><path d='m13.5 13.5 3 3'/></svg>") no-repeat 11px center;
+    color: var(--text); font: inherit; font-size: 12.5px; outline: none; }
+  .theme-search:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .theme-search::placeholder { color: var(--faint); }
   .theme-list::-webkit-scrollbar { width: 8px; }
   .theme-list::-webkit-scrollbar-thumb { background: var(--track); border-radius: 4px; }
   .theme {
@@ -300,6 +305,7 @@
       <button class="ghost-btn update-action" id="updateProgram" data-i18n="updateProgram">立即更新</button>
     </div>
     <div class="warn" id="autostartWarn" hidden role="alert"><p><b data-i18n="autostartBlocked">开机自动启动可能被拦截了</b><br><span id="autostartWarnText"></span></p><button id="autostartWarnOk" data-i18n="gotIt">知道了</button></div>
+    <input class="theme-search" id="themeSearch" type="search" data-i18n-placeholder="searchThemes" placeholder="搜索主题" autocomplete="off" aria-label="搜索主题">
     <div class="theme-list" id="themes"></div>
   </section>
 
@@ -494,6 +500,15 @@ function closePurchase() {
   $('purchaseModal').hidden = true;
   if (purchaseReturnFocus) purchaseReturnFocus.focus();
 }
+/* ---------- 主题搜索：按名称 / id 过滤卡片 ---------- */
+$('themeSearch').addEventListener('input', e => {
+  const q = e.target.value.trim().toLowerCase();
+  document.querySelectorAll('#themes .theme').forEach(el => {
+    const hit = !q || el.textContent.toLowerCase().includes(q) || (el.dataset.id || '').toLowerCase().includes(q);
+    el.hidden = !hit;
+  });
+});
+
 $('themes').addEventListener('click', e => {
   const b = e.target.closest('.theme');
   if (!b || b.disabled) return;
