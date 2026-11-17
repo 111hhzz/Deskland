@@ -7,6 +7,7 @@ namespace Deskland.Tests;
 /// Deskland E2E 测试：双端口 CDP 连接 + DOM 断言 + 性能埋点
 /// 运行：dotnet test
 /// </summary>
+[System.Runtime.Versioning.SupportedOSPlatform("windows")]
 public class DesklandE2ETests : IAsyncLifetime
 {
     private System.Diagnostics.Process? _appProcess;
@@ -35,7 +36,7 @@ public class DesklandE2ETests : IAsyncLifetime
     public async Task InitializeAsync()
     {
         KillProcess("Deskland");
-        KillProcess("msedgewebview2");
+        KillWebView2ForProfile(TestProfile);
         await Task.Delay(1000);
         Directory.CreateDirectory(TestProfile);
 
@@ -73,7 +74,7 @@ public class DesklandE2ETests : IAsyncLifetime
             // 否则残留的 Deskland.exe 会一直占着 9222/9223，下一轮测试就连不上
             if (_playwright != null) _playwright.Dispose();
             KillProcess("Deskland");
-            KillProcess("msedgewebview2");
+            KillWebView2ForProfile(TestProfile);
         }
     }
 
@@ -282,7 +283,12 @@ public class DesklandE2ETests : IAsyncLifetime
         })
         {
             await _pageWallpaper.GotoAsync($"https://app.local/{page}?wallpaper=1");
-            await Task.Delay(2000);        // 等首帧、淡入与宿主图标到达
+            // 等宿主图标到达（场按图标重算完成）：分片初始化后引擎就绪更早，
+            // 只等首帧会截到还没有图标场的画面
+            await _pageWallpaper.WaitForFunctionAsync(
+                "() => window.__desklandIcons === true",
+                null,
+                new PageWaitForFunctionOptions { Timeout = 20000 });
             // 测试把 performance.now 冻结了，页面只画一帧；手动走完形态过渡再画一帧，
             // 否则取到的可能是"图标还没就位"的那一帧（与图标到达形成竞态）
             await _pageWallpaper.EvaluateAsync("window.__dbg && window.__dbg.settle && window.__dbg.settle()");
@@ -647,5 +653,39 @@ public class DesklandE2ETests : IAsyncLifetime
             }
         }
         catch { }
+    }
+
+    // 只杀命令行 --user-data-dir 指向本测试 profile 的 WebView2 进程。
+    // msedgewebview2.exe 是通用进程名，按名全杀会误伤其他应用
+    // （如 GUI.for.Clash 的 WebView2），导致其崩溃。
+    private static void KillWebView2ForProfile(string profileDir)
+    {
+        var marker = profileDir.TrimEnd('\\') + "\\";
+        foreach (var p in System.Diagnostics.Process.GetProcessesByName("msedgewebview2"))
+        {
+            try
+            {
+                var cmd = GetProcessCommandLine(p.Id);
+                if (cmd != null && cmd.IndexOf(marker, StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    p.Kill();
+                    p.WaitForExit(3000);
+                }
+            }
+            catch { }
+        }
+    }
+
+    private static string? GetProcessCommandLine(int processId)
+    {
+        try
+        {
+            using var searcher = new System.Management.ManagementObjectSearcher(
+                "SELECT CommandLine FROM Win32_Process WHERE ProcessId = " + processId);
+            foreach (System.Management.ManagementObject obj in searcher.Get())
+                return obj["CommandLine"]?.ToString();
+        }
+        catch { }
+        return null;
     }
 }
