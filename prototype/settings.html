@@ -157,6 +157,10 @@
   .preview-head h2 { font-size: 28px; font-weight: 650; letter-spacing: -.04em; line-height: 1.2; }
   .stage { position: relative; display: flex; justify-content: center; }
   /* 切换主题时的加载指示：桌面重载期间预览区变淡并显示旋转环 */
+  .theme-meta { margin: 14px 2px 0; font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .theme-meta .name { font-size: 13.5px; font-weight: 600; color: var(--text); }
+  .theme-meta .author { font-size: 11.5px; color: var(--faint); margin-top: 2px; }
+  .theme-meta .desc { margin-top: 6px; }
   .stage.loading .preview { opacity: .45; }
   .stage::after { content: ""; position: absolute; left: 50%; top: 50%; width: 26px; height: 26px; margin: -13px 0 0 -13px;
     border: 2px solid var(--track); border-top-color: var(--accent); border-radius: 50%;
@@ -318,6 +322,7 @@
     <section class="card preview-card">
       <div class="preview-head"><h2 id="themeName">　</h2><label class="switch-row adaptive-switch" id="adaptiveRow" hidden><span data-i18n="adaptive">自适应</span><input type="checkbox" id="adaptive" role="switch" checked><i class="switch" aria-hidden="true"></i></label></div>
       <div class="stage" id="stage"><div class="preview" id="previewBox"><img id="preview" data-i18n-title="themePreview" data-i18n-alt="themePreview" title="主题预览" alt="主题预览" decoding="async"></div></div>
+<div class="theme-meta" id="themeMeta"></div>
       <p class="preview-foot"><span id="previewFoot" data-i18n="themePreview">主题预览</span></p>
       <div class="preview-actions">
         <button class="ghost-btn refresh" id="reseed" data-i18n-title="refreshTitle" title="重新生成这个主题的画面">
@@ -685,6 +690,12 @@ function showTheme() {
   const th = themeById(state.theme);
   $('preview').style.background = th.thumb || '#ccc';
   $('preview').src = thumbUrl(th.thumb, th.id);
+  const meta = $('themeMeta');
+  meta.innerHTML = th.status === 'ready'
+    ? `<div class="name"></div>${th.author ? '<div class="author"></div>' : ''}${th.desc ? '<div class="desc"></div>' : ''}` : '';
+  if (meta.firstElementChild) meta.firstElementChild.textContent = th.name || '';
+  if (th.author) { const a = meta.querySelector('.author'); if (a) a.textContent = th.author; }
+  if (th.desc) { const d = meta.querySelector('.desc'); if (d) d.textContent = th.desc; }
 }
 $('purchaseLater').addEventListener('click', closePurchase);
 $('purchaseModal').addEventListener('click', e => { if (e.target === $('purchaseModal')) closePurchase(); });
