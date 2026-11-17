@@ -89,6 +89,11 @@ export class SceneEngine extends BaseEngine {
   // 编译着色器：boy/cat 脚本也通过 window.program 调用它（过渡期），因此用箭头函数保持 this
   program = (fs, vsSrc = VS_SRC) => {
     const gl = this.gl;
+    // 同一 WebGL 上下文内（页内热切换）按 GLSL 复用已编译程序，省掉重复编译
+    const key = vsSrc + '\n' + fs;
+    if (!SceneEngine._progCache) SceneEngine._progCache = new Map();
+    let cached = SceneEngine._progCache.get(key);
+    if (cached) { this._programs.add(cached); return cached; }
     const mk = (type, src) => {
       const s = gl.createShader(type);
       gl.shaderSource(s, src); gl.compileShader(s);
@@ -104,7 +109,8 @@ export class SceneEngine extends BaseEngine {
     const U = {};
     const n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS);
     for (let i = 0; i < n; i++) { const nm = gl.getActiveUniform(p, i).name.replace(/\[0\]$/, ''); U[nm] = gl.getUniformLocation(p, nm); }
-    const r = { p, U };
+    const r = { p, U, cached: true };
+    SceneEngine._progCache.set(key, r);
     this._programs.add(r);
     return r;
   };
@@ -546,8 +552,8 @@ export class SceneEngine extends BaseEngine {
     if (this.noiseTex) { gl.deleteTexture(this.noiseTex); this.noiseTex = null; }
     for (let i = 0; i < 2; i++) if (this.ftex[i]) { gl.deleteTexture(this.ftex[i]); this.ftex[i] = null; }
     if (this.circTex) { gl.deleteTexture(this.circTex); this.circTex = null; }
-    // program() 记录的所有程序（含 boy/cat 脚本通过 window.program 创建的）
-    for (const r of this._programs) if (r && r.p) gl.deleteProgram(r.p);
+    // program() 记录的所有程序（含 boy/cat 脚本通过 window.program 创建的）；缓存的程序跨引擎复用，不删
+    for (const r of this._programs) if (r && r.p && !r.cached) gl.deleteProgram(r.p);
     this._programs.clear();
     this.PR = this.actorPR = this.catPR = this.catActorPR = null;
     this.actorTex = this.actorShadowTex = null; this.actorRect = null;

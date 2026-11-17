@@ -556,7 +556,7 @@ class HostContext : ApplicationContext
                 if (page == null || id == Settings.Theme) return;
                 Settings.Theme = id;
                 SaveSoon();
-                if (form != null) form.LoadPage(page);
+                if (form != null) form.SwitchTheme(id);
                 Log.Write("切换主题：" + id);
                 break;
             }
@@ -1101,6 +1101,7 @@ class WallpaperForm : Form
         Shutdown();
     }
     string PageUrl { get { return "https://app.local/" + page + "?wallpaper=1&ui=2"; } }
+    string EngineUrl(string id) { return "https://app.local/engine.html?theme=" + id + "&wallpaper=1&ui=2"; }
 
     // 切换主题：换页面；新页面就绪后会重新收到设置和图标
     public void LoadPage(string newPage)
@@ -1111,6 +1112,25 @@ class WallpaperForm : Form
         try { web.CoreWebView2.Navigate(PageUrl); }
         catch (InvalidOperationException ex) { WebDead(ex); }
         catch (COMException ex) { WebDead(ex); }
+    }
+
+    // 页内热切换：统一入口 engine.html 在同一 WebGL 上下文里重建引擎（~200ms）；
+    // 页面不支持（未加载 __dbg / 主题无对应引擎）时回退整页导航。
+    public async void SwitchTheme(string id)
+    {
+        LastLoadPageTime = DateTime.Now;
+        if (web.CoreWebView2 == null) { LoadPage(Themes.PageFor(pageDir, id)); return; }
+        try
+        {
+            string js = "(window.__dbg && window.__dbg.switchTheme) ? window.__dbg.switchTheme(" + Json.Stringify(id) + ") : false";
+            string r = await web.CoreWebView2.ExecuteScriptAsync(js);
+            if (r != "true")
+            {
+                string p = Themes.PageFor(pageDir, id);
+                if (p != null) LoadPage(p);
+            }
+        }
+        catch { }
     }
 
     protected override async void OnShown(EventArgs e)
@@ -1185,7 +1205,7 @@ class WallpaperForm : Form
                 if (SettingsJson != null) core.PostWebMessageAsString(SettingsJson());
                 lastIcons = ""; lastPause = -1; PollIcons(); PollForeground();
             };
-            core.Navigate(PageUrl);
+            core.Navigate(EngineUrl((page ?? "meadow").Replace(".html", "")));
             iconTimer.Start();
             fgTimer.Start();
             // 事件驱动图标刷新：监听桌面 ListView 的 LOCATIONCHANGE，去抖后触发 PollIcons
