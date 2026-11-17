@@ -399,7 +399,7 @@ export class DeskApp {
   }
 
   _handle(m) {
-    if (m.t === 'pause') { this.engine.paused = this.PREVIEW ? false : m.v; return; }
+    if (m.t === 'pause') { this.engine.paused = this.PREVIEW ? false : m.v; if (!this.engine.paused) this.engine.resume(); return; }
     if (m.t === 'settings') { this.applySettings(m.v || {}); return; }
     if (m.t === 'reset') { this.applySettings(Object.assign({}, this.DEFAULTS, m.v || {})); return; }
     if (m.t !== 'icons') return;

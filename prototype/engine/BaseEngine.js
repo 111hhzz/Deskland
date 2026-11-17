@@ -56,6 +56,11 @@ export class BaseEngine {
     cancelAnimationFrame(this._raf);
   }
 
+  // 暂停后恢复主循环（暂停时 _loop 已停止注册下一帧）
+  resume() {
+    if (this._running && !this.paused && !this._raf) this._raf = requestAnimationFrame(this._loop);
+  }
+
   destroy() {
     this.stop();
     this._removeResize();
@@ -67,8 +72,8 @@ export class BaseEngine {
   // 主循环：pause / cap30 / dt / fps 统计都在基类；子类只做 update + render
   _loop = (now) => {
     if (!this._running) return;
+    if (this.paused) { this._lastT = 0; this._raf = 0; return; }   // 暂停：彻底停掉主循环，不再空转
     this._raf = requestAnimationFrame(this._loop);
-    if (this.paused) { this._lastT = 0; return; }
     if (this.params.cap30 && now - this._lastT < 31) return;
     const dt = this._lastT ? Math.min((now - this._lastT) / 1000, 0.1) : 0.03;
     if (this._lastT) this._fpsEMA = this._fpsEMA ? this._fpsEMA * 0.9 + (1 / dt) * 0.1 : 1 / dt;
