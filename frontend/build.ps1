@@ -1,9 +1,8 @@
-# 前端打包：把 prototype（源）产出为 frontend/dist（产物）。
-# 当前源仍是 prototype/；迁移到 frontend/src 后只需改 $src。
+# 前端打包：frontend/src（源）→ frontend/dist（产物）。
 # 产物为纯静态文件，供 host 构建时复制到 bin/prototype。
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent          # Deskland 仓库根
-$src = Join-Path $root 'prototype'
+$src = Join-Path $PSScriptRoot 'src'
 $dist = Join-Path $PSScriptRoot 'dist'
 if (-not (Test-Path -LiteralPath $src)) { throw "缺少前端源目录：$src" }
 

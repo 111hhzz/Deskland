@@ -12,7 +12,7 @@ public class ThemeConventionTests
 {
     private static readonly string RepoRoot = Path.GetFullPath(Path.Combine(
         AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
-    private static readonly string PrototypeDir = Path.Combine(RepoRoot, "prototype");
+    private static readonly string PrototypeDir = Path.Combine(RepoRoot, "frontend", "src");
     private static readonly string ThemesDir = Path.Combine(PrototypeDir, "themes");
 
     private static string[] ThemeIds => Directory.GetDirectories(ThemesDir)

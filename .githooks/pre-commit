@@ -55,7 +55,7 @@ echo "   检查 TODO/FIXME/HACK/XXX..."
 DESLOP_HITS=$(grep -rn --include="*.cs" --include="*.html" --include="*.js" \
     --exclude-dir="bin" --exclude-dir="obj" --exclude-dir=".playwright" \
     -E "//\s*(TODO|FIXME|HACK|XXX|BUG|临时|暂时|先这样)" \
-    host/ prototype/ test/ 2>/dev/null || true)
+    host/ frontend/src/ test/ 2>/dev/null || true)
 if [ -n "$DESLOP_HITS" ]; then
     echo "   ⚠️  发现待办注释："
     echo "$DESLOP_HITS" | head -5 | sed 's/^/      /'
@@ -90,7 +90,7 @@ fi
 echo "   检查敏感信息泄露..."
 SECRET_HITS=$(grep -rn --include="*.cs" --include="*.json" --include="*.html" --include="*.js" \
     -E "(password\s*=\s*[\"'][^\"']+[\"']|secret\s*=\s*[\"'][^\"']+[\"']|token\s*=\s*[\"'][^\"']+[\"'])" \
-    host/ prototype/ test/ 2>/dev/null | grep -v "example\|placeholder\|sample\|\.md" || true)
+    host/ frontend/src/ test/ 2>/dev/null | grep -v "example\|placeholder\|sample\|\.md" || true)
 if [ -n "$SECRET_HITS" ]; then
     echo "   ⚠️  发现硬编码敏感信息："
     echo "$SECRET_HITS" | head -5 | sed 's/^/      /'
