@@ -590,7 +590,7 @@ function renderThemes() {
       <div class="theme-copy"><div class="theme-meta"><span class="badge">${t(on ? 'badgeOn' : locked ? 'badgeLocked' : ready ? 'badgeReady' : 'badgeSoon')}</span>
         <svg class="theme-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5 15 15 5M5 5h10v10"/></svg></div>
         <div class="name">${th.name}</div></div>
-      <div class="thumb" style="background:${th.thumb || '#ccc'}">${thumbUrl(th.thumb, th.id) ? `<img src="${thumbUrl(th.thumb, th.id)}" alt="" decoding="async">` : ''}${locked ? `<span class="lock-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span>` : ''}</div></button>`;
+      <div class="thumb" style="background:${th.thumb || '#ccc'}">${thumbUrl(th.thumb, th.id) ? `<img src="${thumbUrl(th.thumb, th.id)}" alt="" loading="lazy" decoding="async">` : ''}${locked ? `<span class="lock-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span>` : ''}</div></button>`;
   }).join('');
 }
 let purchaseThemeId = null, purchaseReturnFocus = null;
