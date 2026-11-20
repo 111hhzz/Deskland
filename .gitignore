@@ -1,12 +1,23 @@
+# 构建产物 / 依赖二进制（不入库，构建/还原生成）
 /host/bin/
 /host/lib/
+/test/**/bin/
+/test/**/obj/
 /node_modules/
 /dist/
+**/*.exe
+**/*.dll
+**/*.pdb
+
+# 工具 / 编辑器
 /.vs/
 /.vscode/
 /.idea/
+
+# 日志 / 本机状态 / 敏感
 *.log
 .gh_token
+.local/
 .DS_Store
 Thumbs.db
 desktop.ini
