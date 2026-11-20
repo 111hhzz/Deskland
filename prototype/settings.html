@@ -115,17 +115,18 @@
   .theme {
     position: relative; display: flex; flex-direction: column; min-width: 0; padding: 0; border-radius: 22px; border: 1px solid transparent;
     background: var(--panel); text-align: left; color: inherit; font: inherit; cursor: pointer;
-    transition: transform .12s, box-shadow .12s, border-color .12s;
+    transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, background .16s ease;
   }
-  .theme:hover:not(:disabled) { transform: translateY(-2px); background: var(--panel-2); }
-  .theme.on { border-color: rgba(128, 128, 128, .5); box-shadow: var(--selection-shadow); }
+  .theme:hover:not(:disabled) { transform: translateY(-3px); background: var(--panel-2); box-shadow: 0 10px 26px -14px rgba(20, 22, 24, .45); }
+  .theme.on { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft), 0 10px 26px -16px rgba(20, 22, 24, .4); }
   .theme:disabled { cursor: default; }
   /* 缩略图使用 prototype/thumbs/ 中的自定义图片（见 themes.json 的 thumb），渐变作为图片未加载时的底色 */
   .theme-copy { flex: 1; padding: 16px 16px 14px; }
   .theme-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   .theme-arrow { flex: none; width: 17px; height: 17px; color: var(--muted); }
   .theme .thumb { flex: none; width: 100%; height: 112px; border-radius: 20px; position: relative; overflow: hidden; }
-  .theme .thumb > img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+  .theme .thumb > img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; pointer-events: none; transition: transform .28s ease; }
+  .theme:hover:not(:disabled) .thumb > img { transform: scale(1.05); }
   .theme:disabled .thumb { filter: saturate(.55) brightness(1.02); opacity: .75; }
   .theme.locked .thumb { filter: none; opacity: 1; }
   .purchase-box { max-width: 440px; }
