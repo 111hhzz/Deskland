@@ -522,7 +522,7 @@ function setupMenu(wrapId, btnId, menuId, items, onPick) {
   document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
   return {
     render(selected) {
-      menu.innerHTML = items.map(it => `<button role="menuitemradio" aria-checked="${it.v === selected}" data-v="${it.v}">${it.label}</button>`).join('');
+      menu.innerHTML = items.map(it => `<button role="menuitemradio" aria-checked="${it.v === selected}" data-v="${it.v}">${typeof it.label === 'function' ? it.label() : it.label}</button>`).join('');
     }
   };
 }
