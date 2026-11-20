@@ -826,6 +826,7 @@ addEventListener('keydown', e => { if (e.key === 'Escape') { closeHelp(); closeP
 /* ---------- 和宿主通信 ---------- */
 function onHost(m) {
   if (m.t === 'init') {
+    state.t0 = performance.now();
     state.langSetting = m.lang || 'auto';
     state.langSys = m.langSys || 'zh-CN';
     state.themeMode = m.themeMode || 'auto';
@@ -841,6 +842,7 @@ function onHost(m) {
       showUpdate();
       showTheme();
       document.documentElement.classList.add('ready');
+      window.__desklandSettingsPerf = Math.round(performance.now() - (state.t0 || 0));   // 首屏可交互耗时（测试用）
     });
   } else if (m.t === 'themeChanged') {
     if (!themeById(m.id) || themeById(m.id).status !== 'ready') return;
