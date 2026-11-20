@@ -2,9 +2,9 @@
 
 **Adaptive Windows wallpaper that makes your desktop icons part of the scenery.**
 
-Deskland turns the space around your icons into a living landscape. Move, add or remove an icon and the beach, meadow, clouds and shadows quietly reshape around it — in real time, without AI, an account or an API key.
+Deskland turns the space around your icons into a living landscape. Move, add or remove an icon and the beach, meadow, sky, clouds and shadows quietly reshape around it — in real time, without AI, an account or an API key.
 
-This is the **free, open-source Preview**, not a time-limited trial. It includes the complete **Beach** and **Meadow** themes, the Windows host, settings and sharing tools.
+This is the **free, open-source Preview**, not a time-limited trial. It includes the complete **Beach**, **Meadow** and **Sky** themes, the Windows host and the settings interface.
 
 **English** · [简体中文](#中文说明) · [Official website](https://deskland.app) · [Features](#features) · [Build from source](#build-from-source)
 
@@ -18,19 +18,18 @@ Meadow and Beach are included in Preview. Maldives is shown as a locked-theme pr
 
 ## Included themes
 
-| Beach | Meadow |
-| --- | --- |
-| ![Beach theme](prototype/thumbs/beach.webp) | ![Meadow theme](prototype/thumbs/meadow.webp) |
-| Turquoise waves, kayaks, seabirds and coconut palms. | Drifting clouds and shadows, a boy flying a kite and a little black cat. |
+| Beach | Meadow | Sky |
+| --- | --- | --- |
+| ![Beach theme](frontend/src/thumbs/beach.webp) | ![Meadow theme](frontend/src/thumbs/meadow.webp) | ![Sky theme](frontend/src/thumbs/sky.webp) |
+| Turquoise waves, kayaks, seabirds and coconut palms. | Drifting clouds and shadows, a boy flying a kite and a little black cat. | Cartoon blue sky and puffy clouds, with day, dusk and night. |
 
-The theme browser also shows 11 locked themes as a preview of the full Wallpaper edition. **Only names, descriptions and thumbnails are included for those themes — not their page code, parameters or implementation.**
+The theme browser also shows 10 locked themes as a preview of the full Wallpaper edition. **Only names, descriptions and thumbnails are included for those themes — not their page code, parameters or implementation.**
 
 ## Features
 
 - **Adaptive scenery:** uses the real positions of desktop icons and transitions smoothly when they move.
-- **Two complete themes:** every setting for Beach and Meadow is included and saved between sessions.
+- **Three complete themes:** every setting for Beach, Meadow and Sky is included and saved between sessions.
 - **Made for the desktop:** tray controls, startup on sign-in and automatic pause when a window is maximized or full-screen.
-- **Private sharing:** image and animation exports use sample icons and color blocks, never a screenshot of your desktop or real file names.
 - **Independent installation:** Preview uses its own install directory, settings, startup entry and instance identity, so it can coexist with other Deskland builds.
 - **English and Simplified Chinese:** no sign-in, purchase restoration, update service or store API is included.
 
@@ -49,11 +48,12 @@ Currently, Deskland renders on the **primary monitor** and targets 30 fps on int
 Open PowerShell in the repository root:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File host\build.ps1
+powershell -ExecutionPolicy Bypass -File frontend\build.ps1   # frontend/src → frontend/dist
+powershell -ExecutionPolicy Bypass -File host\build.ps1       # compile the host and copy dist → host/bin/prototype
 host\bin\Deskland.exe
 ```
 
-Keep `host/` and `prototype/` together. Build output is written to `host/bin/`.
+Frontend sources live in `frontend/src/`; `frontend\build.ps1` produces the static bundle in `frontend/dist/`, and `host\build.ps1` copies it into `host/bin/prototype/`. Build output is written to `host/bin/`.
 
 Run the program again or double-click its tray icon to open Settings. To exit and restore the original Windows wallpaper, use the tray menu or run:
 
@@ -78,7 +78,7 @@ Tests are organised in four layers: **unit** (theme conventions, no browser), **
 ## Browser preview
 
 ```powershell
-node prototype\serve.mjs
+node frontend\src\serve.mjs
 ```
 
 Open **http://localhost:5178/settings.html**. The browser uses sample icons; adaptation to real desktop icons requires the Windows host.
@@ -102,12 +102,14 @@ The installer targets the current user's `Programs\Deskland Preview` directory a
 | Path | Contents |
 | --- | --- |
 | `host/` | Windows host, build scripts and application manifest |
-| `prototype/flat.html` | Beach theme |
-| `prototype/meadow.html` | Meadow theme |
-| `prototype/settings.html` | Settings interface |
-| `prototype/themes.json` | Full free-theme definitions and locked-theme display metadata |
-| `prototype/share.js` | Privacy-preserving image and animation sharing |
-| `prototype/assets/` | Images used by the included themes |
+| `frontend/src/` | Frontend sources: theme pages, settings, engine and assets |
+| `frontend/src/flat.html` | Beach theme |
+| `frontend/src/meadow.html` `frontend/src/sky.html` | Meadow and Sky themes |
+| `frontend/src/settings.html` | Settings interface (styles/scripts externalized to `frontend/src/assets/`) |
+| `frontend/src/engine.html` | Unified entry for in-page theme hot-switching |
+| `frontend/src/engine/` | Theme engine classes (BaseEngine / SceneEngine / per-theme engines / DeskApp) |
+| `frontend/src/themes.json` | Full free-theme definitions and locked-theme display metadata |
+| `frontend/src/assets/` | Images used by the included themes, plus externalized settings CSS/JS |
 | `tools/` | Installer build tooling |
 
 ## Known limitations
@@ -134,25 +136,24 @@ Issues and suggestions are welcome through GitHub Issues. This is an independent
 
 Deskland 是一款 Windows 自适应动态壁纸。移动、添加或删除桌面图标时，海岸线、草地、云朵和阴影会实时围绕图标调整。全部在本地实时演算，不使用 AI，无需账号或 API Key。
 
-本仓库是**免费的开源体验版，不是限时试用版**，包含完整的沙滩和草地主题、Windows 宿主、设置界面与分享工具。
+本仓库是**免费的开源体验版，不是限时试用版**，包含完整的沙滩、草地和天空主题、Windows 宿主与设置界面。
 
 [官方网站](https://deskland.app) · [从源码运行](#build-from-source) · [许可](#credits-and-license)
 
 ### 包含的主题
 
-| 沙滩 | 草地 |
-| --- | --- |
-| ![沙滩主题](prototype/thumbs/beach.webp) | ![草地主题](prototype/thumbs/meadow.webp) |
-| 海浪、皮划艇、海鸟和椰子树。 | 漂浮的云与云影、放风筝的男孩和小黑猫。 |
+| 沙滩 | 草地 | 天空 |
+| --- | --- | --- |
+| ![沙滩主题](frontend/src/thumbs/beach.webp) | ![草地主题](frontend/src/thumbs/meadow.webp) | ![天空主题](frontend/src/thumbs/sky.webp) |
+| 海浪、皮划艇、海鸟和椰子树。 | 漂浮的云与云影、放风筝的男孩和小黑猫。 | 卡通风的蓝天白云，可选白天、傍晚、晚上。 |
 
-主题列表还展示另外 11 个锁定主题，帮助了解壁纸版内容。**这些锁定主题只有名称、简介和缩略图，不包含页面源码、参数或其他实现。**
+主题列表还展示另外 10 个锁定主题，帮助了解壁纸版内容。**这些锁定主题只有名称、简介和缩略图，不包含页面源码、参数或其他实现。**
 
 ### 功能
 
 - **图标自适应：**读取真实桌面图标的位置，在移动、添加或删除时平滑调整场景。
-- **两个完整主题：**沙滩和草地的全部参数均可调整并自动保存。
+- **三个完整主题：**沙滩、草地和天空的全部参数均可调整并自动保存。
 - **适合常驻桌面：**托盘控制、开机自动启动，前台窗口最大化或全屏时自动暂停。
-- **隐私分享：**图片和动画使用示例图标与名字色块，不截取桌面窗口或真实文件名。
 - **独立安装：**安装目录、用户数据、启动项和运行实例标识均独立，可与其他 Deskland 版本共存。
 - **简体中文和英文：**不包含登录、购买恢复、自动更新或商店接口。
 
@@ -171,11 +172,12 @@ Deskland 是一款 Windows 自适应动态壁纸。移动、添加或删除桌�
 在仓库根目录打开 PowerShell：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File host\build.ps1
+powershell -ExecutionPolicy Bypass -File frontend\build.ps1   # frontend/src → frontend/dist
+powershell -ExecutionPolicy Bypass -File host\build.ps1       # 编译宿主并把 dist 复制到 host/bin/prototype
 host\bin\Deskland.exe
 ```
 
-请保持 `host/` 和 `prototype/` 的相对目录结构，编译结果位于 `host/bin/`。
+前端源在 `frontend/src/`，`frontend\build.ps1` 产出静态包到 `frontend/dist/`，`host\build.ps1` 再复制到 `host/bin/prototype/`。编译结果位于 `host/bin/`。
 
 再次运行程序或双击托盘图标可打开设置。退出并恢复系统原壁纸，请使用托盘菜单或执行：
 
@@ -200,7 +202,7 @@ powershell -ExecutionPolicy Bypass -File tools\ci.ps1
 ### 浏览器预览
 
 ```powershell
-node prototype\serve.mjs
+node frontend\src\serve.mjs
 ```
 
 打开 **http://localhost:5178/settings.html**。浏览器使用示例图标，真实桌面图标适配需要 Windows 宿主。
@@ -222,12 +224,14 @@ powershell -ExecutionPolicy Bypass -File tools\build-installer.ps1
 | 路径 | 用途 |
 | --- | --- |
 | `host/` | Windows 宿主、构建脚本与清单 |
-| `prototype/flat.html` | 沙滩主题 |
-| `prototype/meadow.html` | 草地主题 |
-| `prototype/settings.html` | 设置界面 |
-| `prototype/themes.json` | 免费主题完整定义及锁定主题展示信息 |
-| `prototype/share.js` | 隐私保护的图片和动画分享 |
-| `prototype/assets/` | 随附主题图片素材 |
+| `frontend/src/` | 前端源：主题页、设置页、引擎与素材 |
+| `frontend/src/flat.html` | 沙滩主题 |
+| `frontend/src/meadow.html` `frontend/src/sky.html` | 草地与天空主题 |
+| `frontend/src/settings.html` | 设置界面（样式/脚本已外联到 `frontend/src/assets/`） |
+| `frontend/src/engine.html` | 页内主题热切换统一入口 |
+| `frontend/src/engine/` | 主题引擎类（BaseEngine / SceneEngine / 各主题引擎 / DeskApp） |
+| `frontend/src/themes.json` | 免费主题完整定义及锁定主题展示信息 |
+| `frontend/src/assets/` | 随附主题图片素材，以及外联的设置页 CSS/JS |
 | `tools/` | 安装包构建工具 |
 
 ### 已知限制
