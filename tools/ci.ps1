@@ -13,12 +13,17 @@ $root = Split-Path $PSScriptRoot -Parent
 
 function Write-Step($text) { Write-Host "`n==== $text ====" -ForegroundColor Cyan }
 
-# 1) 构建宿主（.NET Framework C# 编译器）
+# 1) 前端打包（prototype → frontend/dist）
+Write-Step '前端打包'
+& (Join-Path $root 'frontend\build.ps1')
+if ($LASTEXITCODE -ne 0) { throw '前端打包失败' }
+
+# 2) 构建宿主（.NET Framework C# 编译器）
 Write-Step '构建宿主'
 & (Join-Path $root 'host\build.ps1')
 if ($LASTEXITCODE -ne 0) { throw '宿主构建失败' }
 
-# 2) 运行测试（xUnit + Playwright .NET；需要 .NET SDK）
+# 3) 运行测试（xUnit + Playwright .NET；需要 .NET SDK）
 if (-not $SkipTests) {
     Write-Step '运行测试'
     $dotnet = Join-Path $env:LOCALAPPDATA 'Microsoft\dotnet\dotnet.exe'
@@ -27,7 +32,7 @@ if (-not $SkipTests) {
     if ($LASTEXITCODE -ne 0) { throw '测试失败' }
 }
 
-# 3) 可选：打包安装器 / 便携版 / 源码包
+# 4) 可选：打包安装器 / 便携版 / 源码包
 if ($Package) {
     Write-Step '打包发布产物'
     & (Join-Path $root 'tools\build-installer.ps1')

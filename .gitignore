@@ -5,6 +5,7 @@
 /test/**/obj/
 /node_modules/
 /dist/
+/frontend/dist/
 **/*.exe
 **/*.dll
 **/*.pdb
