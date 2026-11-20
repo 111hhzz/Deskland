@@ -70,7 +70,7 @@ static class Program
         Application.ThreadException += delegate(object s, ThreadExceptionEventArgs e) { Log.Write("未处理的异常：" + e.Exception); };
         AppDomain.CurrentDomain.UnhandledException += delegate(object s, UnhandledExceptionEventArgs e) { Log.Write("致命异常：" + e.ExceptionObject); };
         string exeDir = AppDomain.CurrentDomain.BaseDirectory;
-        string pageDir = Path.GetFullPath(Path.Combine(exeDir, @"..\..\prototype"));
+        string pageDir = Path.GetFullPath(Path.Combine(exeDir, "prototype"));
         // 24H2+ 的挂法：默认做 Progman 的分层子窗口（换系统壁纸时会闪一下）；
         //   --defview：挂进图标层里、图标列表之下（实验：实测画不出来）；--legacy：挂进 WorkerW（换壁纸时会被连带销毁）
         string attach = "progman";

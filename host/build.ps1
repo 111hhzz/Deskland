@@ -61,4 +61,12 @@ using System.Reflection;
 if ($LASTEXITCODE -ne 0) { throw '编译失败' }
 foreach ($assembly in $assemblies) { Copy-Item -LiteralPath (Join-Path $lib $assembly.Name) -Destination $bin -Force }
 Copy-Item -LiteralPath (Join-Path $root 'DesklandPreview.ico') -Destination (Join-Path $bin 'DesklandPreview.ico') -Force
+
+# 前端产物：frontend/dist → bin/prototype（宿主把 app.local 映射到这里）
+$frontDist = Join-Path $root '..\frontend\dist'
+if (-not (Test-Path -LiteralPath $frontDist)) { throw "缺少前端产物：$frontDist（先跑 frontend\build.ps1）" }
+$proto = Join-Path $bin 'prototype'
+New-Item -ItemType Directory -Force -Path $proto | Out-Null
+Copy-Item -Path (Join-Path $frontDist '*') -Destination $proto -Recurse -Force
+Write-Host "前端产物已复制：$proto"
 Write-Host "编译完成：$bin\Deskland.exe"

@@ -16,12 +16,12 @@ function Write-Step($text) { Write-Host "`n==== $text ====" -ForegroundColor Cya
 # 1) 前端打包（prototype → frontend/dist）
 Write-Step '前端打包'
 & (Join-Path $root 'frontend\build.ps1')
-if ($LASTEXITCODE -ne 0) { throw '前端打包失败' }
+if (-not $?) { throw '前端打包失败' }
 
 # 2) 构建宿主（.NET Framework C# 编译器）
 Write-Step '构建宿主'
 & (Join-Path $root 'host\build.ps1')
-if ($LASTEXITCODE -ne 0) { throw '宿主构建失败' }
+if (-not $?) { throw '宿主构建失败' }
 
 # 3) 运行测试（xUnit + Playwright .NET；需要 .NET SDK）
 if (-not $SkipTests) {
