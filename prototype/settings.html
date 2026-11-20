@@ -55,11 +55,27 @@
   .top-right { display: flex; flex: none; align-items: center; gap: 18px; }
   .lang-row { display: flex; flex: none; align-items: center; gap: 6px; color: var(--muted); }
   .lang-row svg { width: 15px; height: 15px; flex: none; }
-  .pill-btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 11px; border: 1px solid var(--line); border-radius: 11px;
-    background: var(--bg); color: var(--text); font: inherit; font-size: 12px; cursor: pointer; }
-  .pill-btn:hover, .pill-btn:focus-visible { border-color: var(--accent); outline: none; }
+  .pill-btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 11px; border: 1px solid var(--line); border-radius: 999px;
+    background: var(--bg); color: var(--text); font: inherit; font-size: 12px; cursor: pointer;
+    transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
+  .pill-btn:hover, .pill-btn:focus-visible { border-color: var(--accent); outline: none; box-shadow: 0 2px 10px -4px rgba(0,0,0,.25); }
+  .pill-btn:active { transform: scale(.97); }
   .pill-btn svg { width: 14px; height: 14px; flex: none; }
   .pill-btn .lbl { max-width: 9em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pill-btn .chev { width: 10px; height: 10px; opacity: .55; transition: transform .15s ease; }
+  .menu-wrap { position: relative; flex: none; }
+  .menu-wrap.open .chev { transform: rotate(180deg); }
+  .menu { position: absolute; right: 0; top: calc(100% + 8px); min-width: 168px; padding: 6px; z-index: 40;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    box-shadow: 0 14px 34px -12px rgba(0,0,0,.35); transform-origin: top right;
+    opacity: 0; transform: translateY(-4px) scale(.98); pointer-events: none;
+    transition: opacity .15s ease, transform .15s ease; }
+  .menu-wrap.open .menu { opacity: 1; transform: none; pointer-events: auto; }
+  .menu button { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%;
+    padding: 8px 10px; border: 0; border-radius: 9px; background: transparent; color: var(--text); font: inherit; font-size: 12.5px; cursor: pointer; text-align: left; }
+  .menu button:hover, .menu button:focus-visible { background: var(--panel-2); outline: none; }
+  .menu button[aria-checked="true"] { color: var(--accent); font-weight: 600; }
+  .menu button[aria-checked="true"]::after { content: "✓"; font-size: 11px; }
     width: 170px; flex: none; padding: 7px 9px; cursor: pointer; }
   .lang-row select:hover, .lang-row select:focus-visible { border-color: var(--accent); outline: none; }
   html:not(.ready) body { visibility: hidden; }   /* 按界面语言填好文字再显示，免得先闪一下中文 */
@@ -300,14 +316,22 @@
   </div>
   <div class="spacer" aria-hidden="true"></div>
   <div class="top-right">
-    <button class="pill-btn" id="langBtn" data-i18n-title="language" title="语言">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M1.8 8h12.4M8 1.8c1.8 1.7 2.7 3.8 2.7 6.2S9.8 12.5 8 14.2C6.2 12.5 5.3 10.4 5.3 8S6.2 3.5 8 1.8z"/></svg>
-      <span class="lbl" id="langLbl"></span>
-    </button>
-    <button class="pill-btn" id="themeModeBtn" data-i18n-title="themeMode" title="主题模式">
-      <svg id="themeModeIcon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"></svg>
-      <span class="lbl" id="themeModeLbl"></span>
-    </button>
+    <div class="menu-wrap" id="langWrap">
+      <button class="pill-btn" id="langBtn" aria-haspopup="true" aria-expanded="false">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M1.8 8h12.4M8 1.8c1.8 1.7 2.7 3.8 2.7 6.2S9.8 12.5 8 14.2C6.2 12.5 5.3 10.4 5.3 8S6.2 3.5 8 1.8z"/></svg>
+        <span class="lbl" id="langLbl"></span>
+        <svg class="chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg>
+      </button>
+      <div class="menu" id="langMenu" role="menu" hidden></div>
+    </div>
+    <div class="menu-wrap" id="themeModeWrap">
+      <button class="pill-btn" id="themeModeBtn" aria-haspopup="true" aria-expanded="false">
+        <svg id="themeModeIcon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"></svg>
+        <span class="lbl" id="themeModeLbl"></span>
+        <svg class="chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg>
+      </button>
+      <div class="menu" id="themeModeMenu" role="menu" hidden></div>
+    </div>
     <label class="switch-row" data-i18n-title="autostartTitle" title="开机后自动运行 Deskland">
       <span data-i18n="autostart">开机自动启动</span><input type="checkbox" id="autostart"><i class="switch"></i>
     </label>
@@ -456,6 +480,7 @@ function applyStatic() {
   // 语言 / 主题模式：胶囊按钮，点击循环切换
   $('langLbl').textContent = state.langSetting === 'auto' ? t('langAuto') : (LANGS[state.langSetting] || 'English');
   $('langBtn').setAttribute('aria-label', t('language'));
+  langMenu.render(state.langSetting in LANGS ? state.langSetting : 'auto');
   applyThemeModeUI();
 }
 async function setLang(code) {
@@ -470,17 +495,6 @@ function rerenderTexts() {
   if (!state.screen) return;
   renderHead(); renderThemes(); renderControls(); showAutostartWarn(); showUpdate(); updatePurchaseText();
 }
-// 语言：胶囊按钮点击循环 跟随系统 → 简体中文 → English
-const LANG_ORDER = ['auto', 'zh-CN', 'en'];
-$('langBtn').addEventListener('click', () => {
-  const i = LANG_ORDER.indexOf(state.langSetting);
-  state.langSetting = LANG_ORDER[(i + 1) % LANG_ORDER.length];
-  if (host) send({ t: 'lang', v: state.langSetting });     // 宿主存下来、换托盘菜单的文字，再回一条 lang（实际用哪种）
-  else setLang(state.langSetting === 'auto' ? state.langSys : state.langSetting).then(rerenderTexts);
-});
-
-/* ---------- 主题模式（跟随系统 / 浅色 / 深色） ---------- */
-const THEME_MODE_ORDER = ['auto', 'light', 'dark'];
 const THEME_ICONS = {
   auto: '<circle cx="8" cy="8" r="6.2"/><path d="M1.8 8h12.4"/>',
   light: '<circle cx="8" cy="8" r="3.4"/><path d="M8 1.6v1.4M8 13v1.4M1.6 8h1.4M13 8h1.4M3.5 3.5l1 1M11.5 11.5l1 1M12.5 3.5l-1 1M4.5 11.5l-1 1"/>',
@@ -491,14 +505,43 @@ function applyThemeModeUI() {
   document.documentElement.dataset.theme = m === 'auto' ? '' : m;
   $('themeModeLbl').textContent = t(m === 'auto' ? 'themeModeAuto' : (m === 'light' ? 'themeModeLight' : 'themeModeDark'));
   $('themeModeIcon').innerHTML = THEME_ICONS[m] || THEME_ICONS.auto;
+  themeMenu.render(m);
 }
-$('themeModeBtn').addEventListener('click', () => {
-  const cur = state.themeMode || 'auto';
-  const i = THEME_MODE_ORDER.indexOf(cur);
-  state.themeMode = THEME_MODE_ORDER[(i + 1) % THEME_MODE_ORDER.length];
-  applyThemeModeUI();
-  if (host) send({ t: 'themeMode', v: state.themeMode });
-});
+
+// 胶囊按钮 + 下拉菜单（语言 / 主题模式共用）
+function setupMenu(wrapId, btnId, menuId, items, onPick) {
+  const wrap = $(wrapId), btn = $(btnId), menu = $(menuId);
+  function close() { wrap.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); }
+  function open() { wrap.classList.add('open'); btn.setAttribute('aria-expanded', 'true'); }
+  btn.addEventListener('click', e => { e.stopPropagation(); wrap.classList.contains('open') ? close() : (menu.hidden = false, void menu.offsetWidth, open()); });
+  menu.addEventListener('click', e => {
+    const b = e.target.closest('button[data-v]'); if (!b) return;
+    onPick(b.dataset.v); close();
+  });
+  document.addEventListener('click', e => { if (!wrap.contains(e.target)) close(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+  return {
+    render(selected) {
+      menu.innerHTML = items.map(it => `<button role="menuitemradio" aria-checked="${it.v === selected}" data-v="${it.v}">${it.label}</button>`).join('');
+    }
+  };
+}
+
+// 语言：胶囊按钮 + 菜单
+const langMenu = setupMenu('langWrap', 'langBtn', 'langMenu',
+  [{ v: 'auto', label: () => t('langAuto') }, { v: 'zh-CN', label: () => '简体中文' }, { v: 'en', label: () => 'English' }],
+  v => {
+    state.langSetting = v;
+    if (host) send({ t: 'lang', v }); else setLang(v === 'auto' ? state.langSys : v).then(rerenderTexts);
+  });
+
+// 主题模式：胶囊按钮 + 菜单
+const themeMenu = setupMenu('themeModeWrap', 'themeModeBtn', 'themeModeMenu',
+  [{ v: 'auto', label: () => t('themeModeAuto') }, { v: 'light', label: () => t('themeModeLight') }, { v: 'dark', label: () => t('themeModeDark') }],
+  v => {
+    state.themeMode = v; applyThemeModeUI();
+    if (host) send({ t: 'themeMode', v });
+  });
 
 /* ---------- 主题清单 ---------- */
 const themeById = id => state.registry.themes.find(t => t.id === id);
