@@ -247,6 +247,7 @@ static class Settings
     static readonly string FilePath = Path.Combine(Log.DataDir, "settings.json");
     public static string Theme = "beach";
     public static string Lang = "auto";                // 界面语言："auto"（跟随系统）或 I18n.Supported 里的一种
+    public static string ThemeMode = "auto";            // 设置窗口主题模式：auto / light / dark
     public static Dictionary<string, Dictionary<string, object>> Params = new Dictionary<string, Dictionary<string, object>>();
 
     public static void Load()
@@ -259,6 +260,7 @@ static class Settings
             object v;
             if (root.TryGetValue("theme", out v) && v is string) Theme = (string)v;
             if (root.TryGetValue("lang", out v) && v is string) Lang = (string)v;
+            if (root.TryGetValue("themeMode", out v) && v is string) ThemeMode = (string)v;
             if (root.TryGetValue("params", out v) && v is Dictionary<string, object>)
                 foreach (var kv in (Dictionary<string, object>)v)
                 {
@@ -275,7 +277,7 @@ static class Settings
         try
         {
             Directory.CreateDirectory(Log.DataDir);
-            File.WriteAllText(FilePath, Json.Stringify(Json.Obj("version", 1, "theme", Theme, "lang", Lang, "params", Params)), new UTF8Encoding(false));
+            File.WriteAllText(FilePath, Json.Stringify(Json.Obj("version", 1, "theme", Theme, "lang", Lang, "themeMode", ThemeMode, "params", Params)), new UTF8Encoding(false));
         }
         catch (Exception ex) { Log.Write("保存设置失败：" + ex.Message); }
     }
@@ -520,7 +522,7 @@ class HostContext : ApplicationContext
                 settingsWin.Post(Json.Stringify(Json.Obj("t", "init", "theme", Settings.Theme, "params", Settings.Params,
                     "screen", Json.Obj("w", scr.Width, "h", scr.Height), "autostart", IsAutoStart(),
                     "autostartWarn", autoStartSw != null, "autostartSw", autoStartSw ?? "",
-                    "lang", Settings.Lang, "langEff", I18n.Code, "langSys", I18n.Sys)));
+                    "lang", Settings.Lang, "themeMode", Settings.ThemeMode, "langEff", I18n.Code, "langSys", I18n.Sys)));
                 if (updateVersion != null) PostUpdateState();
                 break;
             case "set":
@@ -572,6 +574,15 @@ class HostContext : ApplicationContext
                 I18n.Load(pageDir, Settings.Lang);
                 ApplyTrayTexts();
                 settingsWin.Post(Json.Stringify(Json.Obj("t", "lang", "v", Settings.Lang, "eff", I18n.Code, "sys", I18n.Sys)));
+                break;
+            }
+            case "themeMode":                               // 设置窗口主题模式
+            {
+                object v;
+                if (!m.TryGetValue("v", out v) || !(v is string)) return;
+                Settings.ThemeMode = (string)v;
+                SaveSoon();
+                settingsWin.Post(Json.Stringify(Json.Obj("t", "themeMode", "v", Settings.ThemeMode)));
                 break;
             }
             case "openWebsite":

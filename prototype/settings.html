@@ -32,6 +32,9 @@
       color-scheme: dark;
     }
   }
+  /* 用户手动选择主题模式（data-theme 非空时覆盖跟随系统） */
+  html[data-theme="light"] { --bg:#ffffff; --panel:#f5f5f3; --panel-2:#ebebe8; --line:#deded9; --text:#171717; --muted:#646461; --faint:#80807c; --accent:#171717; --accent-ink:#ffffff; --accent-soft:rgba(0,0,0,.06); --track:#deded9; --selection-shadow:0 0 0 1px rgba(128,128,128,.28),0 6px 18px rgba(0,0,0,.09); color-scheme:light; }
+  html[data-theme="dark"] { --bg:#171717; --panel:#232322; --panel-2:#30302e; --line:#42423e; --text:#f5f5f1; --muted:#b7b7b0; --faint:#999991; --accent:#f5f5f1; --accent-ink:#171717; --accent-soft:rgba(255,255,255,.08); --track:#454540; --selection-shadow:0 0 0 1px rgba(160,160,160,.45),0 6px 18px rgba(0,0,0,.24); color-scheme:dark; }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; }
   html { background: transparent; }   /* 未就绪阶段 body 隐藏时透出宿主同色底，避免 WebView2 默认白闪 */
@@ -52,7 +55,11 @@
   .top-right { display: flex; flex: none; align-items: center; gap: 18px; }
   .lang-row { display: flex; flex: none; align-items: center; gap: 6px; color: var(--muted); }
   .lang-row svg { width: 15px; height: 15px; flex: none; }
-  .lang-row select { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
+  .pill-btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 11px; border: 1px solid var(--line); border-radius: 11px;
+    background: var(--bg); color: var(--text); font: inherit; font-size: 12px; cursor: pointer; }
+  .pill-btn:hover, .pill-btn:focus-visible { border-color: var(--accent); outline: none; }
+  .pill-btn svg { width: 14px; height: 14px; flex: none; }
+  .pill-btn .lbl { max-width: 9em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     width: 170px; flex: none; padding: 7px 9px; cursor: pointer; }
   .lang-row select:hover, .lang-row select:focus-visible { border-color: var(--accent); outline: none; }
   html:not(.ready) body { visibility: hidden; }   /* 按界面语言填好文字再显示，免得先闪一下中文 */
@@ -293,10 +300,14 @@
   </div>
   <div class="spacer" aria-hidden="true"></div>
   <div class="top-right">
-    <label class="lang-row">
+    <button class="pill-btn" id="langBtn" data-i18n-title="language" title="语言">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M1.8 8h12.4M8 1.8c1.8 1.7 2.7 3.8 2.7 6.2S9.8 12.5 8 14.2C6.2 12.5 5.3 10.4 5.3 8S6.2 3.5 8 1.8z"/></svg>
-      <select id="lang" data-i18n-title="language" aria-label="Language"></select>
-    </label>
+      <span class="lbl" id="langLbl"></span>
+    </button>
+    <button class="pill-btn" id="themeModeBtn" data-i18n-title="themeMode" title="主题模式">
+      <svg id="themeModeIcon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"></svg>
+      <span class="lbl" id="themeModeLbl"></span>
+    </button>
     <label class="switch-row" data-i18n-title="autostartTitle" title="开机后自动运行 Deskland">
       <span data-i18n="autostart">开机自动启动</span><input type="checkbox" id="autostart"><i class="switch"></i>
     </label>
@@ -442,10 +453,10 @@ function applyStatic() {
   document.querySelectorAll('[data-i18n-title]').forEach(el => { el.title = t(el.dataset.i18nTitle); });
   document.querySelectorAll('[data-i18n-alt]').forEach(el => { el.alt = t(el.dataset.i18nAlt); });
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { el.placeholder = t(el.dataset.i18nPlaceholder); });
-  $('lang').innerHTML = `<option value="auto" title="${t('langAutoWith', { name: LANGS[state.langSys] || '' })}">${t('langAuto')}</option>` +
-    Object.entries(LANGS).map(([c, n]) => `<option value="${c}">${n}</option>`).join('');
-  $('lang').value = state.langSetting in LANGS ? state.langSetting : 'auto';
-  $('lang').setAttribute('aria-label', t('language'));
+  // 语言 / 主题模式：胶囊按钮，点击循环切换
+  $('langLbl').textContent = state.langSetting === 'auto' ? t('langAuto') : (LANGS[state.langSetting] || 'English');
+  $('langBtn').setAttribute('aria-label', t('language'));
+  applyThemeModeUI();
 }
 async function setLang(code) {
   if (!LANGS[code]) code = 'en';
@@ -459,10 +470,34 @@ function rerenderTexts() {
   if (!state.screen) return;
   renderHead(); renderThemes(); renderControls(); showAutostartWarn(); showUpdate(); updatePurchaseText();
 }
-$('lang').addEventListener('change', e => {
-  state.langSetting = e.target.value;
+// 语言：胶囊按钮点击循环 跟随系统 → 简体中文 → English
+const LANG_ORDER = ['auto', 'zh-CN', 'en'];
+$('langBtn').addEventListener('click', () => {
+  const i = LANG_ORDER.indexOf(state.langSetting);
+  state.langSetting = LANG_ORDER[(i + 1) % LANG_ORDER.length];
   if (host) send({ t: 'lang', v: state.langSetting });     // 宿主存下来、换托盘菜单的文字，再回一条 lang（实际用哪种）
   else setLang(state.langSetting === 'auto' ? state.langSys : state.langSetting).then(rerenderTexts);
+});
+
+/* ---------- 主题模式（跟随系统 / 浅色 / 深色） ---------- */
+const THEME_MODE_ORDER = ['auto', 'light', 'dark'];
+const THEME_ICONS = {
+  auto: '<circle cx="8" cy="8" r="6.2"/><path d="M1.8 8h12.4"/>',
+  light: '<circle cx="8" cy="8" r="3.4"/><path d="M8 1.6v1.4M8 13v1.4M1.6 8h1.4M13 8h1.4M3.5 3.5l1 1M11.5 11.5l1 1M12.5 3.5l-1 1M4.5 11.5l-1 1"/>',
+  dark: '<path d="M13.5 9.5A5.5 5.5 0 1 1 6.5 2.5a4.4 4.4 0 0 0 7 7z"/>'
+};
+function applyThemeModeUI() {
+  const m = state.themeMode || 'auto';
+  document.documentElement.dataset.theme = m === 'auto' ? '' : m;
+  $('themeModeLbl').textContent = t(m === 'auto' ? 'themeModeAuto' : (m === 'light' ? 'themeModeLight' : 'themeModeDark'));
+  $('themeModeIcon').innerHTML = THEME_ICONS[m] || THEME_ICONS.auto;
+}
+$('themeModeBtn').addEventListener('click', () => {
+  const cur = state.themeMode || 'auto';
+  const i = THEME_MODE_ORDER.indexOf(cur);
+  state.themeMode = THEME_MODE_ORDER[(i + 1) % THEME_MODE_ORDER.length];
+  applyThemeModeUI();
+  if (host) send({ t: 'themeMode', v: state.themeMode });
 });
 
 /* ---------- 主题清单 ---------- */
@@ -729,6 +764,7 @@ function onHost(m) {
   if (m.t === 'init') {
     state.langSetting = m.lang || 'auto';
     state.langSys = m.langSys || 'zh-CN';
+    state.themeMode = m.themeMode || 'auto';
     setLang(m.langEff || state.langSys).then(() => {        // 先按界面语言把文字表读进来，再画界面
       state.theme = themeById(m.theme) && themeById(m.theme).status === 'ready' ? m.theme : 'beach';
       state.params = m.params || {};
@@ -754,6 +790,9 @@ function onHost(m) {
     showUpdate();
   } else if (m.t === 'updateAvailable') {              // 兼容旧开发联调消息
     onHost({ t: 'updateState', version: m.version, status: 'available', progress: -1 });
+  } else if (m.t === 'themeMode') {
+    state.themeMode = m.v || 'auto';
+    applyThemeModeUI();
   } else if (m.t === 'lang') {                                // 换了语言（宿主已经存好、换好托盘菜单）
     state.langSetting = m.v;
     state.langSys = m.sys || state.langSys;
