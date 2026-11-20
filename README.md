@@ -1,20 +1,33 @@
-# Deskland Preview
+# Deskland+ (Unofficial Community Fork)
 
 **Adaptive Windows wallpaper that makes your desktop icons part of the scenery.**
 
+> **Unofficial community fork**
+>
+> This repository is an **unofficial, community-maintained fork** of [Deskland](https://github.com/BLEZZ0102/Deskland). It is not released, endorsed or affiliated with the upstream project (BLEZZ0102/Deskland / deskland.app). Code and theme assets are GPL-3.0; see [TRADEMARKS.md](TRADEMARKS.md).
+>
+> **What differs from upstream**
+> - Adds a third usable theme, **Sky** (upstream ships Beach and Meadow only).
+> - Theme engine: pages are thin shells; rendering lives in `frontend/src/engine/` (BaseEngine / SceneEngine / per-theme engines / DeskApp).
+> - In-page theme hot-switching via `engine.html` (no WebView reload).
+> - Frontend sources moved from `prototype/` to `frontend/src/`, with `frontend/build.ps1`.
+> - Settings styles/scripts externalized to `frontend/src/assets/settings.css|js`.
+> - Added `tools/ci.ps1` (build + test in one command) and an xUnit + Playwright test suite (19 tests) with visual baselines.
+> - Event-driven desktop-icon tracking (`SetWinEventHook`) with a 400 ms polling fallback.
+
 Deskland turns the space around your icons into a living landscape. Move, add or remove an icon and the beach, meadow, sky, clouds and shadows quietly reshape around it — in real time, without AI, an account or an API key.
 
-This is the **free, open-source Preview**, not a time-limited trial. It includes the complete **Beach**, **Meadow** and **Sky** themes, the Windows host and the settings interface.
+This is an **unofficial community fork** of Deskland, not a time-limited trial. It includes the complete **Beach**, **Meadow** and **Sky** themes, the Windows host and the settings interface.
 
-**English** · [简体中文](#中文说明) · [Official website](https://deskland.app) · [Features](#features) · [Build from source](#build-from-source)
+**English** · [简体中文](#中文说明) · [Upstream](https://github.com/BLEZZ0102/Deskland) · [Features](#features) · [Build from source](#build-from-source)
 
-![Meadow — included in Deskland Preview](docs/images/meadow.webp)
+![Meadow — included in Deskland+](docs/images/meadow.webp)
 
-![Beach — included in Deskland Preview](docs/images/beach.webp)
+![Beach — included in Deskland+](docs/images/beach.webp)
 
 ![Maldives — locked-theme preview](docs/images/maldives.webp)
 
-Meadow and Beach are included in Preview. Maldives is shown as a locked-theme preview.
+Meadow, Beach and Sky are included in this fork. Maldives is shown as a locked-theme preview.
 
 ## Included themes
 
@@ -95,7 +108,7 @@ The first build downloads portable NSIS and Microsoft's WebView2 bootstrapper. A
 
 The installer targets the current user's `Programs\Deskland Preview` directory and does not require administrator rights. If WebView2 is missing, its bootstrapper requires an internet connection. Uninstalling preserves user settings.
 
-[Download Deskland Preview for Windows](https://github.com/BLEZZ0102/Deskland/releases/latest). The installer is unsigned, so Windows SmartScreen may show a warning.
+[Download Deskland+ for Windows](https://github.com/111hhzz/Deskland/releases/latest). The installer is unsigned, so Windows SmartScreen may show a warning.
 
 ## Project layout
 
@@ -124,21 +137,34 @@ Source code and included theme assets are released under [GPL-3.0](LICENSE). Thi
 
 The Deskland name and icon are not licensed as trademarks; modified distributions should use their own name and icon. See [TRADEMARKS.md](TRADEMARKS.md).
 
-Issues and suggestions are welcome through GitHub Issues. This is an independent project, so immediate responses are not guaranteed.
+Issues and suggestions are welcome through GitHub Issues. This is an unofficial community fork, so immediate responses are not guaranteed.
 
 ---
 
 ## 中文说明
 
-[English](#deskland-preview) · **简体中文**
+[English](#deskland-unofficial-community-fork) · **简体中文**
 
 **让桌面图标成为风景的一部分。**
 
+> **非官方社区修改版**
+>
+> 本仓库是 [Deskland](https://github.com/BLEZZ0102/Deskland) 的**非官方、社区维护的修改版**，与上游官方（BLEZZ0102/Deskland / deskland.app）**无关联、未获认可或背书**。代码与主题素材按 GPL-3.0 发布；上游商标条款见 [TRADEMARKS.md](TRADEMARKS.md)。
+>
+> **与上游的主要差异**
+> - 新增第三个可用主题 **Sky（天空）**（上游仅 Beach / Meadow）。
+> - 主题引擎化：页面退化为引导壳，渲染逻辑在 `frontend/src/engine/`（BaseEngine / SceneEngine / 各主题引擎 / DeskApp）。
+> - 新增 `engine.html` 页内主题热切换，不重建 WebView。
+> - 前端源从 `prototype/` 迁移到 `frontend/src/`，新增 `frontend/build.ps1` 打包。
+> - 设置页样式/脚本外联为 `frontend/src/assets/settings.css|js`。
+> - 新增 `tools/ci.ps1`（一条命令构建 + 测试）与 xUnit + Playwright 测试体系（19 项）及视觉基线。
+> - 桌面图标检测改为 `SetWinEventHook` 事件驱动，400ms 轮询兜底。
+
 Deskland 是一款 Windows 自适应动态壁纸。移动、添加或删除桌面图标时，海岸线、草地、云朵和阴影会实时围绕图标调整。全部在本地实时演算，不使用 AI，无需账号或 API Key。
 
-本仓库是**免费的开源体验版，不是限时试用版**，包含完整的沙滩、草地和天空主题、Windows 宿主与设置界面。
+本仓库是 Deskland 的**非官方社区修改版**，不是限时试用版，包含完整的沙滩、草地和天空主题、Windows 宿主与设置界面。
 
-[官方网站](https://deskland.app) · [从源码运行](#build-from-source) · [许可](#credits-and-license)
+[上游项目](https://github.com/BLEZZ0102/Deskland) · [从源码运行](#build-from-source) · [许可](#credits-and-license)
 
 ### 包含的主题
 
@@ -217,7 +243,7 @@ powershell -ExecutionPolicy Bypass -File tools\build-installer.ps1
 
 安装包安装到当前用户的 `Programs\Deskland Preview` 目录，无需管理员权限。缺少 WebView2 时需要联网安装；卸载保留用户设置。
 
-[下载 Deskland Preview Windows 安装包](https://github.com/BLEZZ0102/Deskland/releases/latest)。安装包未签名，Windows SmartScreen 可能显示提示。
+[下载 Deskland+ Windows 安装包](https://github.com/111hhzz/Deskland/releases/latest)。安装包未签名，Windows SmartScreen 可能显示提示。
 
 ### 目录结构
 
@@ -246,4 +272,4 @@ powershell -ExecutionPolicy Bypass -File tools\build-installer.ps1
 
 Deskland 名称与图标不作为商标授权授予；修改版应使用自己的名称和图标，详见 [TRADEMARKS.md](TRADEMARKS.md)。
 
-欢迎通过 GitHub Issues 反馈问题和建议。个人项目，不保证即时回复。
+欢迎通过 GitHub Issues 反馈问题和建议。本仓库为非官方社区修改版，不保证即时回复。
