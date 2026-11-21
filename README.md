@@ -74,7 +74,7 @@ Run the program again or double-click its tray icon to open Settings. To exit an
 host\bin\Deskland.exe --exit
 ```
 
-Preview settings and logs are stored separately in `%LOCALAPPDATA%\DesklandPreview`.
+Preview settings and logs are stored separately in `%LOCALAPPDATA%\DesklandPlus`.
 
 ## Developing and testing
 
@@ -106,7 +106,7 @@ powershell -ExecutionPolicy Bypass -File tools\build-installer.ps1
 
 The first build downloads portable NSIS and Microsoft's WebView2 bootstrapper. Artifacts are written to `dist/` with SHA256 checksums and a matching source ZIP.
 
-The installer targets the current user's `Programs\Deskland Preview` directory and does not require administrator rights. If WebView2 is missing, its bootstrapper requires an internet connection. Uninstalling preserves user settings.
+The installer targets the current user's `Programs\Deskland+` directory and does not require administrator rights. If WebView2 is missing, its bootstrapper requires an internet connection. Uninstalling preserves user settings.
 
 [Download Deskland+ for Windows](https://github.com/111hhzz/Deskland/releases/latest). The installer is unsigned, so Windows SmartScreen may show a warning.
 
@@ -211,7 +211,7 @@ host\bin\Deskland.exe
 host\bin\Deskland.exe --exit
 ```
 
-体验版的设置与日志独立保存在 `%LOCALAPPDATA%\DesklandPreview`。
+体验版的设置与日志独立保存在 `%LOCALAPPDATA%\DesklandPlus`。
 
 ### 开发与测试
 
@@ -241,7 +241,7 @@ powershell -ExecutionPolicy Bypass -File tools\build-installer.ps1
 
 首次构建会下载便携版 NSIS 和微软 WebView2 引导程序，无需安装全局开发工具。产物位于 `dist/`，附 SHA256 校验文件和对应源码 ZIP。
 
-安装包安装到当前用户的 `Programs\Deskland Preview` 目录，无需管理员权限。缺少 WebView2 时需要联网安装；卸载保留用户设置。
+安装包安装到当前用户的 `Programs\Deskland+` 目录，无需管理员权限。缺少 WebView2 时需要联网安装；卸载保留用户设置。
 
 [下载 Deskland+ Windows 安装包](https://github.com/111hhzz/Deskland/releases/latest)。安装包未签名，Windows SmartScreen 可能显示提示。
 

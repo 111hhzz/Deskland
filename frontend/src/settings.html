@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Deskland Preview</title>
+<title>Deskland+</title>
 <!--
   Deskland 设置窗口
   - 由桌面宿主（host/Deskland.exe）在 WebView2 里打开；单独用浏览器打开时使用模拟数据，方便调界面
@@ -28,7 +28,7 @@
 </div>
 <header class="top">
   <div class="top-left">
-    <div class="brand">Deskland Preview</div>
+    <div class="brand">Deskland+</div>
     <div class="section-title" data-i18n="themes">主题</div>
   </div>
   <div class="spacer" aria-hidden="true"></div>
@@ -74,7 +74,7 @@
   <div class="side">
     <section class="card preview-card">
       <div class="preview-head"><h2 id="themeName">　</h2><label class="switch-row adaptive-switch" id="adaptiveRow" hidden><span data-i18n="adaptive">自适应</span><input type="checkbox" id="adaptive" role="switch" checked><i class="switch" aria-hidden="true"></i></label></div>
-      <div class="stage" id="stage"><div class="preview" id="previewBox"><img id="preview" data-i18n-title="themePreview" data-i18n-alt="themePreview" title="主题预览" alt="主题预览" decoding="async"></div></div>
+      <div class="stage" id="stage"><div class="preview" id="previewBox"><img id="preview" data-i18n-title="themePreview" data-i18n-alt="themePreview" title="主题预览" alt="主题预览" src="thumbs/meadow.webp" decoding="async" fetchpriority="high"></div></div>
 <div class="theme-meta" id="themeMeta"></div>
       <p class="preview-foot"><span id="previewFoot" data-i18n="themePreview">主题预览</span></p>
       <div class="preview-actions">

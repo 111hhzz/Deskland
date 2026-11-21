@@ -13,6 +13,14 @@ New-Item -ItemType Directory -Force -Path $dist | Out-Null
 # 复制（保留目录结构）
 Copy-Item -Path (Join-Path $src '*') -Destination $dist -Recurse -Force
 
+# 可选：esbuild 压缩 dist/assets（开发机装有 frontend/node_modules 才执行；无依赖时跳过）
+$nodeCmd = Get-Command node -ErrorAction SilentlyContinue
+if ($nodeCmd -and (Test-Path (Join-Path $PSScriptRoot 'node_modules\esbuild'))) {
+    & node (Join-Path $PSScriptRoot 'minify.mjs')
+} else {
+    Write-Host '  （跳过 JS/CSS 压缩：未安装 frontend/node_modules）'
+}
+
 # 校验关键入口存在
 foreach ($need in @('settings.html', 'engine.html', 'themes.json', 'themes/base.css')) {
     if (-not (Test-Path -LiteralPath (Join-Path $dist $need))) { throw "产物缺少关键文件：$need" }

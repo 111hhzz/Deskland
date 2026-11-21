@@ -13,7 +13,7 @@ New-Item -ItemType Directory -Force $dist | Out-Null
 
 # Portable layout mirrors the installer's runtime + theme files.
 $files = @(
-  'host\bin\Deskland.exe', 'host\bin\DesklandPreview.ico',
+  'host\bin\Deskland.exe', 'host\bin\DesklandPlus.ico',
   'host\bin\Microsoft.Web.WebView2.Core.dll', 'host\bin\Microsoft.Web.WebView2.WinForms.dll', 'host\bin\WebView2Loader.dll',
   'LICENSE', 'NOTICE', 'README.md', 'THIRD_PARTY_NOTICES.md', 'TRADEMARKS.md'
 )

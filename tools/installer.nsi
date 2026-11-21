@@ -6,22 +6,22 @@
 !include "FileFunc.nsh"
 !include "StrFunc.nsh"
 ${UnStrStr}
-Name "Deskland Preview"
+Name "Deskland+"
 OutFile "${OUTPUT}"
-InstallDir "$LOCALAPPDATA\Programs\Deskland Preview"
-InstallDirRegKey HKCU "Software\DesklandPreview\Installer" "InstallDir"
+InstallDir "$LOCALAPPDATA\Programs\Deskland+"
+InstallDirRegKey HKCU "Software\DesklandPlus\Installer" "InstallDir"
 RequestExecutionLevel user
 SetCompressor /SOLID lzma
-BrandingText "Deskland Preview"
+BrandingText "Deskland+"
 VIProductVersion "${VERSION}.0"
-VIAddVersionKey /LANG=1033 "ProductName" "Deskland Preview"
-VIAddVersionKey /LANG=1033 "FileDescription" "Deskland Preview Installer"
+VIAddVersionKey /LANG=1033 "ProductName" "Deskland+"
+VIAddVersionKey /LANG=1033 "FileDescription" "Deskland+ Installer"
 VIAddVersionKey /LANG=1033 "FileVersion" "${VERSION}"
 VIAddVersionKey /LANG=1033 "ProductVersion" "${VERSION}"
 VIAddVersionKey /LANG=1033 "LegalCopyright" "Copyright 2026 Deskland authors"
 !define MUI_ABORTWARNING
-!define MUI_ICON "${PAYLOAD}\host\bin\DesklandPreview.ico"
-!define MUI_UNICON "${PAYLOAD}\host\bin\DesklandPreview.ico"
+!define MUI_ICON "${PAYLOAD}\host\bin\DesklandPlus.ico"
+!define MUI_UNICON "${PAYLOAD}\host\bin\DesklandPlus.ico"
 !define MUI_FINISHPAGE_RUN "$INSTDIR\host\bin\Deskland.exe"
 !define MUI_FINISHPAGE_RUN_TEXT "$(LaunchDeskland)"
 !insertmacro MUI_PAGE_WELCOME
@@ -34,16 +34,16 @@ VIAddVersionKey /LANG=1033 "LegalCopyright" "Copyright 2026 Deskland authors"
 !insertmacro MUI_UNPAGE_FINISH
 !insertmacro MUI_LANGUAGE "SimpChinese"
 !insertmacro MUI_LANGUAGE "English"
-LangString LaunchDeskland ${LANG_SIMPCHINESE} "启动 Deskland Preview"
-LangString LaunchDeskland ${LANG_ENGLISH} "Launch Deskland Preview"
-LangString AppFiles ${LANG_SIMPCHINESE} "Deskland Preview 体验版（沙滩和草地）"
-LangString AppFiles ${LANG_ENGLISH} "Deskland Preview (Beach and Meadow)"
+LangString LaunchDeskland ${LANG_SIMPCHINESE} "启动 Deskland+"
+LangString LaunchDeskland ${LANG_ENGLISH} "Launch Deskland+"
+LangString AppFiles ${LANG_SIMPCHINESE} "Deskland+ 社区版（沙滩、草地和天空）"
+LangString AppFiles ${LANG_ENGLISH} "Deskland+ Community (Beach, Meadow and Sky)"
 LangString DesktopShortcut ${LANG_SIMPCHINESE} "桌面快捷方式"
 LangString DesktopShortcut ${LANG_ENGLISH} "Desktop shortcut"
 LangString NeedX64 ${LANG_SIMPCHINESE} "需要 64 位 Windows 10 或更高版本。"
 LangString NeedX64 ${LANG_ENGLISH} "64-bit Windows 10 or later is required."
-LangString CloseFailed ${LANG_SIMPCHINESE} "请退出正在运行的 Deskland Preview 后重试。"
-LangString CloseFailed ${LANG_ENGLISH} "Please exit Deskland Preview and retry."
+LangString CloseFailed ${LANG_SIMPCHINESE} "请退出正在运行的 Deskland+ 后重试。"
+LangString CloseFailed ${LANG_ENGLISH} "Please exit Deskland+ and retry."
 LangString RuntimeFailed ${LANG_SIMPCHINESE} "WebView2 安装未完成。请连接网络，安装 Microsoft Edge WebView2 Runtime 后重试。"
 LangString RuntimeFailed ${LANG_ENGLISH} "WebView2 setup did not complete. Connect to the internet, install Microsoft Edge WebView2 Runtime, and retry."
 LangString InstallingRuntime ${LANG_SIMPCHINESE} "正在安装 Microsoft Edge WebView2 Runtime（需要联网）..."
@@ -106,21 +106,21 @@ Section "$(AppFiles)" SecApp
   closed:
   !include "${FILE_LIST}"
   WriteUninstaller "$INSTDIR\Uninstall.exe"
-  CreateDirectory "$SMPROGRAMS\Deskland Preview"
-  CreateShortcut "$SMPROGRAMS\Deskland Preview\Deskland Preview.lnk" "$INSTDIR\host\bin\Deskland.exe"
-  CreateShortcut "$SMPROGRAMS\Deskland Preview\Uninstall.lnk" "$INSTDIR\Uninstall.exe"
-  WriteRegStr HKCU "Software\DesklandPreview\Installer" "InstallDir" "$INSTDIR"
-  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\DesklandPreview" "DisplayName" "Deskland Preview"
-  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\DesklandPreview" "DisplayVersion" "${VERSION}"
-  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\DesklandPreview" "Publisher" "Deskland"
-  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\DesklandPreview" "InstallLocation" "$INSTDIR"
-  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\DesklandPreview" "DisplayIcon" "$INSTDIR\host\bin\Deskland.exe"
-  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\DesklandPreview" "UninstallString" '$\"$INSTDIR\Uninstall.exe$\"'
-  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\DesklandPreview" "QuietUninstallString" '$\"$INSTDIR\Uninstall.exe$\" /S'
-  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\DesklandPreview" "NoModify" 1
-  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\DesklandPreview" "NoRepair" 1
+  CreateDirectory "$SMPROGRAMS\Deskland+"
+  CreateShortcut "$SMPROGRAMS\Deskland+\Deskland+.lnk" "$INSTDIR\host\bin\Deskland.exe"
+  CreateShortcut "$SMPROGRAMS\Deskland+\Uninstall.lnk" "$INSTDIR\Uninstall.exe"
+  WriteRegStr HKCU "Software\DesklandPlus\Installer" "InstallDir" "$INSTDIR"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\DesklandPlus" "DisplayName" "Deskland+"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\DesklandPlus" "DisplayVersion" "${VERSION}"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\DesklandPlus" "Publisher" "Deskland"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\DesklandPlus" "InstallLocation" "$INSTDIR"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\DesklandPlus" "DisplayIcon" "$INSTDIR\host\bin\Deskland.exe"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\DesklandPlus" "UninstallString" '$\"$INSTDIR\Uninstall.exe$\"'
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\DesklandPlus" "QuietUninstallString" '$\"$INSTDIR\Uninstall.exe$\" /S'
+  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\DesklandPlus" "NoModify" 1
+  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\DesklandPlus" "NoRepair" 1
   ${GetSize} "$INSTDIR" "/S=0K" $0 $1 $2
-  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\DesklandPreview" "EstimatedSize" $0
+  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\DesklandPlus" "EstimatedSize" $0
 SectionEnd
 
 Function un.onInit
@@ -136,17 +136,17 @@ Section "Uninstall"
     Abort
   ${EndIf}
   unclosed:
-  ReadRegStr $0 HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "DesklandPreview"
+  ReadRegStr $0 HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "DesklandPlus"
   ${UnStrStr} $1 $0 '$\"$INSTDIR\host\bin\Deskland.exe$\"'
   ${If} $1 != ""
-    DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "DesklandPreview"
+    DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "DesklandPlus"
   ${EndIf}
   !include "${DELETE_LIST}"
   Delete "$INSTDIR\Uninstall.exe"
   RMDir "$INSTDIR"
-  Delete "$SMPROGRAMS\Deskland Preview\Deskland Preview.lnk"
-  Delete "$SMPROGRAMS\Deskland Preview\Uninstall.lnk"
-  RMDir "$SMPROGRAMS\Deskland Preview"
-  DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\DesklandPreview"
-  DeleteRegKey HKCU "Software\DesklandPreview\Installer"
+  Delete "$SMPROGRAMS\Deskland+\Deskland+.lnk"
+  Delete "$SMPROGRAMS\Deskland+\Uninstall.lnk"
+  RMDir "$SMPROGRAMS\Deskland+"
+  DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\DesklandPlus"
+  DeleteRegKey HKCU "Software\DesklandPlus\Installer"
 SectionEnd

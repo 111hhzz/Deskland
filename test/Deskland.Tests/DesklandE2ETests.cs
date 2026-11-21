@@ -86,9 +86,9 @@ public class DesklandE2ETests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task SettingsPage_TitleIsDesklandPreview()
+    public async Task SettingsPage_TitleIsDesklandPlus()
     {
-        Assert.Equal("Deskland Preview", await _pageSettings.TitleAsync());
+        Assert.Equal("Deskland+", await _pageSettings.TitleAsync());
     }
 
     [Fact]
@@ -97,7 +97,7 @@ public class DesklandE2ETests : IAsyncLifetime
         var brand = _pageSettings.Locator(".brand");
         await Assertions.Expect(brand).ToBeVisibleAsync();
         var text = await brand.TextContentAsync();
-        Assert.Contains("Deskland Preview", text);
+        Assert.Contains("Deskland+", text);
     }
 
     [Fact]

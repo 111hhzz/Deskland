@@ -3,7 +3,7 @@
 /host/lib/
 /test/**/bin/
 /test/**/obj/
-/node_modules/
+node_modules/
 /dist/
 /frontend/dist/
 **/*.exe

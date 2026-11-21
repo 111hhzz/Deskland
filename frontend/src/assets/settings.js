@@ -149,7 +149,20 @@ function fmt(p, v) {
   return p.unit ? s + ' ' + p.unit : s;
 }
 
-const thumbUrl = (value, id) => window.DESKLAND_THUMBS?.[id] || String(value || '').match(/^url\(([^)]+)\)/)?.[1] || '';
+const thumbUrl = value => String(value || '').match(/^url\(([^)]+)\)/)?.[1] || '';
+
+// 主预览图（LCP 候选）提前获取：切换主题时预先下载，避免等到渲染才开始
+function preloadImage(href) {
+  const url = new URL(href, location.href).href;
+  if ([...document.querySelectorAll('link[data-preload-image]')].some(l => l.href === url)) return;
+  const link = document.createElement('link');
+  link.rel = 'preload';
+  link.as = 'image';
+  link.href = url;
+  link.fetchPriority = 'high';
+  link.setAttribute('data-preload-image', '');
+  document.head.appendChild(link);
+}
 function renderThemes() {
   $('themes').innerHTML = state.registry.themes.map(th => {
     const locked = th.locked === true, ready = th.status === 'ready', on = th.id === state.theme;
@@ -158,7 +171,7 @@ function renderThemes() {
       <div class="theme-copy"><div class="theme-meta"><span class="badge">${t(on ? 'badgeOn' : locked ? 'badgeLocked' : ready ? 'badgeReady' : 'badgeSoon')}</span>
         <svg class="theme-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5 15 15 5M5 5h10v10"/></svg></div>
         <div class="name">${th.name}</div></div>
-      <div class="thumb" style="background:${th.thumb || '#ccc'}">${thumbUrl(th.thumb, th.id) ? `<img src="${thumbUrl(th.thumb, th.id)}" alt="" loading="lazy" decoding="async">` : ''}${locked ? `<span class="lock-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span>` : ''}</div></button>`;
+      <div class="thumb" style="background:${th.thumb || '#ccc'}">${locked ? `<span class="lock-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span>` : ''}</div></button>`;
   }).join('');
 }
 let purchaseThemeId = null, purchaseReturnFocus = null;
@@ -357,7 +370,8 @@ function showTheme() {
   layoutPreview();
   const th = themeById(state.theme);
   $('preview').style.background = th.thumb || '#ccc';
-  $('preview').src = thumbUrl(th.thumb, th.id);
+  const previewUrl = thumbUrl(th.thumb);
+  if (previewUrl) { $('preview').src = previewUrl; preloadImage(previewUrl); }
   const meta = $('themeMeta');
   meta.innerHTML = th.status === 'ready'
     ? `<div class="name"></div>${th.author ? '<div class="author"></div>' : ''}${th.desc ? '<div class="desc"></div>' : ''}` : '';

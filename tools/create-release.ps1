@@ -1,4 +1,4 @@
-param([string]$Tag = 'v0.1.3', [string]$Name = 'Deskland Preview 0.1.3')
+param([string]$Tag = 'v0.1.3', [string]$Name = 'Deskland+ 0.1.3')
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 . (Join-Path $PSScriptRoot 'local.ps1')
@@ -13,7 +13,7 @@ $repo = '111hhzz/Deskland'
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $version = (Get-Content -LiteralPath (Join-Path $PSScriptRoot 'version.json') -Raw | ConvertFrom-Json).version
 if ($tag -eq 'v0.1.3') { $tag = 'v' + $version }
-if ($name -eq 'Deskland Preview 0.1.3') { $name = 'Deskland Preview ' + $version }
+if ($name -eq 'Deskland+ 0.1.3') { $name = 'Deskland+ ' + $version }
 
 $headers = @{ 'Authorization' = 'token ' + $token; 'User-Agent' = 'deskland'; 'Accept' = 'application/vnd.github+json' }
 $base = "https://api.github.com/repos/$repo"

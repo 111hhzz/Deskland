@@ -104,7 +104,7 @@ class Win32Probe
 
         // 2. 从测试事件文件读取壁纸窗口 HWND
         IntPtr wallpaperHwnd = IntPtr.Zero;
-        var eventsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DesklandPreview", "test-events-" + proc.Id + ".jsonl");
+        var eventsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DesklandPlus", "test-events-" + proc.Id + ".jsonl");
         if (!File.Exists(eventsPath))
         {
             // 尝试从 DESKLAND_PROFILE_DIR 找
@@ -135,7 +135,7 @@ class Win32Probe
             return true;
         }, IntPtr.Zero);
 
-        WindowInfo settingsWin = allWindows.FirstOrDefault(w => w.Title == "Deskland Preview");
+        WindowInfo settingsWin = allWindows.FirstOrDefault(w => w.Title == "Deskland+");
         // 用事件文件的 HWND 作为壁纸窗口；如果没读到，退化到类名匹配
         WindowInfo wallpaperWin = wallpaperHwnd != IntPtr.Zero ? GetWindowInfo(wallpaperHwnd) : null;
         if (wallpaperWin == null)

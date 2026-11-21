@@ -45,27 +45,32 @@ if ($appVersion -notmatch '^\d+\.\d+\.\d+$') { throw 'Invalid application versio
 $versionSource = Join-Path $bin 'Deskland-version.cs'
 $versionText = @"
 using System.Reflection;
-[assembly: AssemblyTitle("Deskland Preview")]
-[assembly: AssemblyProduct("Deskland Preview")]
+[assembly: AssemblyTitle("Deskland+")]
+[assembly: AssemblyProduct("Deskland+")]
 [assembly: AssemblyVersion("$appVersion.0")]
 [assembly: AssemblyFileVersion("$appVersion.0")]
 [assembly: AssemblyCopyright("Copyright 2026 Deskland authors")]
 "@
 [IO.File]::WriteAllText($versionSource, $versionText, (New-Object Text.UTF8Encoding($false)))
 & $csc /nologo /target:winexe /platform:x64 /optimize+ /codepage:65001 /win32manifest:"$root\app.manifest" `
-    /win32icon:"$root\DesklandPreview.ico" `
+    /win32icon:"$root\DesklandPlus.ico" `
     /out:"$bin\Deskland.exe" `
     /r:System.dll /r:System.Drawing.dll /r:System.Windows.Forms.dll /r:System.Web.Extensions.dll `
     /r:"$lib\Microsoft.Web.WebView2.Core.dll" /r:"$lib\Microsoft.Web.WebView2.WinForms.dll" `
     "$root\DesktopHost.cs" "$root\Themes.cs" "$root\SystemTheme.cs" "$versionSource"
 if ($LASTEXITCODE -ne 0) { throw '编译失败' }
 foreach ($assembly in $assemblies) { Copy-Item -LiteralPath (Join-Path $lib $assembly.Name) -Destination $bin -Force }
-Copy-Item -LiteralPath (Join-Path $root 'DesklandPreview.ico') -Destination (Join-Path $bin 'DesklandPreview.ico') -Force
+Copy-Item -LiteralPath (Join-Path $root 'DesklandPlus.ico') -Destination (Join-Path $bin 'DesklandPlus.ico') -Force
 
 # 前端产物：frontend/dist → bin/prototype（宿主把 app.local 映射到这里）
 $frontDist = Join-Path $root '..\frontend\dist'
 if (-not (Test-Path -LiteralPath $frontDist)) { throw "缺少前端产物：$frontDist（先跑 frontend\build.ps1）" }
 $proto = Join-Path $bin 'prototype'
+if (Test-Path -LiteralPath $proto) {
+    # 清空旧产物（逐个删除，避免已移除的资源残留，如 thumbs-data.js）
+    Get-ChildItem -LiteralPath $proto -Recurse -File -Force | Remove-Item -Force -Confirm:$false
+    Get-ChildItem -LiteralPath $proto -Recurse -Directory -Force | Sort-Object -Property FullName -Descending | Remove-Item -Force -Confirm:$false
+}
 New-Item -ItemType Directory -Force -Path $proto | Out-Null
 Copy-Item -Path (Join-Path $frontDist '*') -Destination $proto -Recurse -Force
 Write-Host "前端产物已复制：$proto"

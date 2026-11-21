@@ -1,0 +1,15 @@
+{
+  "name": "deskland-frontend",
+  "version": "0.1.3",
+  "private": true,
+  "type": "module",
+  "description": "Deskland+ 前端构建期工具（仅开发用，运行时无依赖）",
+  "devDependencies": {
+    "sharp": "0.33.5",
+    "esbuild": "0.24.2"
+  },
+  "scripts": {
+    "thumbs": "node thumbs.mjs",
+    "minify": "node minify.mjs"
+  }
+}

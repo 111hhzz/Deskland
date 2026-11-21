@@ -172,6 +172,39 @@ static class Rename
         }
         catch (Exception ex) { Log.Write("改名：换开机自启的启动项失败：" + ex.Message); }
     }
+
+    // 2026-11-20 改名（Deskland Preview → Deskland+）：把旧数据目录的设置复制到新目录（保留旧目录，不删用户数据）
+    const string PreviewName = "DesklandPreview";
+    public static void MigratePreview()
+    {
+        if (InstallProfile.Isolated) return;
+        string oldDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), PreviewName);
+        try
+        {
+            if (Directory.Exists(oldDir) && !Directory.Exists(Log.DataDir))
+            {
+                Directory.CreateDirectory(Log.DataDir);
+                foreach (string src in Directory.GetFiles(oldDir))
+                    if (!src.EndsWith(".log", StringComparison.OrdinalIgnoreCase))
+                        File.Copy(src, Path.Combine(Log.DataDir, Path.GetFileName(src)), false);
+                Log.Write("改名：设置从 " + oldDir + " 复制到 " + Log.DataDir);
+            }
+        }
+        catch (Exception ex) { Log.Write("改名：复制设置失败：" + ex.Message); }
+        try
+        {
+            using (RegistryKey k = Registry.CurrentUser.OpenSubKey(HostContext.RunKey, true))
+            {
+                if (k != null && k.GetValue(PreviewName) != null)
+                {
+                    k.DeleteValue(PreviewName, false);
+                    k.SetValue(HostContext.RunName, "\"" + Application.ExecutablePath + "\" --autostart");
+                    Log.Write("改名：开机自启的启动项 " + PreviewName + " 换成 " + HostContext.RunName);
+                }
+            }
+        }
+        catch (Exception ex) { Log.Write("改名：换开机自启的启动项失败：" + ex.Message); }
+    }
 }
 
 // 开机自启有没有被拦（比如被火绒、360 的"启动项管理"禁止了：注册表里的启动项还在，但登录时不让运行）：
@@ -345,7 +378,7 @@ static class I18n
 // 打开设置的方式：双击程序（没运行就先启动再打开）、双击托盘图标、菜单 → 设置…（或 --settings）
 class HostContext : ApplicationContext
 {
-    public const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run", RunName = "DesklandPreview";
+    public const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run", RunName = "DesklandPlus";
     static readonly MethodInfo ShowTrayMenu =
         typeof(NotifyIcon).GetMethod("ShowContextMenu", BindingFlags.Instance | BindingFlags.NonPublic);
 
@@ -371,6 +404,7 @@ class HostContext : ApplicationContext
         this.pageDir = pageDir;
         Log.Write("启动，页面目录：" + pageDir + (showSettings ? "" : "（开机自动启动）"));
         if (showSettings) autoStartSw = AutoStartCheck.Detect(IsAutoStart());
+        Rename.MigratePreview();
         Settings.Load();
         I18n.Load(pageDir, Settings.Lang);
         exitEvent = new EventWaitHandle(false, EventResetMode.AutoReset, Program.ExitEventName);
@@ -416,7 +450,7 @@ class HostContext : ApplicationContext
 
         tray = new NotifyIcon();
         tray.Icon = AppIcon.Create();
-        tray.Text = "Deskland Preview";
+        tray.Text = "Deskland+";
         tray.ContextMenu = new ContextMenu(new[] {
             settingsItem,
             pauseItem,
@@ -762,7 +796,7 @@ class HostContext : ApplicationContext
         if (restarts.Count > 5)
         {
             Log.Write("壁纸窗口 1 分钟内被销毁超过 5 次，停止重试");
-            MessageBox.Show(I18n.T("errRebuilt") + "\n\n" + I18n.T("errSeeLog", "path", Log.FilePath), "Deskland Preview");
+            MessageBox.Show(I18n.T("errRebuilt") + "\n\n" + I18n.T("errSeeLog", "path", Log.FilePath), "Deskland+");
             Exit();
             return;
         }
@@ -880,7 +914,7 @@ static class AppIcon
 {
     public static Icon Create()
     {
-        return new Icon(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DesklandPreview.ico"));
+        return new Icon(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DesklandPlus.ico"));
     }
 
     static GraphicsPath RoundRect(Rectangle r, int radius)
@@ -907,8 +941,8 @@ class SettingsForm : Form
     {
         this.pageDir = pageDir;
         this.host = host;
-        Text = "Deskland Preview";
-        AccessibleName = "Deskland Preview";
+        Text = "Deskland+";
+        AccessibleName = "Deskland+";
         ShowIcon = true;
         Icon = AppIcon.Create();
         StartPosition = FormStartPosition.CenterScreen;
@@ -1012,7 +1046,7 @@ class SettingsForm : Form
         catch (Exception ex)
         {
             Log.Write("设置窗口启动失败：" + ex);
-            MessageBox.Show(I18n.T("errSettings", "msg", ex.Message), "Deskland Preview");
+            MessageBox.Show(I18n.T("errSettings", "msg", ex.Message), "Deskland+");
             Close();
         }
         finally
@@ -1236,7 +1270,7 @@ class WallpaperForm : Form
     void Fail(string msg)
     {
         Log.Write(msg);
-        MessageBox.Show(msg + "\n\n" + I18n.T("errSeeLog", "path", Log.FilePath), "Deskland Preview");
+            MessageBox.Show(msg + "\n\n" + I18n.T("errSeeLog", "path", Log.FilePath), "Deskland+");
         Fatal = true;
         Shutdown();
     }
@@ -1698,19 +1732,19 @@ static class Native
     [DllImport("kernel32.dll")] public static extern bool ReadProcessMemory(IntPtr proc, IntPtr addr, out RECT buf, int size, out IntPtr read);
 }
 
-// Deskland Preview has its own data and instance identity; isolated profiles support installation QA.
+// Deskland+ has its own data and instance identity; isolated profiles support installation QA.
 static class InstallProfile
 {
     public static readonly string Override = Environment.GetEnvironmentVariable("DESKLAND_PROFILE_DIR");
     public static readonly bool Isolated = !string.IsNullOrEmpty(Override);
     public static readonly string DataDir = Isolated ? Path.GetFullPath(Override) : Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DesklandPreview");
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DesklandPlus");
     public static readonly string Suffix = MakeSuffix();
     static string MakeSuffix()
     {
-        if (!Isolated) return "_Preview";
+        if (!Isolated) return "_Plus";
         using (var hash = System.Security.Cryptography.SHA256.Create())
-            return "_Preview_" + BitConverter.ToString(hash.ComputeHash(Encoding.UTF8.GetBytes(DataDir.ToUpperInvariant()))).Replace("-", "").Substring(0, 24);
+            return "_Plus_" + BitConverter.ToString(hash.ComputeHash(Encoding.UTF8.GetBytes(DataDir.ToUpperInvariant()))).Replace("-", "").Substring(0, 24);
     }
 
     // An installer may only close the instance using this exact executable path.
@@ -1724,8 +1758,14 @@ static class InstallProfile
                 try
                 {
                     if (!string.Equals(process.MainModule.FileName, Application.ExecutablePath, StringComparison.OrdinalIgnoreCase)) continue;
-                    EventWaitHandle ev;
-                    if (!EventWaitHandle.TryOpenExisting(Program.ExitEventName, out ev)) return 1;
+                    EventWaitHandle ev = null;
+                    string[] exitNames = new string[] { Program.ExitEventName, "DesklandHost_Exit_Preview" };
+                    foreach (string name in exitNames)
+                    {
+                        if (EventWaitHandle.TryOpenExisting(name, out ev)) break;
+                        ev = null;
+                    }
+                    if (ev == null) return 1;
                     using (ev) ev.Set();
                     if (!process.WaitForExit(10000)) return 1;
                 }

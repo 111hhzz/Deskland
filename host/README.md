@@ -30,7 +30,7 @@ host\bin\Deskland.exe
 - 前台窗口最大化或全屏时暂停；壁纸启动不抢占前台，自身、不可见及 cloaked 窗口不会误触发暂停；托盘可手动暂停与继续。设置页按程序版本和 `ui=2` 刷新缓存，使用内嵌静态缩略图和真实 `<img>`，不再启动第二套主题预览。
 - Windows 11 24H2 及以后使用 Progman 分层子窗口；较早系统使用 WorkerW。
 - 当前仅覆盖主显示器；系统壁纸幻灯片或 Windows 聚焦换图时可能短暂闪烁。
-- 设置保存到 `%LOCALAPPDATA%\DesklandPreview\settings.json`，日志为同目录下的 `host.log`。
+- 设置保存到 `%LOCALAPPDATA%\DesklandPlus\settings.json`，日志为同目录下的 `host.log`。
 - 不提供账号登录、购买恢复或自动检查更新；不会启动时或打开设置时联网检查新版本。
 - 首版移除分享图片 / 分享动画，避免为设置页保留第二套 WebGL2 渲染；主题页仍加载自己的 WebGL2 画布。
 - 主题页面改动后，使用托盘“重新载入”；宿主 C# 改动后需要退出并重新构建。

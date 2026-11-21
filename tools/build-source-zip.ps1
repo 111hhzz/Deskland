@@ -11,7 +11,7 @@ New-Item -ItemType Directory -Force $stage | Out-Null
 
 # 散文件（顶层文档 + host 源码 + 打包脚本 + 页面与角色脚本）
 $files = @('.gitattributes', '.gitignore', 'LICENSE', 'NOTICE', 'README.md', 'THIRD_PARTY_NOTICES.md', 'TRADEMARKS.md',
-  'host\DesktopHost.cs', 'host\Themes.cs', 'host\SystemTheme.cs', 'host\DesklandPreview.ico', 'host\README.md', 'host\app.manifest', 'host\build.ps1', 'host\inspect.ps1',
+  'host\DesktopHost.cs', 'host\Themes.cs', 'host\SystemTheme.cs', 'host\DesklandPlus.ico', 'host\README.md', 'host\app.manifest', 'host\build.ps1', 'host\inspect.ps1',
   'tools\build-installer.ps1', 'tools\build-portable.ps1', 'tools\build-source-zip.ps1', 'tools\fetch-tools.ps1', 'tools\local.ps1', 'tools\installer.nsi', 'tools\version.json',
   'prototype\flat.html', 'prototype\meadow.html', 'prototype\sky.html', 'prototype\settings.html', 'prototype\thumbs-data.js', 'prototype\share.js', 'prototype\ripple.js', 'prototype\serve.mjs', 'prototype\themes.json',
   'prototype\beach-palms.js', 'prototype\meadow-boy.js', 'prototype\meadow-cat.js',
