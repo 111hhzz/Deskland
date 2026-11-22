@@ -54,7 +54,7 @@ export function Controls() {
       {th.groups.map(g => (
         <details className="group" open key={g.name}>
           <summary>{g.name}</summary>
-          {g.params.map(p => <ParamRow key={p.key} p={p} value={vals[p.key]} />)}
+          {g.params.map(p => <ParamRow key={p.key} p={p} value={vals[p.key] ?? p.default} />)}
           {g.soon ? (
             <div className="soon">{t('comingSoon')}{g.soon.map(s => <span className="chip" key={s}>{s}</span>)}</div>
           ) : null}

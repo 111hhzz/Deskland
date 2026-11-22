@@ -69,8 +69,9 @@ function failSwitch(id: string, why: string) {
 }
 
 async function loadTheme(id: string): Promise<EngineInstance> {
-  const known = !!ENGINES[id];
-  const Cls = known ? ENGINES[id]() : MeadowEngine;
+  const factory = ENGINES[id];
+  const known = !!factory;
+  const Cls = factory ? factory() : MeadowEngine;
   // 主题样式（热切换时换掉）
   (document.getElementById('themeCss') as HTMLLinkElement).href = THEME_STYLE(known ? id : 'meadow');
   // 附加脚本（经典脚本，只加载一次）

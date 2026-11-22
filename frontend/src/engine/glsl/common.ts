@@ -27,8 +27,8 @@ float fieldS(sampler2D t, vec2 p) { return texture(t, (p / uStep + 0.5) / uGrid)
 
 // 云的布局常量：**JS 与 GLSL 的唯一事实来源**。
 // 改这里，SceneEngine 的格子分配与 cloudDist 的采样会一起变；不要在任何一边单独写魔数。
-export const CIRC_K = 36;      // 每格最多存多少个圆（云纹理的宽度 = 格数 × CIRC_K）
-export const GRID_PAD = 4;     // 云格子比屏幕左、上多出的格数（右、下只多 GRID_PAD - 1 格）
+export const CIRC_K = 36 as const;      // 每格最多存多少个圆（云纹理的宽度 = 格数 × CIRC_K）
+export const GRID_PAD = 4 as const;     // 云格子比屏幕左、上多出的格数（右、下只多 GRID_PAD - 1 格）
 
 // 云的圆：meadow / sky / aurora 共用（beach 没有云，不用）
 // 依赖头部声明的 uFA / uFB / uMix / uEdge / uCirc / uCGrid / uCellG
@@ -80,8 +80,8 @@ vec4 catColor(vec2 uv) {
 
 // 在 #version 行后插入 #define，生成同一着色器的变体。
 // 比 replace 源码文本可靠：不依赖 `void main() {` 或 `#version` 的具体写法。
-export function withDefines(src, defines = []) {
-  if (!defines || !defines.length) return src;
+export function withDefines(src: string, defines: string[] = []): string {
+  if (!defines.length) return src;
   const nl = src.indexOf('\n');
   const first = nl < 0 ? src : src.slice(0, nl);
   if (first.trim() !== '#version 300 es') throw new Error('着色器必须以 #version 300 es 开头');

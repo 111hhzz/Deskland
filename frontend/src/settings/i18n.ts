@@ -85,12 +85,13 @@ export function localizeRegistry(reg: ThemeRegistry, lang: LangCode): ThemeDef[]
           const hint = q(y => y?.hint);
           const options = q(y => y?.options);
           const unit = q(y => y?.unit);
+          // exactOptionalPropertyTypes：缺译时不要写 undefined 键，整键省略以保留主题原文
           return {
             ...p,
             label: label != null ? String(label) : p.label,
-            hint: hint != null ? String(hint) : p.hint,
-            options: options != null ? (options as string[]) : p.options,
-            unit: unit != null ? String(unit) : p.unit,
+            ...(hint != null ? { hint: String(hint) } : {}),
+            ...(options != null ? { options: options as string[] } : {}),
+            ...(unit != null ? { unit: String(unit) } : {}),
           };
         }),
       };

@@ -572,7 +572,7 @@ public class DesklandE2ETests : IAsyncLifetime
     [Fact]
     public async Task EngineSkeleton_Structure()
     {
-        var baseSrc = await File.ReadAllTextAsync(Path.Combine(RepoRoot, "frontend", "src", "engine", "BaseEngine.js"));
+        var baseSrc = await File.ReadAllTextAsync(Path.Combine(RepoRoot, "frontend", "src", "engine", "BaseEngine.ts"));
         var sceneSrc = await File.ReadAllTextAsync(Path.Combine(RepoRoot, "frontend", "src", "engine", "SceneEngine.js"));
 
         Assert.Contains("export class BaseEngine", baseSrc);

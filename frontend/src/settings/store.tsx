@@ -245,6 +245,7 @@ export function SettingsProvider({ host, children }: {
     pending.current = {};
     for (const k of Object.keys(batch)) {
       const item = batch[k];
+      if (!item) continue;
       host?.send({ t: 'set', theme: item.theme, key: k, value: item.v });
     }
     // 两段计时都要能取消：连续改参时旧的内层计时会提前截断新的“已保存”闪烁
