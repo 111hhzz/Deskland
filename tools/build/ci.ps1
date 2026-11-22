@@ -1,15 +1,15 @@
 ﻿# Deskland 统一开发入口：一条命令完成「构建宿主 + 运行测试（+ 可选打包）」。
 # 用法（仓库根或任意目录）：
-#   powershell -ExecutionPolicy Bypass -File tools\ci.ps1            # 构建 + 测试
-#   powershell -ExecutionPolicy Bypass -File tools\ci.ps1 -Package   # 构建 + 测试 + 打包
-#   powershell -ExecutionPolicy Bypass -File tools\ci.ps1 -SkipTests # 只构建
+#   powershell -ExecutionPolicy Bypass -File tools\build\ci.ps1            # 构建 + 测试
+#   powershell -ExecutionPolicy Bypass -File tools\build\ci.ps1 -Package   # 构建 + 测试 + 打包
+#   powershell -ExecutionPolicy Bypass -File tools\build\ci.ps1 -SkipTests # 只构建
 param(
     [switch]$Package,
     [switch]$SkipTests
 )
 
 $ErrorActionPreference = 'Stop'
-$root = Split-Path $PSScriptRoot -Parent
+$root = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent   # tools/build → 仓库根
 
 function Write-Step($text) { Write-Host "`n==== $text ====" -ForegroundColor Cyan }
 
@@ -35,7 +35,7 @@ if (-not $SkipTests) {
 # 4) 可选：打包安装器 / 便携版 / 源码包
 if ($Package) {
     Write-Step '打包发布产物'
-    & (Join-Path $root 'tools\build-installer.ps1')
+    & (Join-Path $PSScriptRoot 'build-installer.ps1')
     if ($LASTEXITCODE -ne 0) { throw '打包失败' }
 }
 

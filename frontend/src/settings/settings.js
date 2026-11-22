@@ -14,7 +14,7 @@ const LANGS = { 'en': 'English', 'zh-CN': '简体中文' };
 const I18N = {};
 let lang = 'zh-CN';
 const loadLang = code => I18N[code] ? Promise.resolve() :
-  fetch('i18n/' + code + '.json').then(r => r.json()).then(j => { I18N[code] = j; }).catch(() => { I18N[code] = {}; });
+  fetch('/i18n/' + code + '.json').then(r => r.json()).then(j => { I18N[code] = j; }).catch(() => { I18N[code] = {}; });
 // 一句界面文字：当前语言 → 英文 → 简体中文；{名字} 换成 vars 里的值
 function t(key, vars) {
   const pick = c => I18N[c] && I18N[c].ui && I18N[c].ui[key];
@@ -461,7 +461,7 @@ function mockHost() {
   if (new URLSearchParams(location.search).has('updateDemo')) onHost({ t: 'updateState', version: '0.2.0', status: 'available', progress: -1 });
 }
 
-fetch('themes.json').then(r => r.json()).then(reg => {
+fetch('/themes.json').then(r => r.json()).then(reg => {
   state.registry0 = state.registry = reg;
   if (host) {
     host.addEventListener('message', e => onHost(JSON.parse(e.data)));

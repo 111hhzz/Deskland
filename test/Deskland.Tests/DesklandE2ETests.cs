@@ -288,9 +288,9 @@ public class DesklandE2ETests : IAsyncLifetime
         };
         foreach (var (id, page) in new (string id, string page)[]
         {
-            ("meadow", "meadow.html"),
-            ("sky", "sky.html"),
-            ("beach", "flat.html"),
+            ("meadow", "themes/meadow/meadow.html"),
+            ("sky", "themes/sky/sky.html"),
+            ("beach", "themes/beach/beach.html"),
             ("aurora", "themes/aurora/aurora.html"),
         })
         {
@@ -378,9 +378,9 @@ public class DesklandE2ETests : IAsyncLifetime
     {
         var cases = new (string page, string bg, string sceneName, string sceneValue)[]
         {
-            ("meadow.html", "#a6c46e", "--scene-ground-mid", "0.62 0.75 0.42"),
-            ("sky.html", "#6fb3ea", "--scene-sky-day-top", "0.27 0.56 0.88"),
-            ("flat.html", "#1aa3c4", "--scene-sea-0", "0.74 0.93 0.87"),
+            ("themes/meadow/meadow.html", "#a6c46e", "--scene-ground-mid", "0.62 0.75 0.42"),
+            ("themes/sky/sky.html", "#6fb3ea", "--scene-sky-day-top", "0.27 0.56 0.88"),
+            ("themes/beach/beach.html", "#1aa3c4", "--scene-sea-0", "0.74 0.93 0.87"),
         };
         foreach (var (page, bg, sceneName, sceneValue) in cases)
         {
@@ -392,13 +392,13 @@ public class DesklandE2ETests : IAsyncLifetime
             Assert.Equal(sceneValue,
                 await _pageWallpaper.EvaluateAsync<string>($"{root}.getPropertyValue('{sceneName}').trim()"));
             // JS 侧确实把 Token 解析进了 SCENE（否则只会走 fallback，无法证明配置驱动）
-            if (page == "meadow.html")
+            if (page == "themes/meadow/meadow.html")
             {
                 Assert.Equal("0.62 0.75 0.42", await _pageWallpaper.EvaluateAsync<string>("window.__dbg.SCENE.groundMid.join(' ')"));
                 Assert.Equal("0.56 0.66 0.52", await _pageWallpaper.EvaluateAsync<string>("window.__dbg.SCENE.shadow.join(' ')"));
                 Assert.Equal("-0.6 -0.8", await _pageWallpaper.EvaluateAsync<string>("window.__dbg.SCENE.lightDir.join(' ')"));
             }
-            else if (page == "sky.html")
+            else if (page == "themes/sky/sky.html")
             {
                 Assert.Equal("0.27 0.56 0.88", await _pageWallpaper.EvaluateAsync<string>("window.__dbg.SCENE.skyDayTop.join(' ')"));
                 Assert.Equal("0.78 0.84 0.92", await _pageWallpaper.EvaluateAsync<string>("window.__dbg.SCENE.cloudShadow.join(' ')"));
@@ -426,7 +426,7 @@ public class DesklandE2ETests : IAsyncLifetime
     [Fact]
     public async Task AppMode_SmokeTest()
     {
-        await _pageWallpaper.GotoAsync("https://app.local/meadow.html");
+        await _pageWallpaper.GotoAsync("https://app.local/themes/meadow/meadow.html");
         await _pageWallpaper.WaitForSelectorAsync("#desktop .icon", new() { Timeout = 15000 });
         await Task.Delay(800);                                  // 等布局 / 面板 / stats 稳定
 
@@ -507,7 +507,7 @@ public class DesklandE2ETests : IAsyncLifetime
     [Fact]
     public async Task WallpaperMode_HostBindings()
     {
-        await _pageWallpaper.GotoAsync("https://app.local/meadow.html?wallpaper=1");
+        await _pageWallpaper.GotoAsync("https://app.local/themes/meadow/meadow.html?wallpaper=1");
         await Task.Delay(2000);
         Assert.True(await _pageWallpaper.EvaluateAsync<bool>("document.body.classList.contains('wall')"),
             "wallpaper 模式应加 wall 类");
@@ -561,7 +561,7 @@ public class DesklandE2ETests : IAsyncLifetime
 
         foreach (var id in ids)
         {
-            await _pageWallpaper.GotoAsync($"https://app.local/engine.html?theme={id}&wallpaper=1");
+            await _pageWallpaper.GotoAsync($"https://app.local/pages/engine.html?theme={id}&wallpaper=1");
             try
             {
                 await _pageWallpaper.WaitForFunctionAsync(

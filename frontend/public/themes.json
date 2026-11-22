@@ -6,10 +6,10 @@
       "adaptive": true,
       "name": "草地",
       "desc": "钢笔淡彩的草地，图标藏在白云里，云影是一块块深绿",
-      "page": "meadow.html",
+      "page": "themes/meadow/meadow.html",
       "status": "ready",
       "product": "free",
-      "thumb": "url(thumbs/meadow.webp?v=5d36b1f2d4) center / cover no-repeat, radial-gradient(ellipse 22% 16% at 36% 38%, #fdfeff 60%, #dfe7ef 75%, transparent 78%), radial-gradient(ellipse 22% 16% at 46% 58%, #5f8a3e 70%, transparent 74%), radial-gradient(ellipse 18% 13% at 72% 70%, #fdfeff 60%, #dfe7ef 75%, transparent 78%), radial-gradient(ellipse 18% 13% at 80% 86%, #5f8a3e 70%, transparent 74%), linear-gradient(160deg, #c3d684 0%, #a2c06a 100%)",
+      "thumb": "url(/thumbs/meadow.webp?v=5d36b1f2d4) center / cover no-repeat, radial-gradient(ellipse 22% 16% at 36% 38%, #fdfeff 60%, #dfe7ef 75%, transparent 78%), radial-gradient(ellipse 22% 16% at 46% 58%, #5f8a3e 70%, transparent 74%), radial-gradient(ellipse 18% 13% at 72% 70%, #fdfeff 60%, #dfe7ef 75%, transparent 78%), radial-gradient(ellipse 18% 13% at 80% 86%, #5f8a3e 70%, transparent 74%), linear-gradient(160deg, #c3d684 0%, #a2c06a 100%)",
       "thumbSource": "custom",
       "groups": [
         {
@@ -83,10 +83,10 @@
       "id": "beach",
       "name": "沙滩",
       "desc": "海岸线绕着你的文件弯曲，海浪一层层冲上沙滩",
-      "page": "flat.html",
+      "page": "themes/beach/beach.html",
       "status": "ready",
       "product": "free",
-      "thumb": "url(thumbs/beach.webp?v=017578bc5c) center / cover no-repeat, linear-gradient(160deg, #f6ecdf 0%, #f6ecdf 34%, #bfeee0 36%, #57cfd0 55%, #0f9fc4 78%, #0a86b0 100%)",
+      "thumb": "url(/thumbs/beach.webp?v=017578bc5c) center / cover no-repeat, linear-gradient(160deg, #f6ecdf 0%, #f6ecdf 34%, #bfeee0 36%, #57cfd0 55%, #0f9fc4 78%, #0a86b0 100%)",
       "thumbSource": "custom",
       "groups": [
         {
@@ -178,10 +178,10 @@
       "id": "sky",
       "name": "天空",
       "desc": "卡通风的蓝天白云，图标坐在一团团圆鼓鼓的云上；可选白天、傍晚、晚上",
-      "page": "sky.html",
+      "page": "themes/sky/sky.html",
       "status": "ready",
       "product": "free",
-      "thumb": "url(thumbs/sky.webp?v=d706a0326d) center / cover no-repeat, radial-gradient(ellipse 30% 20% at 30% 40%, #fbfdff 55%, #c2ddf5 57%, #c2ddf5 75%, transparent 77%), radial-gradient(ellipse 24% 15% at 74% 68%, #fbfdff 55%, #c2ddf5 57%, #c2ddf5 75%, transparent 77%), linear-gradient(180deg, #3385cc 0%, #80bfe6 100%)",
+      "thumb": "url(/thumbs/sky.webp?v=d706a0326d) center / cover no-repeat, radial-gradient(ellipse 30% 20% at 30% 40%, #fbfdff 55%, #c2ddf5 57%, #c2ddf5 75%, transparent 77%), radial-gradient(ellipse 24% 15% at 74% 68%, #fbfdff 55%, #c2ddf5 57%, #c2ddf5 75%, transparent 77%), linear-gradient(180deg, #3385cc 0%, #80bfe6 100%)",
       "thumbSource": "custom",
       "groups": [
         {
@@ -237,7 +237,7 @@
       "page": "themes/aurora/aurora.html",
       "status": "ready",
       "product": "free",
-      "thumb": "url(thumbs/aurora.webp?v=aurora) center / cover no-repeat, linear-gradient(180deg, #0a1430 0%, #071026 100%)",
+      "thumb": "url(/thumbs/aurora.webp?v=aurora) center / cover no-repeat, linear-gradient(180deg, #0a1430 0%, #071026 100%)",
       "thumbSource": "custom",
       "groups": [
         {

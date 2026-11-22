@@ -1,7 +1,7 @@
 param([string]$Tag = 'v0.1.3', [string]$Name = 'Deskland+ 0.1.3')
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-. (Join-Path $PSScriptRoot 'local.ps1')
+. (Join-Path $PSScriptRoot '..\local.ps1')
 $proxy = 'http://127.0.0.1:7890'
 $token = $env:GITHUB_TOKEN
 if (-not $token) {
@@ -10,8 +10,8 @@ if (-not $token) {
 }
 if (-not $token) { throw 'Set GITHUB_TOKEN environment variable (or create .gh_token) with a GitHub PAT (repo scope).' }
 $repo = '111hhzz/Deskland'
-$root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
-$version = (Get-Content -LiteralPath (Join-Path $PSScriptRoot 'version.json') -Raw | ConvertFrom-Json).version
+$root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))   # tools/release → 仓库根
+$version = (Get-Content -LiteralPath (Join-Path $PSScriptRoot '..\build\version.json') -Raw | ConvertFrom-Json).version
 if ($tag -eq 'v0.1.3') { $tag = 'v' + $version }
 if ($name -eq 'Deskland+ 0.1.3') { $name = 'Deskland+ ' + $version }
 

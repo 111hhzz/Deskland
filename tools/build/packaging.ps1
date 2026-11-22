@@ -5,7 +5,7 @@
 # 源码包直接用 git 跟踪文件列表，天然排除 bin / obj / dist / node_modules 与本机状态，
 # 不会出现"清单里写着已删文件"或"把构建产物打进源码包"的问题。
 
-function Get-RepoRoot { [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..')) }
+function Get-RepoRoot { [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..')) }
 
 # 仓库源码文件（git 跟踪 = 仓库内容，不含 .gitignore 的产物与依赖）
 function Get-RepoFiles {
@@ -47,7 +47,7 @@ function Assert-ThemePages {
     $root = Get-RepoRoot
     $have = @{}
     foreach ($f in $RuntimeFiles) { $have[(ConvertTo-InstallPath $f).Replace('\', '/')] = $true }
-    if (-not $have['prototype/engine.html']) { throw '运行时产物缺少 prototype/engine.html（页内热切换入口）' }
+    if (-not $have['prototype/pages/engine.html']) { throw '运行时产物缺少 prototype/pages/engine.html（页内热切换入口）' }
     $themes = Get-Content -LiteralPath (Join-Path $root 'host\bin\prototype\themes.json') -Raw -Encoding UTF8 | ConvertFrom-Json
     foreach ($t in $themes.themes) {
         if ($t.status -ne 'ready') { continue }

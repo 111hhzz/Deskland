@@ -4,7 +4,7 @@
     [switch]$SkipBuild
 )
 $ErrorActionPreference = 'Stop'
-. (Join-Path $PSScriptRoot 'local.ps1')
+. (Join-Path $PSScriptRoot '..\local.ps1')
 . (Join-Path $PSScriptRoot 'packaging.ps1')
 $root = Get-RepoRoot
 $version = (Get-Content -LiteralPath (Join-Path $PSScriptRoot 'version.json') -Raw | ConvertFrom-Json).version

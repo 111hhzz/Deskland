@@ -1,8 +1,8 @@
 // Deskland · 桌面宿主（原型）
 //
 // 主要工作：
-//   1. 把一个无边框窗口挂到桌面图标下面（壁纸层），里面用 WebView2 显示当前主题的页面（如 prototype/flat.html?wallpaper=1）
-//   0. 设置窗口（prototype/settings.html）：静态缩略图预览、选主题、调参数，立即同步到壁纸并保存到 settings.json
+//   1. 把一个无边框窗口挂到桌面图标下面（壁纸层），里面用 WebView2 显示当前主题的页面（如 prototype/themes/beach/beach.html?wallpaper=1）
+//   0. 设置窗口（prototype/pages/settings.html）：静态缩略图预览、选主题、调参数，立即同步到壁纸并保存到 settings.json
 //   2. 每 400ms 读取桌面图标的真实位置（桌面 ListView 的跨进程消息），有变化才发给页面
 //   3. 前台窗口最大化 / 全屏时暂停动画；托盘图标可以暂停、重新载入、退出（退出后恢复原壁纸）
 //   4. 资源管理器重建壁纸层时（例如按 Win+D），我们的窗口会被连带销毁 → 自动重新挂载
@@ -930,7 +930,7 @@ static class AppIcon
     }
 }
 
-// 设置窗口：普通的桌面窗口，里面用 WebView2 显示 prototype/settings.html
+// 设置窗口：普通的桌面窗口，里面用 WebView2 显示 prototype/pages/settings.html
 class SettingsForm : Form
 {
     readonly WebView2 web;
@@ -1039,7 +1039,7 @@ class SettingsForm : Form
                 }
                 catch (Exception ex) { Log.Write("处理设置消息失败：" + ex.Message); }
             };
-            string settingsUrl = "https://app.local/settings.html?v=" + Uri.EscapeDataString(Application.ProductVersion) + "&ui=2";
+            string settingsUrl = "https://app.local/pages/settings.html?v=" + Uri.EscapeDataString(Application.ProductVersion) + "&ui=2";
             Log.Write("设置页面：" + settingsUrl);
             core.Navigate(settingsUrl);
         }
@@ -1148,7 +1148,7 @@ class WallpaperForm : Form
         Shutdown();
     }
     string PageUrl { get { return "https://app.local/" + page + "?wallpaper=1&ui=2"; } }
-    string EngineUrl(string id) { return "https://app.local/engine.html?theme=" + id + "&wallpaper=1&ui=2"; }
+    string EngineUrl(string id) { return "https://app.local/pages/engine.html?theme=" + id + "&wallpaper=1&ui=2"; }
 
     // 切换主题：换页面；新页面就绪后会重新收到设置和图标
     public void LoadPage(string newPage, string newId)

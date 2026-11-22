@@ -15,8 +15,8 @@ const ENGINES = {
 };
 const THEME_STYLE = id => '/themes/' + id + '/theme.css';   // 绝对路径：主题样式在 public，运行时按站点根解析
 const EXTRAS = {
-  meadow: ['engine/legacy/meadow-boy.js', 'engine/legacy/meadow-cat.js'],
-  beach:  ['engine/legacy/beach-palms.js'],
+  meadow: ['/legacy/meadow-boy.js', '/legacy/meadow-cat.js'],
+  beach:  ['/legacy/beach-palms.js'],
 };
 
 const QS = new URLSearchParams(location.search);

@@ -24,11 +24,11 @@ frontend/public/                # 配置型静态（原样拷贝到 dist 根）
     <id>/
       theme.json                # 主题清单 + Token schema（id/name/desc/page/status/product/tokens）
       theme.css                 # 主题 Token 值（只含 :root 自定义属性）
-  i18n/ thumbs/ lib/ engine/legacy/ assets/*.png
+  i18n/ thumbs/ lib/ legacy/ images/*.png
 ```
 
-现有三个 ready 主题的页面仍留在 `frontend/src/*.html`（`meadow.html` / `sky.html` / `flat.html`），
-它们的 `theme.json` / `theme.css` 在 `frontend/public/themes/<id>/`；新主题建议把页面放进 `src/themes/<id>/`。
+四个 ready 主题的页面统一在 `frontend/src/themes/<id>/<id>.html`（beach 原名 flat，已改名）；
+它们的 `theme.json` / `theme.css` 在 `frontend/public/themes/<id>/`。
 
 ## 2. 各文件的职责
 

@@ -61,10 +61,10 @@
 </aside>
 <div id="nogl">当前浏览器不支持 WebGL2，无法运行原型。</div>
 
-<script src="engine/legacy/beach-palms.js"></script>
+<script src="/legacy/beach-palms.js"></script>
 <script type="module">
-import { FlatEngine } from './scenes/FlatEngine.js';
-import { DeskApp } from './engine/DeskApp.js';
+import { FlatEngine } from '../../scenes/FlatEngine.js';
+import { DeskApp } from '../../engine/DeskApp.js';
 
 const QS = new URLSearchParams(location.search);
 const engine = new FlatEngine(document.getElementById('art'), {
@@ -96,6 +96,6 @@ engine.init().then(ok => {
   });
 });
 </script>
-<script src="lib/ripple.js"></script>   <!-- 桌面点击涟漪（只读鼠标钩子） -->
+<script src="/lib/ripple.js"></script>   <!-- 桌面点击涟漪（只读鼠标钩子） -->
 </body>
 </html>

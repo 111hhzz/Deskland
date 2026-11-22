@@ -379,8 +379,8 @@ void main() {
     image.onerror=()=>console.warn('草地放风筝人物素材加载失败：'+path);
     image.src=path;
   }
-  loadSprite('assets/meadow-kite-boy-level-face.png',gl.TEXTURE4,texture);
-  loadSprite('assets/meadow-kite-boy-diagonal-run.png',gl.TEXTURE7,runTexture,768);
+  loadSprite('/images/meadow-kite-boy-level-face.png',gl.TEXTURE4,texture);
+  loadSprite('/images/meadow-kite-boy-diagonal-run.png',gl.TEXTURE7,runTexture,768);
   const choosePosition=(s)=>{
     let best=null,bestScore=Infinity;
     const candidates=[];

@@ -82,7 +82,7 @@ function createMeadowCatScene() {
     gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);ready=true;
   };
   image.onerror=()=>console.warn('草地小猫素材加载失败');
-  image.src='assets/meadow-black-kitten.png';
+  image.src='/images/meadow-black-kitten.png';
   return {prepare(boy,now){
     if(previousTime!==null)time+=Math.max(0,Math.min(.05,(now-previousTime)/1000));
     previousTime=now;

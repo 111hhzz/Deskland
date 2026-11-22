@@ -40,7 +40,7 @@ if ($missing.Count -gt 0) {
 }
 $csc = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 if (-not (Test-Path -LiteralPath $csc)) { throw '找不到 .NET Framework C# 编译器，请在 64 位 Windows 上构建。' }
-$appVersion = (Get-Content -LiteralPath (Join-Path $root '..\tools\version.json') -Raw | ConvertFrom-Json).version
+$appVersion = (Get-Content -LiteralPath (Join-Path $root '..\tools\build\version.json') -Raw | ConvertFrom-Json).version
 if ($appVersion -notmatch '^\d+\.\d+\.\d+$') { throw 'Invalid application version' }
 $versionSource = Join-Path $bin 'Deskland-version.cs'
 $versionText = @"

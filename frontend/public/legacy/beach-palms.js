@@ -7,7 +7,7 @@ const BEACH_PALM_STYLES = [
   {file: 'beach-coconut-palm-arch.png', foot: [.84, .98], crown: [-45, -65], radius: 70, width: 128, height: 119, size: 1.35, faceSea: true}
 ];
 const beachPalmImages = BEACH_PALM_STYLES.map(style => {
-  const image = new Image();image.src = 'assets/' + style.file;return image;
+  const image = new Image();image.src = '/images/' + style.file;return image;
 });
 let beachPalmsScene = null;
 const BEACH_PALM_VS = `#version 300 es

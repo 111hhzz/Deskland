@@ -11,7 +11,7 @@
 > - Theme engine: pages are thin shells; rendering lives in `frontend/src/engine/` (BaseEngine / SceneEngine / per-theme engines / DeskApp).
 > - In-page theme hot-switching via `engine.html` (no WebView reload).
 > - Frontend sources moved from `prototype/` to `frontend/src/`, with `frontend/scripts/build.ps1`.
-> - Settings styles/scripts externalized to `frontend/src/assets/settings.css|js`.
+> - Settings styles/scripts live in `frontend/src/settings/settings.css|js`.
 > - Added `tools/ci.ps1` (build + test in one command) and an xUnit + Playwright test suite (19 tests) with visual baselines.
 > - Event-driven desktop-icon tracking (`SetWinEventHook`) with a 400 ms polling fallback.
 
@@ -21,9 +21,9 @@ This is an **unofficial community fork** of Deskland, not a time-limited trial. 
 
 **English** · [简体中文](#中文说明) · [Upstream](https://github.com/BLEZZ0102/Deskland) · [Features](#features) · [Build from source](#build-from-source)
 
-![Meadow — included in Deskland+](docs/images/meadow.webp)
+![Meadow — included in Deskland+](media/images/meadow.webp)
 
-![Beach — included in Deskland+](docs/images/beach.webp)
+![Beach — included in Deskland+](media/images/beach.webp)
 
 Meadow, Beach and Sky are included in this fork.
 
@@ -77,7 +77,7 @@ Preview settings and logs are stored separately in `%LOCALAPPDATA%\DesklandPlus`
 One command to build the host and run the full test suite (xUnit + Playwright .NET, needs the .NET SDK):
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File tools\ci.ps1
+powershell -ExecutionPolicy Bypass -File tools\build\ci.ps1
 ```
 
 Add `-Package` to also build the installer, or `-SkipTests` to build only. The pre-commit hook runs `dotnet format --verify-no-changes`, `dotnet build --warnaserror`, a deslop check and `dotnet test`.
@@ -91,14 +91,14 @@ cd frontend
 npm run dev      # Vite dev server（默认 5173 端口）
 ```
 
-Open **http://localhost:5173/settings.html**. The browser uses sample icons; adaptation to real desktop icons requires the Windows host.
+Open **http://localhost:5173/pages/settings.html**. The browser uses sample icons; adaptation to real desktop icons requires the Windows host.
 
 ## Windows installer
 
 Build the NSIS installer without installing global development tools:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File tools\build-installer.ps1
+powershell -ExecutionPolicy Bypass -File tools\build\build-installer.ps1
 ```
 
 The first build downloads portable NSIS and Microsoft's WebView2 bootstrapper. Artifacts are written to `dist/` with SHA256 checksums and a matching source ZIP.
@@ -112,15 +112,14 @@ The installer targets the current user's `Programs\Deskland+` directory and does
 | Path | Contents |
 | --- | --- |
 | `host/` | Windows host, build scripts and application manifest |
-| `frontend/src/` | Frontend sources: theme pages, settings, engine and assets |
-| `frontend/src/flat.html` | Beach theme |
-| `frontend/src/meadow.html` `frontend/src/sky.html` | Meadow and Sky themes |
-| `frontend/src/settings.html` | Settings interface (styles/scripts externalized to `frontend/src/assets/`) |
-| `frontend/src/engine.html` | Unified entry for in-page theme hot-switching |
-| `frontend/src/engine/` | Theme engine classes (BaseEngine / SceneEngine / per-theme engines / DeskApp) |
-| `frontend/src/themes.json` | Free theme definitions (Beach / Meadow / Sky) |
-| `frontend/src/assets/` | Images used by the included themes, plus externalized settings CSS/JS |
-| `tools/` | Installer build tooling |
+| `frontend/src/` | Frontend sources (Vite root): pages, themes, engine, scenes, settings |
+| `frontend/src/pages/` | App pages: `engine.html`（页内热切换入口）、`settings.html` |
+| `frontend/src/themes/<id>/<id>.html` | 主题页（beach / meadow / sky / aurora） |
+| `frontend/src/engine/` | 主题引擎类（BaseEngine / SceneEngine / 各主题引擎 / DeskApp） |
+| `frontend/src/settings/` | 设置页样式 / 脚本 |
+| `frontend/public/` | 配置型静态（themes / i18n / images / thumbs / legacy / lib） |
+| `frontend/public/themes.json` | 主题注册表（含锁定主题展示信息） |
+| `tools/` | 构建 / 打包 / 发布脚本（`build/` 构建与打包、`release/` 发布、`local.ps1` 本机状态） |
 
 ## Known limitations
 
@@ -153,7 +152,7 @@ Issues and suggestions are welcome through GitHub Issues. This is an unofficial 
 > - 主题引擎化：页面退化为引导壳，渲染逻辑在 `frontend/src/engine/`（BaseEngine / SceneEngine / 各主题引擎 / DeskApp）。
 > - 新增 `engine.html` 页内主题热切换，不重建 WebView。
 > - 前端源从 `prototype/` 迁移到 `frontend/src/`，新增 `frontend/scripts/build.ps1` 打包。
-> - 设置页样式/脚本外联为 `frontend/src/assets/settings.css|js`。
+> - 设置页样式/脚本在 `frontend/src/settings/settings.css|js`。
 > - 新增 `tools/ci.ps1`（一条命令构建 + 测试）与 xUnit + Playwright 测试体系（20 项）及视觉基线。
 > - 桌面图标检测改为 `SetWinEventHook` 事件驱动，400ms 轮询兜底。
 
@@ -213,7 +212,7 @@ host\bin\Deskland.exe --exit
 一条命令构建宿主并跑完整测试（xUnit + Playwright .NET，需要 .NET SDK）：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File tools\ci.ps1
+powershell -ExecutionPolicy Bypass -File tools\build\ci.ps1
 ```
 
 加 `-Package` 同时打包安装器，或加 `-SkipTests` 只构建。pre-commit 钩子会依次跑 `dotnet format --verify-no-changes`、`dotnet build --warnaserror`、屎山检查与 `dotnet test`。
@@ -227,12 +226,12 @@ cd frontend
 npm run dev      # Vite dev server（默认 5173 端口）
 ```
 
-打开 **http://localhost:5173/settings.html**。浏览器使用示例图标，真实桌面图标适配需要 Windows 宿主。
+打开 **http://localhost:5173/pages/settings.html**。浏览器使用示例图标，真实桌面图标适配需要 Windows 宿主。
 
 ### Windows 安装包
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File tools\build-installer.ps1
+powershell -ExecutionPolicy Bypass -File tools\build\build-installer.ps1
 ```
 
 首次构建会下载便携版 NSIS 和微软 WebView2 引导程序，无需安装全局开发工具。产物位于 `dist/`，附 SHA256 校验文件和对应源码 ZIP。
@@ -246,15 +245,14 @@ powershell -ExecutionPolicy Bypass -File tools\build-installer.ps1
 | 路径 | 用途 |
 | --- | --- |
 | `host/` | Windows 宿主、构建脚本与清单 |
-| `frontend/src/` | 前端源：主题页、设置页、引擎与素材 |
-| `frontend/src/flat.html` | 沙滩主题 |
-| `frontend/src/meadow.html` `frontend/src/sky.html` | 草地与天空主题 |
-| `frontend/src/settings.html` | 设置界面（样式/脚本已外联到 `frontend/src/assets/`） |
-| `frontend/src/engine.html` | 页内主题热切换统一入口 |
+| `frontend/src/` | 前端源（Vite root）：pages、themes、engine、scenes、settings |
+| `frontend/src/pages/` | 应用页：`engine.html`（页内热切换入口）、`settings.html` |
+| `frontend/src/themes/<id>/<id>.html` | 主题页（beach / meadow / sky / aurora） |
 | `frontend/src/engine/` | 主题引擎类（BaseEngine / SceneEngine / 各主题引擎 / DeskApp） |
-| `frontend/src/themes.json` | 免费主题完整定义及锁定主题展示信息 |
-| `frontend/src/assets/` | 随附主题图片素材，以及外联的设置页 CSS/JS |
-| `tools/` | 安装包构建工具 |
+| `frontend/src/settings/` | 设置页样式 / 脚本 |
+| `frontend/public/` | 配置型静态（themes / i18n / images / thumbs / legacy / lib） |
+| `frontend/public/themes.json` | 免费主题完整定义及锁定主题展示信息 |
+| `tools/` | 构建 / 打包 / 发布脚本（`build/` 构建与打包、`release/` 发布、`local.ps1` 本机状态） |
 
 ### 已知限制
 
