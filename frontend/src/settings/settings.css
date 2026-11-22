@@ -124,11 +124,18 @@
   /* 按宽度自动排几列，主题多了就往下滚（以后会有很多辑、上百个主题） */
   .theme-list { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(172px, 1fr));
     align-content: start; gap: 16px; padding: 4px 8px 18px 4px; margin-left: -4px; margin-right: -8px; }
-  .theme-search { width: 100%; margin: 0 0 16px; padding: 9px 12px 9px 34px; border: 1px solid var(--line); border-radius: 12px;
+  /* 搜索框 + 手动刷新（主题清单由宿主扫描，用户点了才重新扫一遍） */
+  .theme-tools { display: flex; align-items: center; gap: 8px; margin: 0 0 16px; }
+  .theme-search { flex: 1; min-width: 0; padding: 9px 12px 9px 34px; border: 1px solid var(--line); border-radius: 12px;
     background: var(--panel-2) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 20 20' fill='none' stroke='%2380807c' stroke-width='1.7' stroke-linecap='round'><circle cx='9' cy='9' r='5.5'/><path d='m13.5 13.5 3 3'/></svg>") no-repeat 11px center;
     color: var(--text); font: inherit; font-size: 12.5px; outline: none; }
   .theme-search:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
   .theme-search::placeholder { color: var(--faint); }
+  .refresh-btn { flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 9px 12px;
+    font-size: 12.5px; border-radius: 12px; }
+  .refresh-btn svg { width: 14px; height: 14px; }
+  .refresh-btn:disabled { opacity: .55; cursor: default; }
+  .refresh-btn:disabled:hover { border-color: var(--line); background: transparent; }
   .theme-list::-webkit-scrollbar { width: 8px; }
   .theme-list::-webkit-scrollbar-thumb { background: var(--track); border-radius: 4px; }
   .theme {
@@ -139,7 +146,9 @@
   .theme:hover:not(:disabled) { transform: translateY(-3px); background: var(--panel-2); box-shadow: 0 10px 26px -14px rgba(20, 22, 24, .45); }
   .theme.on { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft), 0 10px 26px -16px rgba(20, 22, 24, .4); }
   .theme:disabled { cursor: default; }
-  /* 缩略图使用 prototype/thumbs/ 中的自定义图片（见 themes.json 的 thumb），渐变作为图片未加载时的底色 */
+  /* 搜索过滤用 hidden 属性隐藏卡片：必须显式压过上面的 display:flex，否则 UA 的 [hidden] 会被作者样式覆盖 */
+  .theme[hidden] { display: none; }
+  /* 缩略图使用 prototype/thumbs/ 中的自定义图片（见 theme.json 的 thumb），渐变作为图片未加载时的底色 */
   .theme-copy { flex: 1; padding: 16px 16px 14px; }
   .theme .theme-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   .theme-arrow { flex: none; width: 17px; height: 17px; color: var(--muted); }

@@ -323,7 +323,7 @@ static class Settings
     }
 }
 
-// 界面语言（2026-10-14）：文字表在 prototype/i18n/<语言>.json——ui 给设置页、host 给托盘菜单和提示框、themes 给主题名和参数（简体中文的主题文字就是 themes.json 本身）。
+// 界面语言（2026-10-14）：文字表在 prototype/i18n/<语言>.json——ui 给设置页、host 给托盘菜单和提示框、themes 给主题名和参数（简体中文的主题文字就是 theme.json 本身）。
 // 设置里的"语言"默认"跟随系统"：用 Windows 的界面语言；不支持的语言用英文
 static class I18n
 {
@@ -542,7 +542,7 @@ class HostContext : ApplicationContext
         return Themes.Allowed(pageDir, id, delegate(string product) { return false; });
     }
 
-    // 设置页发来的消息：hello / set / reset / theme / autostart / lang / updateProgram
+    // 设置页发来的消息：hello / set / reset / theme / autostart / lang / updateProgram / refreshThemes
     public void OnSettingsMessage(string s)
     {
         var m = Json.Parse(s) as Dictionary<string, object>;
@@ -554,10 +554,16 @@ class HostContext : ApplicationContext
             case "hello":
                 Rectangle scr = Screen.PrimaryScreen.Bounds;
                 settingsWin.Post(Json.Stringify(Json.Obj("t", "init", "theme", Settings.Theme, "params", Settings.Params,
+                    "themes", Themes.List(pageDir),
                     "screen", Json.Obj("w", scr.Width, "h", scr.Height), "autostart", IsAutoStart(),
                     "autostartWarn", autoStartSw != null, "autostartSw", autoStartSw ?? "",
                     "lang", Settings.Lang, "themeMode", Settings.ThemeMode, "langEff", I18n.Code, "langSys", I18n.Sys)));
                 if (updateVersion != null) PostUpdateState();
+                break;
+            case "refreshThemes":                          // 设置页手动刷新：重扫主题文件夹，回一份新清单
+                Themes.Invalidate();
+                settingsWin.Post(Json.Stringify(Json.Obj("t", "themes", "themes", Themes.List(pageDir))));
+                Log.Write("已重新扫描主题文件夹");
                 break;
             case "set":
             {
@@ -1088,8 +1094,8 @@ class WallpaperForm : Form
     public DateTime LastLoadPageTime { get; set; }
     private bool isFirstLoad = true;
 
-    string page;                                        // 当前主题的页面（themes.json 里的 page）
-    string themeId;                                     // 当前主题 id（themes.json 里的 id）：engine.html 的引擎注册表按它查
+    string page;                                        // 当前主题的页面（themes/<id>/theme.json 里的 page）
+    string themeId;                                     // 当前主题 id：engine.html 的引擎注册表按它查
     public Func<string> SettingsJson;                   // 页面就绪时先发给它的设置消息
     protected override bool ShowWithoutActivation { get { return true; } }
 

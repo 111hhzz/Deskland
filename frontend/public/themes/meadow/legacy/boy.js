@@ -1,5 +1,7 @@
 // 原创草地男孩放风筝：透明人物贴图 + 实时风筝、线和尾带；只接入桌面草地及设置预览。
 // 贴图只上传一次，人物与完整投影分别画入小纹理，再由草地合成到云层之下。
+// 主题根：本脚本在 <theme>/legacy/ 下，'../' 即主题目录，素材按主题相对引用（必须在顶层取，init 阶段 currentScript 已为 null）
+const THEME_BASE = document.currentScript ? new URL('../', document.currentScript.src).href : '/';
 let meadowBoyScene = null;
 const meadowBoyRunDuration=2,meadowBoyTurnDuration=.22;
 function meadowBoyTripPose(elapsed,cycles=4,duration=meadowBoyRunDuration,trip={}) {
@@ -379,8 +381,8 @@ void main() {
     image.onerror=()=>console.warn('草地放风筝人物素材加载失败：'+path);
     image.src=path;
   }
-  loadSprite('/images/meadow-kite-boy-level-face.png',gl.TEXTURE4,texture);
-  loadSprite('/images/meadow-kite-boy-diagonal-run.png',gl.TEXTURE7,runTexture,768);
+  loadSprite(THEME_BASE+'images/meadow-kite-boy-level-face.png',gl.TEXTURE4,texture);
+  loadSprite(THEME_BASE+'images/meadow-kite-boy-diagonal-run.png',gl.TEXTURE7,runTexture,768);
   const choosePosition=(s)=>{
     let best=null,bestScore=Infinity;
     const candidates=[];

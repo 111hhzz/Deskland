@@ -117,8 +117,9 @@ The installer targets the current user's `Programs\Deskland+` directory and does
 | `frontend/src/themes/<id>/<id>.html` | 主题页（beach / meadow / sky / aurora） |
 | `frontend/src/engine/` | 主题引擎类（BaseEngine / SceneEngine / 各主题引擎 / DeskApp） |
 | `frontend/src/settings/` | 设置页样式 / 脚本 |
-| `frontend/public/` | 配置型静态（themes / i18n / images / thumbs / legacy / lib） |
-| `frontend/public/themes.json` | 主题注册表（含锁定主题展示信息） |
+| `frontend/public/` | 配置型静态（themes / i18n / thumbs / lib） |
+| `frontend/public/themes/_products.json` | 主题授权表（id / status / product + 展示顺序，宿主持有） |
+| `frontend/public/themes/<id>/theme.json` | 单个主题的自描述（含锁定主题的展示信息） |
 | `tools/` | 构建 / 打包 / 发布脚本（`build/` 构建与打包、`release/` 发布、`local.ps1` 本机状态） |
 
 ## Known limitations
@@ -250,8 +251,9 @@ powershell -ExecutionPolicy Bypass -File tools\build\build-installer.ps1
 | `frontend/src/themes/<id>/<id>.html` | 主题页（beach / meadow / sky / aurora） |
 | `frontend/src/engine/` | 主题引擎类（BaseEngine / SceneEngine / 各主题引擎 / DeskApp） |
 | `frontend/src/settings/` | 设置页样式 / 脚本 |
-| `frontend/public/` | 配置型静态（themes / i18n / images / thumbs / legacy / lib） |
-| `frontend/public/themes.json` | 免费主题完整定义及锁定主题展示信息 |
+| `frontend/public/` | 配置型静态（themes / i18n / thumbs / lib） |
+| `frontend/public/themes/_products.json` | 主题授权表（id / status / product + 展示顺序，宿主持有） |
+| `frontend/public/themes/<id>/theme.json` | 单个主题的完整定义及锁定主题的展示信息 |
 | `tools/` | 构建 / 打包 / 发布脚本（`build/` 构建与打包、`release/` 发布、`local.ps1` 本机状态） |
 
 ### 已知限制

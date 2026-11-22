@@ -1,4 +1,6 @@
 // 草地上的小黑猫：贴图只上传一次，位置随种子更换，始终为男孩的整轮路线留空。
+// 主题根：见 boy.js 的同注（素材按主题相对引用）
+const THEME_BASE = document.currentScript ? new URL('../', document.currentScript.src).href : '/';
 let meadowCatScene=null;
 function meadowCatSegmentDistance(p,a,b) {
   const dx=b.x-a.x,dy=b.y-a.y;
@@ -82,7 +84,7 @@ function createMeadowCatScene() {
     gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);ready=true;
   };
   image.onerror=()=>console.warn('草地小猫素材加载失败');
-  image.src='/images/meadow-black-kitten.png';
+  image.src=THEME_BASE+'images/meadow-black-kitten.png';
   return {prepare(boy,now){
     if(previousTime!==null)time+=Math.max(0,Math.min(.05,(now-previousTime)/1000));
     previousTime=now;

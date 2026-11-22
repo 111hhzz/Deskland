@@ -3,8 +3,15 @@
   "name": "我的主题",
   "desc": "一句话描述这个主题的画面。",
   "page": "themes/my-theme/my-theme.html",
-  "status": "ready",
-  "product": "free",
+  "thumb": "#3a5a44",
+  "groups": [
+    {
+      "name": "画面",
+      "params": [
+        { "key": "sigma", "label": "云团大小", "min": 20, "max": 140, "step": 1, "default": 72 }
+      ]
+    }
+  ],
   "tokens": {
     "color": {
       "bg": { "type": "color", "description": "页面 / 场景底色" }

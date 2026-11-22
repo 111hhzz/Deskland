@@ -1,4 +1,6 @@
 // 沙滩的五款椰子树，树根更靠沙地内侧；素材和投影仅在初始化时合成。
+// 主题根：本脚本在 <theme>/legacy/ 下，'../' 即主题目录，素材按主题相对引用
+const THEME_BASE = document.currentScript ? new URL('../', document.currentScript.src).href : '/';
 const BEACH_PALM_STYLES = [
   {file: 'beach-coconut-palm-v2.png', foot: [.454, .98], crown: [9, -84], radius: 80},
   {file: 'beach-coconut-palm-curved.png', foot: [.470, .98], crown: [18, -80], radius: 84, faceSea: true},
@@ -7,7 +9,7 @@ const BEACH_PALM_STYLES = [
   {file: 'beach-coconut-palm-arch.png', foot: [.84, .98], crown: [-45, -65], radius: 70, width: 128, height: 119, size: 1.35, faceSea: true}
 ];
 const beachPalmImages = BEACH_PALM_STYLES.map(style => {
-  const image = new Image();image.src = '/images/' + style.file;return image;
+  const image = new Image();image.src = THEME_BASE + 'images/' + style.file;return image;
 });
 let beachPalmsScene = null;
 const BEACH_PALM_VS = `#version 300 es

@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "themes": [
+    {
+      "id": "meadow",
+      "status": "ready",
+      "product": "free"
+    },
+    {
+      "id": "beach",
+      "status": "ready",
+      "product": "free"
+    },
+    {
+      "id": "sky",
+      "status": "ready",
+      "product": "free"
+    },
+    {
+      "id": "aurora",
+      "status": "ready",
+      "product": "free"
+    }
+  ]
+}

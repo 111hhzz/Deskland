@@ -16,15 +16,16 @@ frontend/src/                  # 代码（Vite root = src）
   themes/<id>/<id>.html        # 主题页入口（MPA，vite 自动扫描全部 HTML）
   engine/ scenes/ assets/       # 引擎、场景、设置页逻辑
 frontend/public/                # 配置型静态（原样拷贝到 dist 根）
-  themes.json                   # 注册表：宿主 / 设置页读它（id、status、page、product、thumb、groups）
   themes/
+    _products.json              # 宿主持有的授权表：id / status / product + 展示顺序
     CONVENTIONS.md              # 本文件
     base.css                    # 公共样式：唯一允许写选择器的地方，全部用 var() 引用 Token
     _template/                  # 新增主题的模板（theme.json / theme.css / README.md）
     <id>/
-      theme.json                # 主题清单 + Token schema（id/name/desc/page/status/product/tokens）
+      theme.json                # 主题自有：id/name/desc/page/thumb/thumbSource/groups/tokens
       theme.css                 # 主题 Token 值（只含 :root 自定义属性）
-  i18n/ thumbs/ lib/ legacy/ images/*.png
+      images/ legacy/           # 该主题的素材：页面与 legacy 脚本一律按主题相对路径引用
+  i18n/ thumbs/ lib/
 ```
 
 四个 ready 主题的页面统一在 `frontend/src/themes/<id>/<id>.html`（beach 原名 flat，已改名）；
@@ -34,8 +35,8 @@ frontend/public/                # 配置型静态（原样拷贝到 dist 根）
 
 | 文件 | 职责 | 谁读 |
 |---|---|---|
-| `themes.json` | 注册表：主题列表、产品权限、缩略图、参数（groups） | 宿主 `Themes.cs`、设置页 `settings.html`、打包脚本 |
-| `themes/<id>/theme.json` | 主题自描述 + Token schema（名字/类型/说明） | 约定测试、工具链、未来设置页 |
+| `themes/_products.json` | 授权表：id / status / product + 展示顺序（**主题不能自己声明授权**） | 宿主 `Themes.cs`、打包脚本 |
+| `themes/<id>/theme.json` | 主题自描述：名字/说明/页面/缩略图/参数 groups + Token schema | 宿主 `Themes.cs`、设置页、约定测试、打包脚本 |
 | `themes/<id>/theme.css` | 主题 Token **值**（只含 `:root` 自定义属性） | 浏览器（CSS）+ 引擎（JS 读 computed style） |
 | `themes/base.css` | 公共样式 + 跨主题 Token 默认值 | 浏览器 |
 | `themes/<id>/<id>.html` | 主题页面（引擎 + DOM） | 宿主加载 |
@@ -44,7 +45,7 @@ frontend/public/                # 配置型静态（原样拷贝到 dist 根）
 约定测试会交叉校验“schema 里的每个名字都存在于 theme.css”。
 
 `theme.json` 的 `page` 是相对运行时 `prototype/` 的路径（如 `themes/<id>/<id>.html`），
-必须与 `themes.json` 里该主题的 `page` 一致。
+页面文件由 `frontend/src/themes/<id>/<id>.html` 经 Vite 打包产出。
 
 ## 3. Token 命名规则
 
@@ -116,8 +117,13 @@ frontend/public/                # 配置型静态（原样拷贝到 dist 根）
 
 ## 5. 运行时切换与宿主配合
 
-- **壁纸页**：宿主按 `themes.json.page` 整体换页（`WallpaperForm.LoadPage`），一个页面就是一个主题，
-  天然不需要 `data-theme` 切换。新增主题只要 `themes.json` 指向存在的页面即可，**不改 C#**。
+- **壁纸页**：宿主按 `themes/<id>/theme.json` 的 `page` 整体换页（`WallpaperForm.LoadPage`），
+  一个页面就是一个主题，天然不需要 `data-theme` 切换。
+- **主题发现**：宿主启动时扫一遍 `prototype/themes/`——读 `_products.json` 授权表，再逐个读
+  `themes/<id>/theme.json`（校验必填字段与 `page` 指向的页面是否存在），组装成清单经
+  `init` / `themes` 消息下发给设置页。设置页的「刷新主题」按钮会要求宿主**重扫一遍**
+  （不监听文件变化）。新增主题只要放好目录与授权记录，**不改 C#**；没登记进 `_products.json`
+  的目录会被忽略。
 - **共享引擎外壳**（未来）：外壳页用 JS 动态替换 `<link href="themes/<id>/theme.css">` 并更新
   `document.documentElement.dataset.theme`，CSS 变量自动生效，宿主无需改动。
 - **深浅色**：设置页 `settings.html` 用 `@media (prefers-color-scheme: dark)` 响应。宿主在

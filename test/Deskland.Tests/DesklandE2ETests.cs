@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using Microsoft.Playwright;
 using Xunit;
 
@@ -32,6 +33,8 @@ public class DesklandE2ETests : IAsyncLifetime
     private const double MaxDiffRatio = 0.02;      // 允许 2% 的像素有差异（抗锯齿/缩放抖动）
     private const int DiffThreshold = 30;          // 单像素 RGB 差值和超过此值才算不同
     private const double ThemeSwitchBudgetMs = 3000;
+    // 视觉基线的固定 seed：引擎构造时 seed 随机，只有设置里带 seed 画面才确定
+    private const int FixedSeed = 123456;
 
     public async Task InitializeAsync()
     {
@@ -39,6 +42,23 @@ public class DesklandE2ETests : IAsyncLifetime
         KillWebView2ForProfile(TestProfile);
         await Task.Delay(1000);
         Directory.CreateDirectory(TestProfile);
+        // 每个用例都从干净且确定的设置开始：引擎初始 seed 是随机的（SceneEngine 构造），
+        // 只有 params 带 seed 才确定。不固定的话壁纸页画面每次不同，视觉基线必然 flaky。
+        try
+        {
+            var seedParams = new JsonObject();
+            foreach (var id in ReadyThemeIds()) seedParams[id] = new JsonObject { ["seed"] = FixedSeed };
+            var json = new JsonObject
+            {
+                ["version"] = 1,
+                ["theme"] = "beach",
+                ["lang"] = "auto",
+                ["themeMode"] = "auto",
+                ["params"] = seedParams,
+            };
+            File.WriteAllText(Path.Combine(TestProfile, "settings.json"), json.ToJsonString());
+        }
+        catch { }
 
         var env = new Dictionary<string, string?>
         {
@@ -110,6 +130,24 @@ public class DesklandE2ETests : IAsyncLifetime
         await Assertions.Expect(themeList).ToBeVisibleAsync();
         var count = await themeList.Locator(".theme").CountAsync();
         Assert.True(count > 0, $"主题列表为空");
+    }
+
+    /// <summary>
+    /// 搜索过滤：输入不匹配的关键字后，卡片必须被 hidden 隐藏（数量归零）。
+    /// 防回归：.theme{display:flex} 曾覆盖 UA 的 [hidden]，导致过滤完全失效。
+    /// </summary>
+    [Fact]
+    public async Task SettingsPage_SearchFiltersThemes()
+    {
+        var list = _pageSettings.Locator("#themes");
+        var total = await list.Locator(".theme").CountAsync();
+        Assert.True(total > 1, "主题数不足，无法验证过滤");
+
+        await _pageSettings.FillAsync("#themeSearch", "zzzz-not-a-theme");
+        Assert.Equal(0, await list.Locator(".theme:visible").CountAsync());
+
+        await _pageSettings.FillAsync("#themeSearch", "");
+        Assert.Equal(total, await list.Locator(".theme:visible").CountAsync());
     }
 
     [Fact]
@@ -279,7 +317,10 @@ public class DesklandE2ETests : IAsyncLifetime
         await _pageWallpaper.AddInitScriptAsync(
             "Object.defineProperty(window.performance, 'now', { value: function () { return 1000; } });" +
             "window.requestAnimationFrame = function (cb) { return setTimeout(function () { cb(1000); }, 0); };" +
-            "(function () { var s = 123456789; Math.random = function () { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; })();");
+            // 渲染路径里仍有 Math.random（云的呼吸等），序列必须可重置，
+            // 否则"settle 前跑了几帧"会让每次截图取到不同的云形状
+            "(function () { var s = 123456789; window.__resetRand = function () { s = 123456789; };" +
+            "Math.random = function () { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; })();");
 
         var shots = new List<(string name, byte[] png)>
         {
@@ -302,7 +343,9 @@ public class DesklandE2ETests : IAsyncLifetime
                 null,
                 new PageWaitForFunctionOptions { Timeout = 20000 });
             // 测试把 performance.now 冻结了，页面只画一帧；手动走完形态过渡再画一帧，
-            // 否则取到的可能是"图标还没就位"的那一帧（与图标到达形成竞态）
+            // 否则取到的可能是"图标还没就位"的那一帧（与图标到达形成竞态）。
+            // 截图前把随机序列归位，保证这一帧与之前跑了几帧无关。
+            await _pageWallpaper.EvaluateAsync("window.__resetRand && window.__resetRand()");
             await _pageWallpaper.EvaluateAsync("window.__dbg && window.__dbg.settle && window.__dbg.settle()");
             shots.Add(($"wallpaper-{id}", await _pageWallpaper.ScreenshotAsync()));
         }
@@ -582,6 +625,51 @@ public class DesklandE2ETests : IAsyncLifetime
     }
 
     /// <summary>
+    /// 手动刷新主题：往 prototype/themes/ 投一个已登记的新主题，点「刷新主题」后设置页应出现它的卡片；
+    /// 没登记进 _products.json 的目录保持被忽略。运行期改动的是构建产物，结束一定还原。
+    /// </summary>
+    [Fact]
+    public async Task ThemeRefresh_PicksUpNewRegisteredFolder()
+    {
+        var themesDir = Path.Combine(RepoRoot, "host", "bin", "prototype", "themes");
+        var productsPath = Path.Combine(themesDir, "_products.json");
+        var backup = File.ReadAllText(productsPath);
+        var id = "e2etmp";
+        var registered = Path.Combine(themesDir, id);
+        var unregistered = Path.Combine(themesDir, "e2eignored");
+        try
+        {
+            Directory.CreateDirectory(registered);
+            File.WriteAllText(Path.Combine(registered, "theme.json"),
+                "{\"id\":\"e2etmp\",\"name\":\"E2E 临时\",\"page\":\"themes/e2etmp/e2etmp.html\",\"thumb\":\"#334455\",\"groups\":[]}");
+            File.WriteAllText(Path.Combine(registered, "e2etmp.html"), "<!DOCTYPE html><title>e2e</title>");
+            Directory.CreateDirectory(unregistered);   // 故意不登记：应被扫描忽略
+
+            var node = JsonNode.Parse(backup)!;
+            node["themes"]!.AsArray().Add(new JsonObject { ["id"] = id, ["status"] = "ready", ["product"] = "free" });
+            File.WriteAllText(productsPath, node.ToJsonString());
+
+            await _pageSettings.WaitForSelectorAsync("#refreshThemes",
+                new PageWaitForSelectorOptions { Timeout = 20000 });
+            await _pageSettings.Locator("#refreshThemes").ClickAsync();
+            await _pageSettings.WaitForSelectorAsync(
+                $".theme[data-id='{id}']",
+                new PageWaitForSelectorOptions { Timeout = 15000 });
+            Assert.Equal(0, await _pageSettings.Locator(".theme[data-id='e2eignored']").CountAsync());
+            // 宿主回执后刷新按钮要恢复可用，不能一直转
+            await _pageSettings.WaitForFunctionAsync(
+                "!document.querySelector('#refreshThemes').disabled",
+                null, new PageWaitForFunctionOptions { Timeout = 15000 });
+        }
+        finally
+        {
+            if (Directory.Exists(registered)) Directory.Delete(registered, true);
+            if (Directory.Exists(unregistered)) Directory.Delete(unregistered, true);
+            File.WriteAllText(productsPath, backup);
+        }
+    }
+
+    /// <summary>
     /// 切换主题：只应多一条 theme_switch 埋点，且回执主题与目标一致（旧实现会把 ready 也当首帧，重复打点）。
     /// </summary>
     [Fact]
@@ -760,7 +848,7 @@ public class DesklandE2ETests : IAsyncLifetime
     private static List<string> ReadyThemeIds()
     {
         using var doc = System.Text.Json.JsonDocument.Parse(
-            File.ReadAllText(Path.Combine(RepoRoot, "frontend", "public", "themes.json")));
+            File.ReadAllText(Path.Combine(RepoRoot, "frontend", "public", "themes", "_products.json")));
         var list = new List<string>();
         foreach (var t in doc.RootElement.GetProperty("themes").EnumerateArray())
             if (t.GetProperty("status").GetString() == "ready") list.Add(t.GetProperty("id").GetString()!);

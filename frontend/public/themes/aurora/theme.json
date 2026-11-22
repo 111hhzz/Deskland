@@ -3,8 +3,65 @@
   "name": "夜航 · 极光",
   "desc": "夜空下流动的极光，图标浮在发光的云原上；星星闪烁、偶有流星",
   "page": "themes/aurora/aurora.html",
-  "status": "ready",
-  "product": "free",
+  "thumb": "url(/thumbs/aurora.webp?v=aurora) center / cover no-repeat, linear-gradient(180deg, #0a1430 0%, #071026 100%)",
+  "thumbSource": "custom",
+  "groups": [
+    {
+      "name": "夜空与云",
+      "params": [
+        {
+          "key": "sigma",
+          "label": "云团大小",
+          "hint": "图标周围的云铺多远",
+          "min": 40,
+          "max": 200,
+          "step": 1,
+          "default": 72,
+          "unit": "px"
+        },
+        {
+          "key": "cover",
+          "label": "云量",
+          "hint": "天上的云有多少",
+          "min": 0,
+          "max": 1,
+          "step": 0.01,
+          "default": 0.3,
+          "format": "percent"
+        },
+        {
+          "key": "flow",
+          "label": "流动速度",
+          "hint": "云与极光流动多快",
+          "min": 0,
+          "max": 3,
+          "step": 0.05,
+          "default": 1,
+          "format": "times"
+        },
+        {
+          "key": "aurora",
+          "label": "极光强度",
+          "hint": "极光的亮度",
+          "min": 0,
+          "max": 1.5,
+          "step": 0.01,
+          "default": 0.9,
+          "format": "percent"
+        },
+        {
+          "key": "stars",
+          "label": "星星密度",
+          "hint": "天上星星的多少",
+          "min": 0,
+          "max": 1,
+          "step": 0.01,
+          "default": 0.55,
+          "format": "percent"
+        }
+      ]
+    }
+  ],
   "tokens": {
     "color": {
       "bg": {

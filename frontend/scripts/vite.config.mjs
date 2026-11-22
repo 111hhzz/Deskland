@@ -2,6 +2,7 @@
 // 结构：root = src（代码），public = ../public（配置型静态，原样拷贝到产物根），产物 ../dist（固定名、无哈希）。
 // 宿主仍读 frontend/dist，host/build.ps1 不变；dev server 只用于浏览器预览，不接宿主。
 import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 import { readdirSync, statSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -25,10 +26,22 @@ function scanHtml(dir) {
 const input = {};
 for (const p of scanHtml(root)) input[relative(root, p).replace(/\\/g, '/')] = p;
 
+// 禁用浏览器默认的 /favicon.ico 请求：注入空 data URI 的 icon link。
+// 项目没有 favicon 文件，不注入的话每个页面都会被 WebView2 / 浏览器隐式请求一次 /favicon.ico（404）。
+// 构建与 dev 都生效，新增主题页零配置。
+const noFavicon = {
+  name: 'deskland-no-favicon',
+  transformIndexHtml(html) {
+    return html.replace('</head>', '  <link rel="icon" href="data:,">\n</head>');
+  },
+};
+
 export default defineConfig({
   root,
   base: './',
   publicDir: pub,
+  // React 只用于 TSX/JSX 组件；引擎等纯脚本仍走 esbuild，产物不变。
+  plugins: [noFavicon, react({ include: /\.[jt]sx$/ })],
   build: {
     outDir: dist,
     emptyOutDir: true,

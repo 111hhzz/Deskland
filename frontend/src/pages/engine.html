@@ -11,45 +11,10 @@
 <canvas id="art"></canvas>
 <div id="desktop"></div>
 
-<div id="taskbar">
-  <div class="apps">
-    <div class="app"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="9.5" height="9.5" fill="#4cc2ff"/><rect x="12.5" y="2" width="9.5" height="9.5" fill="#4cc2ff"/><rect x="2" y="12.5" width="9.5" height="9.5" fill="#4cc2ff"/><rect x="12.5" y="12.5" width="9.5" height="9.5" fill="#4cc2ff"/></svg></div>
-    <div class="app"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6" fill="none" stroke="#fff" stroke-width="2"/><path d="M15 15l5 5" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg></div>
-    <div class="app"><svg viewBox="0 0 24 24"><path d="M2 6a2 2 0 0 1 2-2h5l2 2h9a2 2 0 0 1 2 2v1H2z" fill="#e09b1d"/><path d="M2 9h20v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z" fill="#ffc83d"/></svg></div>
-    <div class="app"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#1b8fd6"/><path d="M6 13c1-5 11-6 12 0-3-2-8-2-9 2 0 2 2 3 4 3-4 1-7-1-7-5z" fill="#6fe37a" opacity=".9"/></svg></div>
-    <div class="app"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2.5" fill="#2b2b2b" stroke="#777"/><path d="M6 9l3 3-3 3M11 15h6" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg></div>
-  </div>
-  <div id="clock"></div>
-</div>
-
-<aside id="panel">
-  <header>
-    <div><b>Deskland</b><span id="panelSub">引擎</span></div>
-    <div><button class="ibtn" id="collapse" title="折叠">–</button></div>
-  </header>
-  <div class="body">
-    <div class="sec"><div class="t">桌面布局</div>
-      <div class="seg">
-        <button data-v="mine">仿你的桌面</button><button data-v="arranged">自动排列</button><button data-v="messy">杂乱</button><button data-v="minimal">极简</button>
-      </div>
-    </div>
-    <div class="sec" id="sliders"></div>
-    <div class="sec toggles">
-      <label><input type="checkbox" data-key="debug">显示云的边界</label>
-      <label><input type="checkbox" data-key="snap">对齐网格</label>
-      <label><input type="checkbox" data-key="cap30">限帧 30fps</label>
-    </div>
-    <div class="sec btns">
-      <button id="btnAdd">＋ 新建文件</button>
-      <button id="btnSeed">换一种云</button>
-    </div>
-    <div id="stats"></div>
-    <div class="hint">页内热切换验证</div>
-  </div>
-</aside>
+<div id="ui"></div>
 <div id="nogl">当前浏览器不支持 WebGL2，无法运行原型。</div>
 
-<script type="module" src="../engine/main.js"></script>
+<script type="module" src="../engine/main.tsx"></script>
 <script src="/lib/ripple.js"></script>
 </body>
 </html>

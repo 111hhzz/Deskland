@@ -48,14 +48,17 @@ function Assert-ThemePages {
     $have = @{}
     foreach ($f in $RuntimeFiles) { $have[(ConvertTo-InstallPath $f).Replace('\', '/')] = $true }
     if (-not $have['prototype/pages/engine.html']) { throw '运行时产物缺少 prototype/pages/engine.html（页内热切换入口）' }
-    $themes = Get-Content -LiteralPath (Join-Path $root 'host\bin\prototype\themes.json') -Raw -Encoding UTF8 | ConvertFrom-Json
-    foreach ($t in $themes.themes) {
-        if ($t.status -ne 'ready') { continue }
-        $page = 'prototype/' + $t.page
-        $css = 'prototype/themes/' + $t.id + '/theme.css'
-        $json = 'prototype/themes/' + $t.id + '/theme.json'
-        foreach ($p in @($page, $css, $json)) {
-            if (-not $have[$p]) { throw ('ready 主题缺少运行时文件：' + $p) }
+    # 授权表在 prototype/themes/_products.json；每个 ready 主题的页面路径由它自己的 theme.json 给出
+    $productsPath = Join-Path $root 'host\bin\prototype\themes\_products.json'
+    if (-not (Test-Path -LiteralPath $productsPath)) { throw '运行时产物缺少 prototype/themes/_products.json' }
+    $products = Get-Content -LiteralPath $productsPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    foreach ($p in $products.themes) {
+        if ($p.status -ne 'ready') { continue }
+        $json = 'prototype/themes/' + $p.id + '/theme.json'
+        if (-not $have[$json]) { throw ('ready 主题缺少运行时文件：' + $json) }
+        $manifest = Get-Content -LiteralPath (Join-Path $root ('host\bin\' + ($json -replace '/','\'))) -Raw -Encoding UTF8 | ConvertFrom-Json
+        foreach ($f in @(('prototype/' + $manifest.page), ('prototype/themes/' + $p.id + '/theme.css'))) {
+            if (-not $have[$f]) { throw ('ready 主题缺少运行时文件：' + $f) }
         }
     }
 }

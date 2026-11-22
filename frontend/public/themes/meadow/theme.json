@@ -3,8 +3,76 @@
   "name": "草地",
   "desc": "钢笔淡彩的草地，图标藏在白云里，云影是一块块深绿",
   "page": "themes/meadow/meadow.html",
-  "status": "ready",
-  "product": "free",
+  "adaptive": true,
+  "thumb": "url(/thumbs/meadow.webp?v=5d36b1f2d4) center / cover no-repeat, radial-gradient(ellipse 22% 16% at 36% 38%, #fdfeff 60%, #dfe7ef 75%, transparent 78%), radial-gradient(ellipse 22% 16% at 46% 58%, #5f8a3e 70%, transparent 74%), radial-gradient(ellipse 18% 13% at 72% 70%, #fdfeff 60%, #dfe7ef 75%, transparent 78%), radial-gradient(ellipse 18% 13% at 80% 86%, #5f8a3e 70%, transparent 74%), linear-gradient(160deg, #c3d684 0%, #a2c06a 100%)",
+  "thumbSource": "custom",
+  "groups": [
+    {
+      "name": "图标周围",
+      "params": [
+        {
+          "key": "sigma",
+          "label": "云团大小",
+          "hint": "图标所在的云从图标往外铺多远",
+          "min": 40,
+          "max": 200,
+          "step": 1,
+          "default": 72,
+          "unit": "px"
+        }
+      ]
+    },
+    {
+      "name": "云",
+      "params": [
+        {
+          "key": "cover",
+          "label": "草地上的云",
+          "hint": "空旷的草地上空零星飘着的云有多少",
+          "min": 0,
+          "max": 1,
+          "step": 0.01,
+          "default": 0.3,
+          "format": "percent"
+        },
+        {
+          "key": "flow",
+          "label": "流动速度",
+          "hint": "云飘多快、云团的鼓包变化多快",
+          "min": 0,
+          "max": 3,
+          "step": 0.05,
+          "default": 1,
+          "format": "times"
+        }
+      ]
+    },
+    {
+      "name": "角色",
+      "params": [
+        {
+          "key": "showBoy",
+          "label": "显示男孩",
+          "hint": "男孩和他手中的风筝一起显示或隐藏",
+          "options": [
+            "隐藏",
+            "显示"
+          ],
+          "default": 1
+        },
+        {
+          "key": "showCat",
+          "label": "显示小猫",
+          "hint": "躺在草地上的小黑猫",
+          "options": [
+            "隐藏",
+            "显示"
+          ],
+          "default": 1
+        }
+      ]
+    }
+  ],
   "tokens": {
     "color": {
       "bg": {
