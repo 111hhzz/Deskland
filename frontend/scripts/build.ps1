@@ -1,9 +1,11 @@
 ﻿# 前端打包：frontend/src（源）→ frontend/dist（产物）。
 # 产物为纯静态文件，供 host 构建时复制到 bin/prototype。
 $ErrorActionPreference = 'Stop'
-$root = Split-Path $PSScriptRoot -Parent          # Deskland 仓库根
-$src = Join-Path $PSScriptRoot 'src'
-$dist = Join-Path $PSScriptRoot 'dist'
+$here = $PSScriptRoot                              # frontend/scripts（本文件是工具，不属 src）
+$front = Split-Path $here -Parent                  # frontend
+$root = Split-Path $front -Parent                  # Deskland 仓库根
+$src = Join-Path $front 'src'
+$dist = Join-Path $front 'dist'
 if (-not (Test-Path -LiteralPath $src)) { throw "缺少前端源目录：$src" }
 
 # 清理并重建产物（枚举删除，避免子目录残留）
@@ -18,8 +20,8 @@ Copy-Item -Path (Join-Path $src '*') -Destination $dist -Recurse -Force
 
 # 可选：esbuild 压缩 dist/assets（开发机装有 frontend/node_modules 才执行；无依赖时跳过）
 $nodeCmd = Get-Command node -ErrorAction SilentlyContinue
-if ($nodeCmd -and (Test-Path (Join-Path $PSScriptRoot 'node_modules\esbuild'))) {
-    & node (Join-Path $PSScriptRoot 'minify.mjs')
+if ($nodeCmd -and (Test-Path (Join-Path $front 'node_modules\esbuild'))) {
+    & node (Join-Path $here 'minify.mjs')
 } else {
     Write-Host '  （跳过 JS/CSS 压缩：未安装 frontend/node_modules）'
 }

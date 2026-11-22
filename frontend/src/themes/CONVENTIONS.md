@@ -5,7 +5,7 @@
 
 ## 1. 文件放在哪里
 
-主题源码在 `frontend/src/` 下；`frontend/build.ps1` 复制到 `frontend/dist/`，`host/build.ps1` 再复制到
+主题源码在 `frontend/src/` 下；`frontend/scripts/build.ps1` 复制到 `frontend/dist/`，`host/build.ps1` 再复制到
 `host/bin/prototype/`。宿主把 `https://app.local` 虚拟域映射到 `<exe 目录>\prototype`（见
 `host/DesktopHost.cs` 的 `SetVirtualHostNameToFolderMapping`），所以运行时一切主题文件都在 `prototype/` 下。
 **开发时只改 `frontend/src/`，不要改构建产物。**

@@ -10,7 +10,7 @@
 > - Adds a third usable theme, **Sky** (upstream ships Beach and Meadow only).
 > - Theme engine: pages are thin shells; rendering lives in `frontend/src/engine/` (BaseEngine / SceneEngine / per-theme engines / DeskApp).
 > - In-page theme hot-switching via `engine.html` (no WebView reload).
-> - Frontend sources moved from `prototype/` to `frontend/src/`, with `frontend/build.ps1`.
+> - Frontend sources moved from `prototype/` to `frontend/src/`, with `frontend/scripts/build.ps1`.
 > - Settings styles/scripts externalized to `frontend/src/assets/settings.css|js`.
 > - Added `tools/ci.ps1` (build + test in one command) and an xUnit + Playwright test suite (19 tests) with visual baselines.
 > - Event-driven desktop-icon tracking (`SetWinEventHook`) with a 400 ms polling fallback.
@@ -57,12 +57,12 @@ Currently, Deskland renders on the **primary monitor** and targets 30 fps on int
 Open PowerShell in the repository root:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File frontend\build.ps1   # frontend/src → frontend/dist
+powershell -ExecutionPolicy Bypass -File frontend\scripts\build.ps1   # frontend/src → frontend/dist
 powershell -ExecutionPolicy Bypass -File host\build.ps1       # compile the host and copy dist → host/bin/prototype
 host\bin\Deskland.exe
 ```
 
-Frontend sources live in `frontend/src/`; `frontend\build.ps1` produces the static bundle in `frontend/dist/`, and `host\build.ps1` copies it into `host/bin/prototype/`. Build output is written to `host/bin/`.
+Frontend sources live in `frontend/src/`; `frontend\scripts\build.ps1` produces the static bundle in `frontend/dist/`, and `host\build.ps1` copies it into `host/bin/prototype/`. Build output is written to `host/bin/`.
 
 Run the program again or double-click its tray icon to open Settings. To exit and restore the original Windows wallpaper, use the tray menu or run:
 
@@ -87,7 +87,7 @@ Tests are organised in four layers: **unit** (theme conventions, no browser), **
 ## Browser preview
 
 ```powershell
-node frontend\src\serve.mjs
+node frontend\scripts\serve.mjs
 ```
 
 Open **http://localhost:5178/settings.html**. The browser uses sample icons; adaptation to real desktop icons requires the Windows host.
@@ -151,7 +151,7 @@ Issues and suggestions are welcome through GitHub Issues. This is an unofficial 
 > - 新增第三个可用主题 **Sky（天空）**（上游仅 Beach / Meadow）。
 > - 主题引擎化：页面退化为引导壳，渲染逻辑在 `frontend/src/engine/`（BaseEngine / SceneEngine / 各主题引擎 / DeskApp）。
 > - 新增 `engine.html` 页内主题热切换，不重建 WebView。
-> - 前端源从 `prototype/` 迁移到 `frontend/src/`，新增 `frontend/build.ps1` 打包。
+> - 前端源从 `prototype/` 迁移到 `frontend/src/`，新增 `frontend/scripts/build.ps1` 打包。
 > - 设置页样式/脚本外联为 `frontend/src/assets/settings.css|js`。
 > - 新增 `tools/ci.ps1`（一条命令构建 + 测试）与 xUnit + Playwright 测试体系（20 项）及视觉基线。
 > - 桌面图标检测改为 `SetWinEventHook` 事件驱动，400ms 轮询兜底。
@@ -192,12 +192,12 @@ Deskland 是一款 Windows 自适应动态壁纸。移动、添加或删除桌�
 在仓库根目录打开 PowerShell：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File frontend\build.ps1   # frontend/src → frontend/dist
+powershell -ExecutionPolicy Bypass -File frontend\scripts\build.ps1   # frontend/src → frontend/dist
 powershell -ExecutionPolicy Bypass -File host\build.ps1       # 编译宿主并把 dist 复制到 host/bin/prototype
 host\bin\Deskland.exe
 ```
 
-前端源在 `frontend/src/`，`frontend\build.ps1` 产出静态包到 `frontend/dist/`，`host\build.ps1` 再复制到 `host/bin/prototype/`。编译结果位于 `host/bin/`。
+前端源在 `frontend/src/`，`frontend\scripts\build.ps1` 产出静态包到 `frontend/dist/`，`host\build.ps1` 再复制到 `host/bin/prototype/`。编译结果位于 `host/bin/`。
 
 再次运行程序或双击托盘图标可打开设置。退出并恢复系统原壁纸，请使用托盘菜单或执行：
 
@@ -222,7 +222,7 @@ powershell -ExecutionPolicy Bypass -File tools\ci.ps1
 ### 浏览器预览
 
 ```powershell
-node frontend\src\serve.mjs
+node frontend\scripts\serve.mjs
 ```
 
 打开 **http://localhost:5178/settings.html**。浏览器使用示例图标，真实桌面图标适配需要 Windows 宿主。

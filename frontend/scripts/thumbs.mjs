@@ -7,7 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 
-const dir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'src', 'thumbs');
+const dir = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'src', 'thumbs');
 const files = (await readdir(dir)).filter(f => f.toLowerCase().endsWith('.webp'));
 if (!files.length) { console.log('没有找到 .webp 缩略图'); process.exit(0); }
 

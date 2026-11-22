@@ -5,7 +5,7 @@
 ## 构建与运行
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File frontend\build.ps1   # 先产出 frontend/dist
+powershell -ExecutionPolicy Bypass -File frontend\scripts\build.ps1   # 先产出 frontend/dist
 powershell -ExecutionPolicy Bypass -File host\build.ps1
 host\bin\Deskland.exe
 ```

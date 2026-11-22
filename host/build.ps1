@@ -64,7 +64,7 @@ Copy-Item -LiteralPath (Join-Path $root 'DesklandPlus.ico') -Destination (Join-P
 
 # 前端产物：frontend/dist → bin/prototype（宿主把 app.local 映射到这里）
 $frontDist = Join-Path $root '..\frontend\dist'
-if (-not (Test-Path -LiteralPath $frontDist)) { throw "缺少前端产物：$frontDist（先跑 frontend\build.ps1）" }
+if (-not (Test-Path -LiteralPath $frontDist)) { throw "缺少前端产物：$frontDist（先跑 frontend\scripts\build.ps1）" }
 $proto = Join-Path $bin 'prototype'
 if (Test-Path -LiteralPath $proto) {
     # 清空旧产物（逐个删除，避免已移除的资源残留，如 thumbs-data.js）

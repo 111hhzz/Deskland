@@ -15,7 +15,7 @@ function Write-Step($text) { Write-Host "`n==== $text ====" -ForegroundColor Cya
 
 # 1) 前端打包（frontend/src → frontend/dist）
 Write-Step '前端打包'
-& (Join-Path $root 'frontend\build.ps1')
+& (Join-Path $root 'frontend\scripts\build.ps1')
 if (-not $?) { throw '前端打包失败' }
 
 # 2) 构建宿主（.NET Framework C# 编译器）
