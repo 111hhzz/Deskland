@@ -25,9 +25,7 @@ This is an **unofficial community fork** of Deskland, not a time-limited trial. 
 
 ![Beach — included in Deskland+](docs/images/beach.webp)
 
-![Maldives — locked-theme preview](docs/images/maldives.webp)
-
-Meadow, Beach and Sky are included in this fork. Maldives is shown as a locked-theme preview.
+Meadow, Beach and Sky are included in this fork.
 
 ## Included themes
 
@@ -35,8 +33,6 @@ Meadow, Beach and Sky are included in this fork. Maldives is shown as a locked-t
 | --- | --- | --- |
 | ![Beach theme](frontend/src/thumbs/beach.webp) | ![Meadow theme](frontend/src/thumbs/meadow.webp) | ![Sky theme](frontend/src/thumbs/sky.webp) |
 | Turquoise waves, kayaks, seabirds and coconut palms. | Drifting clouds and shadows, a boy flying a kite and a little black cat. | Cartoon blue sky and puffy clouds, with day, dusk and night. |
-
-The theme browser also shows 10 locked themes as a preview of the full Wallpaper edition. **Only names, descriptions and thumbnails are included for those themes — not their page code, parameters or implementation.**
 
 ## Features
 
@@ -121,7 +117,7 @@ The installer targets the current user's `Programs\Deskland+` directory and does
 | `frontend/src/settings.html` | Settings interface (styles/scripts externalized to `frontend/src/assets/`) |
 | `frontend/src/engine.html` | Unified entry for in-page theme hot-switching |
 | `frontend/src/engine/` | Theme engine classes (BaseEngine / SceneEngine / per-theme engines / DeskApp) |
-| `frontend/src/themes.json` | Full free-theme definitions and locked-theme display metadata |
+| `frontend/src/themes.json` | Free theme definitions (Beach / Meadow / Sky) |
 | `frontend/src/assets/` | Images used by the included themes, plus externalized settings CSS/JS |
 | `tools/` | Installer build tooling |
 
@@ -157,7 +153,7 @@ Issues and suggestions are welcome through GitHub Issues. This is an unofficial 
 > - 新增 `engine.html` 页内主题热切换，不重建 WebView。
 > - 前端源从 `prototype/` 迁移到 `frontend/src/`，新增 `frontend/build.ps1` 打包。
 > - 设置页样式/脚本外联为 `frontend/src/assets/settings.css|js`。
-> - 新增 `tools/ci.ps1`（一条命令构建 + 测试）与 xUnit + Playwright 测试体系（19 项）及视觉基线。
+> - 新增 `tools/ci.ps1`（一条命令构建 + 测试）与 xUnit + Playwright 测试体系（20 项）及视觉基线。
 > - 桌面图标检测改为 `SetWinEventHook` 事件驱动，400ms 轮询兜底。
 
 Deskland 是一款 Windows 自适应动态壁纸。移动、添加或删除桌面图标时，海岸线、草地、云朵和阴影会实时围绕图标调整。全部在本地实时演算，不使用 AI，无需账号或 API Key。
@@ -172,8 +168,6 @@ Deskland 是一款 Windows 自适应动态壁纸。移动、添加或删除桌�
 | --- | --- | --- |
 | ![沙滩主题](frontend/src/thumbs/beach.webp) | ![草地主题](frontend/src/thumbs/meadow.webp) | ![天空主题](frontend/src/thumbs/sky.webp) |
 | 海浪、皮划艇、海鸟和椰子树。 | 漂浮的云与云影、放风筝的男孩和小黑猫。 | 卡通风的蓝天白云，可选白天、傍晚、晚上。 |
-
-主题列表还展示另外 10 个锁定主题，帮助了解壁纸版内容。**这些锁定主题只有名称、简介和缩略图，不包含页面源码、参数或其他实现。**
 
 ### 功能
 

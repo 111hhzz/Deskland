@@ -1,4 +1,4 @@
-# Deskland 统一开发入口：一条命令完成「构建宿主 + 运行测试（+ 可选打包）」。
+﻿# Deskland 统一开发入口：一条命令完成「构建宿主 + 运行测试（+ 可选打包）」。
 # 用法（仓库根或任意目录）：
 #   powershell -ExecutionPolicy Bypass -File tools\ci.ps1            # 构建 + 测试
 #   powershell -ExecutionPolicy Bypass -File tools\ci.ps1 -Package   # 构建 + 测试 + 打包
@@ -13,7 +13,7 @@ $root = Split-Path $PSScriptRoot -Parent
 
 function Write-Step($text) { Write-Host "`n==== $text ====" -ForegroundColor Cyan }
 
-# 1) 前端打包（prototype → frontend/dist）
+# 1) 前端打包（frontend/src → frontend/dist）
 Write-Step '前端打包'
 & (Join-Path $root 'frontend\build.ps1')
 if (-not $?) { throw '前端打包失败' }

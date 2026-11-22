@@ -28,11 +28,15 @@ echo ""
 # ─── 2. Typecheck: dotnet build --warnaserror ─────────────────
 echo "▶ [2/4] Typecheck: dotnet build --warnaserror"
 cd host
-if ! powershell -ExecutionPolicy Bypass -File build.ps1 2>&1 | tee /tmp/deskland-build.log; then
+# 不要用 `| tee`：管道的退出码取 tee 的，会掩盖编译失败
+powershell -ExecutionPolicy Bypass -File build.ps1 > /tmp/deskland-build.log 2>&1
+if [ $? -ne 0 ]; then
+    cat /tmp/deskland-build.log
     echo ""
     echo "❌ 编译失败"
     exit 1
 fi
+cat /tmp/deskland-build.log
 cd ..
 
 cd test/Deskland.Tests
@@ -95,6 +99,17 @@ if [ -n "$SECRET_HITS" ]; then
     echo "   ⚠️  发现硬编码敏感信息："
     echo "$SECRET_HITS" | head -5 | sed 's/^/      /'
     DESLOP_FOUND=1
+fi
+
+# 检查 PowerShell 脚本编码：无 UTF-8 BOM 时 PowerShell 5.1 会按系统 ANSI 解析，中文导致 ParserError
+echo "   检查 PowerShell 脚本编码..."
+BOM_MISSING=$(for f in $(find host tools test -name '*.ps1' 2>/dev/null); do
+  if [ "$(head -c 3 "$f" | od -An -tx1 | tr -d ' \n')" != "efbbbf" ]; then echo "$f"; fi
+done)
+if [ -n "$BOM_MISSING" ]; then
+  echo "   ⚠️  缺少 UTF-8 BOM："
+  echo "$BOM_MISSING" | head -5 | sed 's/^/      /'
+  DESLOP_FOUND=1
 fi
 
 if [ "$DESLOP_FOUND" -eq 1 ]; then

@@ -79,8 +79,9 @@ function mineCells() {
    DeskApp
    ====================================================================== */
 export class DeskApp {
-  constructor(engine) {
+  constructor(engine, themeId = '') {
     this.engine = engine;
+    this.themeId = themeId;                              // 所属主题 id：回执与销毁时辨认实例
     this.desktop = document.getElementById('desktop');
     this.grid = { cols: 1, rows: 1 };
     this.DW = innerWidth; this.DH = innerHeight - TASKBAR;
@@ -95,6 +96,11 @@ export class DeskApp {
     this.DEFAULTS = Object.assign({}, engine.params);
     this._firstIcons = true;
     this._resizeT = 0;
+    // 销毁时要用到的句柄：DOM 监听、定时器、引擎事件、宿主消息
+    this._bound = [];
+    this._clockT = 0;
+    this._engineResize = this._engineStats = null;
+    this._hostMsg = this._winMsg = null;
     const QS = new URLSearchParams(location.search);
     this.WALL = QS.has('wallpaper');
     this.PREVIEW = QS.has('preview');
@@ -109,11 +115,13 @@ export class DeskApp {
     this.buildSliders();
     this.bindEvents();
     if (this.WALL || this.PREVIEW) this.setupHostMessages();
-    this.engine.on('resize', () => this.onResize());
-    this.engine.on('stats', () => this.updateStats());
+    this._engineResize = () => this.onResize();
+    this._engineStats = () => this.updateStats();
+    this.engine.on('resize', this._engineResize);
+    this.engine.on('stats', this._engineStats);
     this.mountToWindow();
     this.tickClock();
-    setInterval(() => this.tickClock(), 15000);
+    this._clockT = setInterval(() => this.tickClock(), 15000);
     if (!this.WALL && !this.PREVIEW) { this.layoutIcons('mine'); this.syncPanel(); }
   }
 
@@ -142,27 +150,30 @@ export class DeskApp {
   /* ---------------- 事件与面板 ---------------- */
 
   bindEvents() {
+    // 静态控件在热切换时会重复绑定，所以统一记录、销毁时逐个卸下
+    this._bound = [];
+    const on = (el, type, fn) => { el.addEventListener(type, fn); this._bound.push([el, type, fn]); };
     // 所有分段按钮：data-v = 布局，data-scheme = 时段（天空主题）等主题特有的开关
-    document.querySelectorAll('.seg').forEach(seg => seg.addEventListener('click', e => {
+    document.querySelectorAll('.seg').forEach(seg => on(seg, 'click', e => {
       const b = e.target.closest('button'); if (!b) return;
       if (b.dataset.v !== undefined) { this.layoutIcons(b.dataset.v); this.syncPanel(); }
       else if (b.dataset.scheme !== undefined) { this.P.scheme = +b.dataset.scheme; this.syncPanel(); }
     }));
-    document.querySelectorAll('.toggles input').forEach(inp => inp.addEventListener('change', () => {
+    document.querySelectorAll('.toggles input').forEach(inp => on(inp, 'change', () => {
       this.P[inp.dataset.key] = inp.checked;
     }));
-    document.getElementById('collapse').addEventListener('click', () => {
+    on(document.getElementById('collapse'), 'click', () => {
       const p = document.getElementById('panel');
       p.classList.toggle('collapsed');
       document.getElementById('collapse').textContent = p.classList.contains('collapsed') ? '+' : '–';
     });
-    document.getElementById('btnSeed').addEventListener('click', () => this.reseed((Math.random() * 1e6) | 0));
-    document.getElementById('btnAdd').addEventListener('click', () => this.addFile());
-    this.desktop.addEventListener('pointerdown', e => {
+    on(document.getElementById('btnSeed'), 'click', () => this.reseed((Math.random() * 1e6) | 0));
+    on(document.getElementById('btnAdd'), 'click', () => this.addFile());
+    on(this.desktop, 'pointerdown', e => {
       this.select(null);
       if (this.engine.isWater(e.clientX, e.clientY)) this.addRipple(e.clientX, e.clientY);
     });
-    addEventListener('keydown', e => {
+    on(window, 'keydown', e => {
       if ((e.key === 'Delete' || e.key === 'Backspace') && this.selected) {
         const ic = this.selected; this.select(null); ic.el.remove();
         this.engine.icons = this.icons.filter(x => x !== ic); this.engine.commit();
@@ -192,7 +203,7 @@ export class DeskApp {
     const s = this.engine.getStats();
     this.statsEl.innerHTML =
       `<span class="live">● 动画中 · ${s.fps.toFixed(0)} fps</span><br>GPU ${s.gpu}<br>` +
-      `单帧 ${s.frame.toFixed(1)} ms · 陆地场 ${s.field.toFixed(0)} ms<br>` +
+      `CPU 提交 ${s.frame.toFixed(1)} ms · 陆地场 ${s.field.toFixed(0)} ms<br>` +
       `画布 ${s.width}×${s.height} · 图标 ${this.icons.length}`;
   }
 
@@ -388,14 +399,16 @@ export class DeskApp {
     this.engine.onSceneChanged && this.engine.onSceneChanged('hostInit');
     this._firstIcons = true;
     if (this.PREVIEW) {
-      addEventListener('message', ev => { if (ev.source === parent) this._handle(typeof ev.data === 'string' ? JSON.parse(ev.data) : ev.data); });
-      parent.postMessage(JSON.stringify({ t: 'ready' }), '*');
+      this._winMsg = ev => { if (ev.source === parent) this._handle(typeof ev.data === 'string' ? JSON.parse(ev.data) : ev.data); };
+      addEventListener('message', this._winMsg);
+      parent.postMessage(JSON.stringify({ t: 'ready', theme: this.themeId }), '*');
       return;
     }
     const host = window.chrome && window.chrome.webview;
     if (!host) return;
-    host.addEventListener('message', ev => this._handle(JSON.parse(ev.data)));
-    host.postMessage('ready');
+    this._hostMsg = ev => this._handle(JSON.parse(ev.data));
+    host.addEventListener('message', this._hostMsg);
+    host.postMessage(JSON.stringify({ t: 'ready', theme: this.themeId }));
   }
 
   _handle(m) {
@@ -411,5 +424,29 @@ export class DeskApp {
     this.engine.commit(this._firstIcons);         // 第一次：陆地从海里"长"出来；之后：岸线平滑移动
     if (this._firstIcons) this.engine.onSceneChanged && this.engine.onSceneChanged('firstIcons');
     this._firstIcons = false;
+  }
+
+  // 热切换前收干净：定时器、DOM / 宿主监听、引擎事件、图标 DOM 都要卸下，
+  // 否则旧实例还会响应点击与消息（静态控件还会被重复绑定）
+  destroy() {
+    for (const [el, type, fn] of this._bound || []) {
+      try { el.removeEventListener(type, fn); } catch (e) { /* 元素已随布局重建消失：忽略 */ }
+    }
+    this._bound = [];
+    clearInterval(this._clockT); this._clockT = 0;
+    if (this._hostMsg) {
+      const host = window.chrome && window.chrome.webview;
+      if (host) host.removeEventListener('message', this._hostMsg);
+      this._hostMsg = null;
+    }
+    if (this._winMsg) { removeEventListener('message', this._winMsg); this._winMsg = null; }
+    if (this.engine) {
+      if (this._engineResize) this.engine.off('resize', this._engineResize);
+      if (this._engineStats) this.engine.off('stats', this._engineStats);
+      this._engineResize = this._engineStats = null;
+    }
+    // 壁纸模式下 icons 是宿主发来的纯矩形（没有 el），只有浏览器模式才有 DOM 图标
+    if (this.icons.length) { this.icons.forEach(ic => { if (ic.el) ic.el.remove(); }); this.engine.icons = []; }
+    const g = document.getElementById('ghosts'); if (g) g.remove();
   }
 }

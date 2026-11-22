@@ -773,7 +773,7 @@ class HostContext : ApplicationContext
             nextStart = DateTime.Now.AddSeconds(5);
             return;
         }
-        form = new WallpaperForm(pageDir, page, manualPause);
+        form = new WallpaperForm(pageDir, page, Settings.Theme, manualPause);
         form.SettingsJson = SettingsMessage;
         clickHook.Wallpaper = form;
         form.HandleDestroyed += OnFormGone;
@@ -1089,13 +1089,15 @@ class WallpaperForm : Form
     private bool isFirstLoad = true;
 
     string page;                                        // 当前主题的页面（themes.json 里的 page）
+    string themeId;                                     // 当前主题 id（themes.json 里的 id）：engine.html 的引擎注册表按它查
     public Func<string> SettingsJson;                   // 页面就绪时先发给它的设置消息
     protected override bool ShowWithoutActivation { get { return true; } }
 
-    public WallpaperForm(string pageDir, string page, bool manualPause)
+    public WallpaperForm(string pageDir, string page, string themeId, bool manualPause)
     {
         this.pageDir = pageDir;
         this.page = page;
+        this.themeId = themeId;
         this.manualPause = manualPause;
         StartupTime = DateTime.Now;
         LastLoadPageTime = DateTime.Now;
@@ -1149,9 +1151,10 @@ class WallpaperForm : Form
     string EngineUrl(string id) { return "https://app.local/engine.html?theme=" + id + "&wallpaper=1&ui=2"; }
 
     // 切换主题：换页面；新页面就绪后会重新收到设置和图标
-    public void LoadPage(string newPage)
+    public void LoadPage(string newPage, string newId)
     {
         page = newPage;
+        themeId = newId;
         LastLoadPageTime = DateTime.Now;
         if (web.CoreWebView2 == null) return;
         try { web.CoreWebView2.Navigate(PageUrl); }
@@ -1164,7 +1167,8 @@ class WallpaperForm : Form
     public async void SwitchTheme(string id)
     {
         LastLoadPageTime = DateTime.Now;
-        if (web.CoreWebView2 == null) { LoadPage(Themes.PageFor(pageDir, id)); return; }
+        themeId = id;                                  // 热切换成功与否都先认下，回执据此丢弃旧主题的消息
+        if (web.CoreWebView2 == null) { LoadPage(Themes.PageFor(pageDir, id), id); return; }
         try
         {
             string js = "(window.__dbg && window.__dbg.switchTheme) ? window.__dbg.switchTheme(" + Json.Stringify(id) + ") : false";
@@ -1172,7 +1176,7 @@ class WallpaperForm : Form
             if (r != "true")
             {
                 string p = Themes.PageFor(pageDir, id);
-                if (p != null) LoadPage(p);
+                if (p != null) LoadPage(p, id);
             }
         }
         catch { }
@@ -1219,20 +1223,40 @@ class WallpaperForm : Form
             {
                 string msg = null;
                 try { msg = a.TryGetWebMessageAsString(); } catch { }
-                bool isReady = msg == "ready";
-                bool isFirstFrame = false;
-                if (!isReady)
+                string kind = null, theme = null;
+                if (msg == "ready") kind = "ready";
+                else
                 {
                     try
                     {
                         var parsed = Json.Parse(msg) as Dictionary<string, object>;
-                        object t;
-                        if (parsed != null && parsed.TryGetValue("t", out t) && (t as string) == "firstframe")
-                            isFirstFrame = true;
+                        if (parsed != null)
+                        {
+                            object t; if (parsed.TryGetValue("t", out t)) kind = t as string;
+                            object th; if (parsed.TryGetValue("theme", out th)) theme = th as string;
+                        }
                     }
                     catch { }
                 }
-                if (!isReady && !isFirstFrame) return;
+                if (kind == null) return;
+                // 不回按 theme 过滤：engine.html 可以由测试 / 开发直接导航到任意主题，
+                // 旧实例的残留消息已由页面侧 destroy()（卸监听 + 销毁引擎）挡掉
+                if (kind == "switchfailed")
+                {
+                    // 页内热切换失败（引擎初始化报错等）：回退整页导航
+                    Log.Write("热切换失败，回退整页导航：" + (theme ?? "?"));
+                    string fp = Themes.PageFor(pageDir, theme ?? "meadow");
+                    if (fp != null) LoadPage(fp, theme);
+                    return;
+                }
+                if (kind == "ready")
+                {
+                    // 页面已就绪（首帧还没画）：先把设置和图标推过去
+                    if (SettingsJson != null) core.PostWebMessageAsString(SettingsJson());
+                    lastIcons = ""; lastPause = -1; PollIcons(); PollForeground();
+                    return;
+                }
+                if (kind != "firstframe") return;
                 TestProbe.Signal("firstframe");
                 // 性能埋点：启动首帧 / 主题切换耗时
                 var now = DateTime.Now;
@@ -1245,12 +1269,12 @@ class WallpaperForm : Form
                 else
                 {
                     var delta = (now - LastLoadPageTime).TotalMilliseconds;
-                    TestProbe.Signal("perf", new { path = "theme_switch", ms = delta });
+                    TestProbe.Signal("perf", new { path = "theme_switch", ms = delta, theme });
                 }
                 if (SettingsJson != null) core.PostWebMessageAsString(SettingsJson());
                 lastIcons = ""; lastPause = -1; PollIcons(); PollForeground();
             };
-            core.Navigate(EngineUrl((page ?? "meadow").Replace(".html", "")));
+            core.Navigate(EngineUrl(string.IsNullOrEmpty(themeId) ? "meadow" : themeId));
             iconTimer.Start();
             fgTimer.Start();
             // 事件驱动图标刷新：监听桌面 ListView 的 LOCATIONCHANGE，去抖后触发 PollIcons

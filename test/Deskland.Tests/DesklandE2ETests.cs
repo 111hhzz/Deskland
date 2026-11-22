@@ -46,6 +46,9 @@ public class DesklandE2ETests : IAsyncLifetime
             ["DESKLAND_PROFILE_DIR"] = TestProfile,
         };
         _appProcess = StartProcess(DesKlandBin, "--test --settings", env);
+        await Task.Delay(500);
+        if (_appProcess.HasExited)
+            throw new InvalidOperationException($"宿主启动后立即退出（exit={_appProcess.ExitCode}）：通常是上一个实例还没被杀干净，单实例互斥生效");
 
         await WaitForCdpAsync(WallpaperPort);
         await WaitForCdpAsync(SettingsPort);
@@ -229,12 +232,12 @@ public class DesklandE2ETests : IAsyncLifetime
     }
 
     /// <summary>
-    /// 视觉基线：设置页（浅/深）+ 三个壁纸页，共 5 张。
+    /// 视觉基线：设置页（浅/深）+ 每个 ready 壁纸页。新增 ready 主题时在这里加一条，并重新生成基线。
     /// 壁纸页用固定 performance.now / rAF 时间冻结动画，保证截图可复现（不依赖桌面图标位置）。
     /// 生成基线：设置环境变量 DESKLAND_UPDATE_BASELINES=1 后运行本测试。
     /// </summary>
     [Fact]
-    public async Task VisualBaseline_FiveScreens()
+    public async Task VisualBaseline_AllScreens()
     {
         Directory.CreateDirectory(BaselineDir);
 
@@ -245,6 +248,14 @@ public class DesklandE2ETests : IAsyncLifetime
         {
             await _pageSettings.Locator(".theme[data-id='beach']").ClickAsync();
             await _pageSettings.WaitForTimeoutAsync(1500);
+            // 等宿主 themeChanged 回执把预览的 loading 去掉，否则截图会带转圈
+            try
+            {
+                await _pageSettings.WaitForFunctionAsync(
+                    "() => !document.getElementById('stage').classList.contains('loading')", null,
+                    new PageWaitForFunctionOptions { Timeout = 10000 });
+            }
+            catch (TimeoutException) { }
         }
         // 把鼠标移到角落，避免前一个测试的点击让卡片停在 hover 态
         await _pageSettings.Mouse.MoveAsync(0, 0);
@@ -280,6 +291,7 @@ public class DesklandE2ETests : IAsyncLifetime
             ("meadow", "meadow.html"),
             ("sky", "sky.html"),
             ("beach", "flat.html"),
+            ("aurora", "themes/aurora/aurora.html"),
         })
         {
             await _pageWallpaper.GotoAsync($"https://app.local/{page}?wallpaper=1");
@@ -317,6 +329,43 @@ public class DesklandE2ETests : IAsyncLifetime
             }
         }
         Assert.Empty(failures);
+    }
+
+    /// <summary>
+    /// 可访问性（axe-core，WCAG 2.1 A/AA）：设置页不应有 critical/serious 违规。
+    /// axe.min.js 由 frontend/package.json 的 axe-core 提供；缺失时给出安装提示。
+    /// </summary>
+    [Fact]
+    public async Task SettingsPage_Axe_WcagA11y()
+    {
+        var axePath = Path.Combine(RepoRoot, "frontend", "node_modules", "axe-core", "axe.min.js");
+        Assert.True(File.Exists(axePath), $"缺少 axe-core：{axePath}（在 frontend 下执行 npm install）");
+        await _pageSettings.AddScriptTagAsync(new() { Path = axePath });
+        var result = await _pageSettings.EvaluateAsync<System.Text.Json.JsonElement>(
+            "async () => await axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] } })");
+        var blocking = new List<string>();
+        foreach (var v in result.GetProperty("violations").EnumerateArray())
+        {
+            var impact = v.TryGetProperty("impact", out var i) ? i.GetString() : "";
+            if (impact is not ("critical" or "serious")) continue;
+            var id = v.GetProperty("id").GetString();
+            var help = v.GetProperty("help").GetString();
+            var target = "";
+            if (v.TryGetProperty("nodes", out var nodes) && nodes.GetArrayLength() > 0
+                && nodes[0].TryGetProperty("target", out var t))
+            {
+                target = t.ValueKind == System.Text.Json.JsonValueKind.Array && t.GetArrayLength() > 0
+                    ? t[0].GetString() ?? ""
+                    : t.GetString() ?? "";
+            }
+            blocking.Add($"{impact} {id}: {help} @ {target}");
+        }
+        Assert.True(blocking.Count == 0,
+            "axe 发现 critical/serious 可访问性问题：\n" + string.Join("\n", blocking));
+        // 完整报告落盘，供分析与回归对比（本机状态目录，不入库）
+        var reportPath = Path.Combine(LocalRoot, "axe-report.json");
+        File.WriteAllText(reportPath, result.GetRawText());
+        Console.WriteLine($"axe 报告已写入：{reportPath}");
     }
 
     /// <summary>
@@ -517,6 +566,136 @@ public class DesklandE2ETests : IAsyncLifetime
         Assert.Equal("[0.62,0.75,0.42]", r.SceneToken);
     }
 
+    /// <summary>
+    /// 每个 ready 主题都能经 engine.html 启动：注册表命中、首帧到达、无着色器编译错误。
+    /// 视觉基线只覆盖 meadow / sky / beach，这条冒烟把其余主题（如 aurora）也纳入。
+    /// </summary>
+    [Fact]
+    public async Task ReadyThemes_WallpaperSmoke()
+    {
+        var ids = ReadyThemeIds();
+        Assert.True(ids.Count >= 3, $"ready 主题过少：{ids.Count}");
+        // 捕获 console.error 与未处理 rejection：着色器编译失败走的是 console.error + throw
+        await _pageWallpaper.AddInitScriptAsync(
+            "window.__errors = [];" +
+            "(function () { var o = console.error.bind(console); console.error = function () {" +
+            "  window.__errors.push(Array.prototype.map.call(arguments, String).join(' ')); o.apply(null, arguments); }; })();" +
+            "window.addEventListener('unhandledrejection', function (e) { window.__errors.push('rejection: ' + e.reason); });");
+
+        foreach (var id in ids)
+        {
+            await _pageWallpaper.GotoAsync($"https://app.local/engine.html?theme={id}&wallpaper=1");
+            try
+            {
+                await _pageWallpaper.WaitForFunctionAsync(
+                    "() => window.__desklandIcons === true", null,
+                    new PageWaitForFunctionOptions { Timeout = 20000 });
+            }
+            catch (TimeoutException)
+            {
+                Assert.Fail($"{id} 等不到 __desklandIcons；errors={string.Join(" | ", await _pageWallpaper.EvaluateAsync<string[]>("window.__errors || []"))}");
+            }
+            Assert.Equal(id, await CurrentThemeAsync());
+            var errs = await _pageWallpaper.EvaluateAsync<string[]>("window.__errors || []");
+            Assert.True(errs.Length == 0, $"{id} 页面报错：{string.Join(" | ", errs)}");
+            var hasParams = await _pageWallpaper.EvaluateAsync<bool>(
+                "() => { const P = window.__dbg && window.__dbg.P(); return !!P && typeof P.sigma === 'number'; }");
+            Assert.True(hasParams, $"{id} 引擎参数未就绪");
+        }
+    }
+
+    /// <summary>
+    /// 切换主题：只应多一条 theme_switch 埋点，且回执主题与目标一致（旧实现会把 ready 也当首帧，重复打点）。
+    /// </summary>
+    [Fact]
+    public async Task ThemeSwitch_SingleReceipt()
+    {
+        var original = await CurrentThemeAsync();
+        var target = ReadyThemeIds().FirstOrDefault(id => id != original);
+        Assert.True(target != null, "没有可切换的 ready 主题");
+        var eventsPath = Path.Combine(TestProfile, $"test-events-{_appProcess!.Id}.jsonl");
+        await WaitEventsFileAsync(eventsPath);
+        var before = ReadPerfEvents(eventsPath).Count(e => e.path == "theme_switch");
+        // 热切换不换文档，所以直接在当前页面上装错误捕获（否则要等下次导航才生效）
+        await _pageWallpaper.EvaluateAsync(
+            "(function () { window.__errors = [];" +
+            "var o = console.error.bind(console); console.error = function () {" +
+            "  window.__errors.push(Array.prototype.map.call(arguments, String).join(' ')); o.apply(null, arguments); };" +
+            "window.addEventListener('unhandledrejection', function (e) { window.__errors.push('rejection: ' + e.reason); }); return true; })()");
+
+        await _pageSettings.Locator($".theme[data-id='{target}']").ClickAsync();
+        var deadline = DateTime.Now + TimeSpan.FromSeconds(20);
+        while (DateTime.Now < deadline)
+        {
+            if (await CurrentThemeAsync() == target) break;
+            await Task.Delay(200);
+        }
+        Assert.Equal(target, await CurrentThemeAsync());
+        var perfDeadline = DateTime.Now + TimeSpan.FromSeconds(20);
+        while (DateTime.Now < perfDeadline)
+        {
+            if (ReadPerfEvents(eventsPath).Count(e => e.path == "theme_switch") > before) break;
+            await Task.Delay(200);
+        }
+        var switches = ReadPerfEvents(eventsPath).Where(e => e.path == "theme_switch").ToList();
+        var pageErrors = await _pageWallpaper.EvaluateAsync<string[]>("window.__errors || []");
+        var bootError = await _pageWallpaper.EvaluateAsync<string>("window.__bootError || ''");
+        Assert.True(switches.Count == before + 1,
+            $"theme_switch 应只多一条，实际多了 {switches.Count - before} 条；URL={_pageWallpaper.Url}；bootError={bootError}；errors={string.Join(" | ", pageErrors)}");
+
+        if (!string.IsNullOrEmpty(original))
+        {
+            await _pageSettings.Locator($".theme[data-id='{original}']").ClickAsync();
+            await Task.Delay(1500);
+        }
+    }
+
+    /// <summary>
+    /// 切换主题后重启应用，应仍停留在该主题：设置持久化 + 启动按 theme id 拉起对应引擎。
+    /// </summary>
+    [Fact]
+    public async Task Theme_PersistsAcrossRestart()
+    {
+        var original = await CurrentThemeAsync();
+        var target = ReadyThemeIds().FirstOrDefault(id => id != original);
+        Assert.True(target != null, "没有可切换的 ready 主题");
+
+        await _pageSettings.Locator($".theme[data-id='{target}']").ClickAsync();
+        var deadline = DateTime.Now + TimeSpan.FromSeconds(20);
+        while (DateTime.Now < deadline)
+        {
+            if (await CurrentThemeAsync() == target) break;
+            await Task.Delay(200);
+        }
+        Assert.Equal(target, await CurrentThemeAsync());
+
+        // 宿主保存是防抖的：等文件内容真的变成 target，而不是只等文件存在
+        var settingsPath = Path.Combine(TestProfile, "settings.json");
+        string? savedTheme = null;
+        var start = DateTime.Now;
+        while (DateTime.Now - start < TimeSpan.FromSeconds(8))
+        {
+            try
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(await File.ReadAllTextAsync(settingsPath));
+                savedTheme = doc.RootElement.GetProperty("theme").GetString();
+                if (savedTheme == target) break;
+            }
+            catch { }
+            await Task.Delay(300);
+        }
+        Assert.Equal(target, savedTheme);
+
+        await RestartAppAsync();
+        Assert.Equal(target, await CurrentThemeAsync());
+
+        if (!string.IsNullOrEmpty(original))
+        {
+            await _pageSettings.Locator($".theme[data-id='{original}']").ClickAsync();
+            await Task.Delay(1500);
+        }
+    }
+
     private sealed class EngineInfo
     {
         public string Base { get; set; } = "";
@@ -612,6 +791,55 @@ public class DesklandE2ETests : IAsyncLifetime
         public double Ratio { get; set; }
     }
 
+    private static List<string> ReadyThemeIds()
+    {
+        using var doc = System.Text.Json.JsonDocument.Parse(
+            File.ReadAllText(Path.Combine(RepoRoot, "frontend", "src", "themes.json")));
+        var list = new List<string>();
+        foreach (var t in doc.RootElement.GetProperty("themes").EnumerateArray())
+            if (t.GetProperty("status").GetString() == "ready") list.Add(t.GetProperty("id").GetString()!);
+        return list;
+    }
+
+    private async Task<string> CurrentThemeAsync(int timeoutMs = 20000)
+    {
+        var start = DateTime.Now;
+        while (DateTime.Now - start < TimeSpan.FromMilliseconds(timeoutMs))
+        {
+            try
+            {
+                var v = await _pageWallpaper.EvaluateAsync<string>("window.__dbg && window.__dbg.theme");
+                if (!string.IsNullOrEmpty(v)) return v;
+            }
+            catch (Microsoft.Playwright.PlaywrightException) { }   // 正在导航：重试
+            await Task.Delay(200);
+        }
+        return "";
+    }
+
+    // 重启宿主并重建 CDP 连接（设置持久化后验证启动路径用）
+    private async Task RestartAppAsync()
+    {
+        try { if (_wallpaperBrowser != null) await _wallpaperBrowser.CloseAsync(); } catch { }
+        try { if (_settingsBrowser != null) await _settingsBrowser.CloseAsync(); } catch { }
+        KillProcess("Deskland");
+        KillWebView2ForProfile(TestProfile);
+        await Task.Delay(1500);
+        var env = new Dictionary<string, string?>
+        {
+            ["DESKLAND_TEST"] = "1",
+            ["DESKLAND_PROFILE_DIR"] = TestProfile,
+        };
+        _appProcess = StartProcess(DesKlandBin, "--test --settings", env);
+        await WaitForCdpAsync(WallpaperPort);
+        await WaitForCdpAsync(SettingsPort);
+        _wallpaperBrowser = await _playwright.Chromium.ConnectOverCDPAsync($"http://localhost:{WallpaperPort}");
+        _settingsBrowser = await _playwright.Chromium.ConnectOverCDPAsync($"http://localhost:{SettingsPort}");
+        _pageWallpaper = _wallpaperBrowser.Contexts[0].Pages[0];
+        _pageSettings = _settingsBrowser.Contexts[0].Pages[0];
+        await Task.Delay(2500);
+    }
+
     private static async Task WaitForCdpAsync(int port, int timeoutMs = 30000)
     {
         var start = DateTime.Now;
@@ -644,15 +872,19 @@ public class DesklandE2ETests : IAsyncLifetime
 
     private static void KillProcess(string name)
     {
-        try
+        // 反复杀到进程真正消失：单实例互斥下，旧进程还活着会让新进程启动后立刻退出
+        for (int round = 0; round < 10; round++)
         {
-            foreach (var p in System.Diagnostics.Process.GetProcessesByName(name))
+            System.Diagnostics.Process[] procs;
+            try { procs = System.Diagnostics.Process.GetProcessesByName(name); }
+            catch { return; }
+            if (procs.Length == 0) return;
+            foreach (var p in procs)
             {
-                p.Kill();
-                p.WaitForExit(3000);
+                try { p.Kill(); } catch { }
+                try { p.WaitForExit(500); } catch { }
             }
         }
-        catch { }
     }
 
     // 只杀命令行 --user-data-dir 指向本测试 profile 的 WebView2 进程。

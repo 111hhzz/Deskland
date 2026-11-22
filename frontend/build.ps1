@@ -1,4 +1,4 @@
-# 前端打包：frontend/src（源）→ frontend/dist（产物）。
+﻿# 前端打包：frontend/src（源）→ frontend/dist（产物）。
 # 产物为纯静态文件，供 host 构建时复制到 bin/prototype。
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent          # Deskland 仓库根
@@ -6,8 +6,11 @@ $src = Join-Path $PSScriptRoot 'src'
 $dist = Join-Path $PSScriptRoot 'dist'
 if (-not (Test-Path -LiteralPath $src)) { throw "缺少前端源目录：$src" }
 
-# 清理并重建产物
-if (Test-Path -LiteralPath $dist) { Get-ChildItem -LiteralPath $dist -File | Remove-Item -Force }
+# 清理并重建产物（枚举删除，避免子目录残留）
+if (Test-Path -LiteralPath $dist) {
+    Get-ChildItem -LiteralPath $dist -Recurse -File -Force | Remove-Item -Force -Confirm:$false
+    Get-ChildItem -LiteralPath $dist -Recurse -Directory -Force | Sort-Object -Property FullName -Descending | Remove-Item -Force -Confirm:$false
+}
 New-Item -ItemType Directory -Force -Path $dist | Out-Null
 
 # 复制（保留目录结构）

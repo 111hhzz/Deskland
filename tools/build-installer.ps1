@@ -1,11 +1,12 @@
-param(
+﻿param(
     [string]$NsisCompiler,
     [string]$WebView2Bootstrapper,
     [switch]$SkipBuild
 )
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'local.ps1')
-$root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+. (Join-Path $PSScriptRoot 'packaging.ps1')
+$root = Get-RepoRoot
 $version = (Get-Content -LiteralPath (Join-Path $PSScriptRoot 'version.json') -Raw | ConvertFrom-Json).version
 if ($version -notmatch '^\d+\.\d+\.\d+$') { throw 'Invalid package version' }
 $dist = Join-Path $script:DesklandLocal 'dist'
@@ -35,60 +36,31 @@ if (-not (Test-Path -LiteralPath $NsisCompiler)) { throw 'NSIS compiler missing'
 $NsisCompiler = [IO.Path]::GetFullPath($NsisCompiler)
 $WebView2Bootstrapper = [IO.Path]::GetFullPath($WebView2Bootstrapper)
 
-# A fixed source list prevents other editions or private working files entering this package.
-$sources = @('.gitattributes', '.gitignore', 'AGENTS.md', 'LICENSE', 'NOTICE', 'README.md', 'THIRD_PARTY_NOTICES.md', 'TRADEMARKS.md',
-    'host\DesktopHost.cs', 'host\SystemTheme.cs', 'host\DesklandPlus.ico', 'host\README.md', 'host\app.manifest', 'host\build.ps1', 'host\inspect.ps1',
-    'tools\build-installer.ps1', 'tools\installer.nsi', 'tools\version.json')
-$themeCoreFiles = @('flat.html', 'meadow.html', 'sky.html', 'settings.html', 'thumbs-data.js', 'share.js', 'ripple.js', 'serve.mjs', 'themes.json', 'beach-palms.js', 'meadow-boy.js', 'meadow-cat.js',
-    'i18n\en.json', 'i18n\zh-CN.json', 'thumbs\beach.webp', 'thumbs\meadow.webp',
-    'assets\beach-coconut-palm-v2.png', 'assets\beach-coconut-palm-curved.png', 'assets\beach-coconut-palm-airy.png', 'assets\beach-coconut-palm-windswept.png', 'assets\beach-coconut-palm-arch.png',
-    'assets\meadow-black-kitten.png', 'assets\meadow-kite-boy-level-face.png', 'assets\meadow-kite-boy-diagonal-run.png')
-# 主题目录自动发现（base.css / CONVENTIONS.md / <id>/theme.css / <id>/theme.json ...）：新增主题不用再改本脚本。
-$themesRoot = Join-Path $root 'prototype\themes'
-$themeDirAll = @(Get-ChildItem -LiteralPath $themesRoot -Recurse -File | ForEach-Object { 'themes\' + $_.FullName.Substring($themesRoot.Length + 1) })
-$themeDirRuntime = @($themeDirAll | Where-Object { $_ -notlike 'themes\_template\*' })
-$themeFiles = $themeCoreFiles + $themeDirRuntime
-$themes = (Get-Content -LiteralPath (Join-Path $root 'prototype\themes.json') -Raw -Encoding UTF8 | ConvertFrom-Json).themes
-$ready = @($themes | Where-Object { $_.status -eq 'ready' })
-$locked = @($themes | Where-Object { $_.locked -eq $true })
-if ($ready.Count -eq 0) { throw 'Expected at least one usable theme' }
-foreach ($theme in $ready) {
-    if (-not $theme.page) { throw 'Ready theme missing page: ' + $theme.id }
-    if (-not (Test-Path -LiteralPath (Join-Path $root ('prototype\' + $theme.page)))) { throw 'Ready theme page missing: ' + $theme.page }
-    foreach ($f in @('theme.css', 'theme.json')) {
-        if (-not (Test-Path -LiteralPath (Join-Path $root ('prototype\themes\' + $theme.id + '\' + $f)))) { throw "Theme '$($theme.id)' missing themes/$($theme.id)/$f" }
-    }
-}
-foreach ($theme in $locked) {
-    if ($theme.page -or $theme.groups) { throw 'Locked themes must not contain page source or settings' }
-}
-foreach ($theme in $themes) {
-    $match = [regex]::Match([string]$theme.thumb, 'url\(thumbs/([^\)?]+)')
-    if (-not $match.Success) { throw 'Missing thumbnail URL: ' + $theme.id }
-    $thumbName = [uri]::UnescapeDataString($match.Groups[1].Value)
-    if ($thumbName -notmatch '^[^\\/]+\.webp$') { throw 'Unexpected thumbnail path: ' + $thumbName }
-    $thumbFile = 'thumbs\' + $thumbName
-    if ($themeFiles -notcontains $thumbFile) { $themeFiles += $thumbFile }
-}
-$sources += $themeFiles | ForEach-Object { 'prototype\' + $_ }
-$sources += $themeDirAll | Where-Object { $_ -like 'themes\_template\*' } | ForEach-Object { 'prototype\' + $_ }
+# 运行时文件：host\bin（宿主 exe / 运行库 + prototype\ 前端产物）
+$runtime = Get-RuntimeFiles
+Assert-ThemePages -RuntimeFiles $runtime
+
+# 源码包：git 跟踪文件 = 仓库源码（不含构建产物 / 依赖 / 本机状态）
+$sourceFiles = Get-RepoFiles
 $sourceStage = Join-Path $payload 'source-stage'
-foreach ($file in $sources) {
+foreach ($file in $sourceFiles) {
     $target = Join-Path $sourceStage $file
     New-Item -ItemType Directory -Force (Split-Path $target) | Out-Null
     Copy-Item -LiteralPath (Join-Path $root $file) -Destination $target
 }
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 [IO.Compression.ZipFile]::CreateFromDirectory($sourceStage, (Join-Path $payload 'Deskland-source.zip'))
-# Only program data is installed. The accompanying ZIP contains the exact corresponding source.
-$runtimeFiles = @('host\bin\Deskland.exe', 'host\bin\DesklandPlus.ico', 'host\bin\Microsoft.Web.WebView2.Core.dll', 'host\bin\Microsoft.Web.WebView2.WinForms.dll', 'host\bin\WebView2Loader.dll')
-$installFiles = @('LICENSE', 'NOTICE', 'README.md', 'THIRD_PARTY_NOTICES.md', 'TRADEMARKS.md') + @($themeFiles | Where-Object { $_ -ne 'serve.mjs' } | ForEach-Object { 'prototype\' + $_ }) + $runtimeFiles
-foreach ($file in $installFiles) {
-    $target = Join-Path $payload $file
+
+# 安装目录布局：prototype\* + 宿主 exe / 运行库 + 文档 + 源码包
+$docs = @('LICENSE', 'NOTICE', 'README.md', 'THIRD_PARTY_NOTICES.md', 'TRADEMARKS.md')
+foreach ($f in $runtime) {
+    $target = Join-Path $payload (ConvertTo-InstallPath $f)
     New-Item -ItemType Directory -Force (Split-Path $target) | Out-Null
-    Copy-Item -LiteralPath (Join-Path $root $file) -Destination $target
+    Copy-Item -LiteralPath (Join-Path $root $f) -Destination $target
 }
-$installFiles += 'Deskland-source.zip'
+foreach ($d in $docs) { Copy-Item -LiteralPath (Join-Path $root $d) -Destination (Join-Path $payload $d) }
+$installFiles = @($docs) + @($runtime | ForEach-Object { ConvertTo-InstallPath $_ }) + @('Deskland-source.zip')
+
 $utf8 = New-Object Text.UTF8Encoding($true)
 $fileLines = @()
 $deleteLines = @()

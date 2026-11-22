@@ -125,6 +125,24 @@ public class ThemeConventionTests
         }
     }
 
+    /// <summary>
+    /// engine.html 的引擎注册表必须覆盖每个 ready 主题：
+    /// 注册表漏项会让热切换静默回退到默认引擎（aurora 曾因此重启后变回草地）。
+    /// </summary>
+    [Fact]
+    public void ReadyThemes_EngineRegistryCoversAll()
+    {
+        var engineHtml = File.ReadAllText(Path.Combine(PrototypeDir, "engine.html"));
+        using var themes = JsonDocument.Parse(File.ReadAllText(Path.Combine(PrototypeDir, "themes.json")));
+        foreach (var t in themes.RootElement.GetProperty("themes").EnumerateArray())
+        {
+            if (t.GetProperty("status").GetString() != "ready") continue;
+            var id = t.GetProperty("id").GetString()!;
+            Assert.Contains(id + ":", engineHtml);
+            Assert.True(File.Exists(Path.Combine(ThemesDir, id, "theme.css")), $"缺少 themes/{id}/theme.css");
+        }
+    }
+
     private static string StripComments(string css) =>
         Regex.Replace(css, @"/\*.*?\*/", string.Empty, RegexOptions.Singleline);
 }

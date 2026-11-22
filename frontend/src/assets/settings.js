@@ -68,7 +68,6 @@ function applyStatic() {
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { el.placeholder = t(el.dataset.i18nPlaceholder); });
   // 语言 / 主题模式：胶囊按钮，点击循环切换
   $('langLbl').textContent = state.langSetting === 'auto' ? t('langAuto') : (LANGS[state.langSetting] || 'English');
-  $('langBtn').setAttribute('aria-label', t('language'));
   langMenu.render(state.langSetting in LANGS ? state.langSetting : 'auto');
   applyThemeModeUI();
 }
@@ -166,9 +165,8 @@ function preloadImage(href) {
 function renderThemes() {
   $('themes').innerHTML = state.registry.themes.map(th => {
     const locked = th.locked === true, ready = th.status === 'ready', on = th.id === state.theme;
-    const label = locked ? t('lockedTitle', { name: th.name }) : th.name;
-    return `<button class="theme${on ? ' on' : ''}${locked ? ' locked' : ''}" data-id="${th.id}" data-locked="${locked}" aria-pressed="${on}" aria-label="${label}" ${ready || locked ? '' : 'disabled'}>
-      <div class="theme-copy"><div class="theme-meta"><span class="badge">${t(on ? 'badgeOn' : locked ? 'badgeLocked' : ready ? 'badgeReady' : 'badgeSoon')}</span>
+    return `<button class="theme${on ? ' on' : ''}${locked ? ' locked' : ''}" data-id="${th.id}" data-locked="${locked}" aria-pressed="${on}" ${ready || locked ? '' : 'disabled'}>
+      <div class="theme-copy"><div class="theme-meta"><span class="badge" aria-hidden="true">${t(on ? 'badgeOn' : locked ? 'badgeLocked' : ready ? 'badgeReady' : 'badgeSoon')}</span>
         <svg class="theme-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5 15 15 5M5 5h10v10"/></svg></div>
         <div class="name">${th.name}</div></div>
       <div class="thumb" style="background:${th.thumb || '#ccc'}">${locked ? `<span class="lock-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span>` : ''}</div></button>`;
@@ -268,7 +266,8 @@ function setParam(key, v) {
     $('p-' + key).classList.toggle('changed', v !== p.default);
   }
   (state.params[state.theme] = state.params[state.theme] || {})[key] = v;
-  pending[key] = v;
+  // 连同主题一起排队：flush 是异步的，期间用户可能切到别的主题
+  pending[key] = { theme: state.theme, v };
   // 不用 requestAnimationFrame：窗口在后台或被遮住时它会暂停，消息就积压了
   if (!scheduled) { scheduled = true; setTimeout(flush, 30); }
 }
@@ -287,7 +286,7 @@ $('controls').addEventListener('dblclick', e => {
 function flush() {
   scheduled = false;
   const batch = pending; pending = {};
-  for (const k in batch) send({ t: 'set', theme: state.theme, key: k, value: batch[k] });
+  for (const k in batch) send({ t: 'set', theme: batch[k].theme, key: k, value: batch[k].v });
   flashSaved();
 }
 let savedT = 0;

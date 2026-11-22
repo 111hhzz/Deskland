@@ -1,6 +1,6 @@
 # 视觉基线
 
-`VisualBaseline_FiveScreens` 测试的 5 张基线截图：
+`VisualBaseline_AllScreens` 测试的基线截图：
 
 | 文件 | 内容 |
 |---|---|
@@ -9,6 +9,10 @@
 | `wallpaper-meadow.png` | 草地壁纸页（动画冻结） |
 | `wallpaper-sky.png` | 天空壁纸页（动画冻结） |
 | `wallpaper-beach.png` | 沙滩壁纸页（动画冻结） |
+| `wallpaper-aurora.png` | 夜航 · 极光壁纸页（动画冻结） |
+
+新增 ready 主题时，在 `DesklandE2ETests.VisualBaseline_AllScreens` 的页面列表里加一条，
+并用下面的命令重新生成基线。
 
 ## 可复现性
 
@@ -22,7 +26,7 @@
 
 ```powershell
 $env:DESKLAND_UPDATE_BASELINES = "1"
-dotnet test test/Deskland.Tests/Deskland.Tests.csproj --filter "FullyQualifiedName~VisualBaseline_FiveScreens"
+dotnet test test/Deskland.Tests/Deskland.Tests.csproj --filter "FullyQualifiedName~VisualBaseline_AllScreens"
 ```
 
 基线与当前机器的分辨率 / DPI / 窗口尺寸相关；换机器或改分辨率后需要重新生成。

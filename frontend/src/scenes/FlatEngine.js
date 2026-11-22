@@ -4,11 +4,14 @@
 // 过渡期约定：渲染上下文与共享状态（W/H/P/icons/seed/TASKBAR/FB/sampleArr）由 DeskApp 挂到 window，
 // 让 beach-palms.js 等旧脚本继续以全局方式读取，行为保持 100% 一致。
 
-import { SceneEngine } from './SceneEngine.js';
+import { SceneEngine } from '../engine/SceneEngine.js';
+import { GLSL_COMMON } from '../engine/glsl/common.js';
 
 const TASKBAR = 48;
 
-const FS_SRC = `#version 300 es
+// 头部：本主题自己的 uniform 声明、常量与海滩函数；公共的 hash2 / ss / N / fieldS 在 common.js。
+// FS_PRE 是「main 之前」的部分：棕榈树着色器（beach-palms.js）复用同一批声明与函数。
+const FS_HEADER = `#version 300 es
 precision highp float;
 uniform sampler2D uNoise, uFA, uFB;
 uniform vec2 uRes, uGrid;
@@ -27,16 +30,9 @@ uniform vec3 uFoam;                                // 浪花
 uniform vec3 uWetSand;                             // 湿沙：被水泡过的沙子，比干沙深一点、偏黄
 
 float hash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
-// 颗粒和反光点用的随机数（Dave Hoskins 的 hash12）：对整数格子坐标也足够"乱"，不会排成行列
-float hash2(vec2 p) {
-  vec3 p3 = fract(vec3(p.xyx) * 0.1031);
-  p3 += dot(p3, p3.yzx + 33.33);
-  return fract((p3.x + p3.y) * p3.z);
-}
-float ss(float a, float b, float x) { float t = clamp((x - a) / (b - a), 0.0, 1.0); return t * t * (3.0 - 2.0 * t); }
-vec4 N(vec2 p, float scale) { return texture(uNoise, p / scale + uSeed * 0.013); }
-float fieldS(sampler2D t, vec2 p) { return texture(t, (p / uStep + 0.5) / uGrid).r; }
+`;
 
+const FS_FUNCS = `
 vec3 seaRamp(float v) {
   v = clamp(v, 0.0, 1.0) * 4.0;
   if (v < 1.0) return mix(uSea0, uSea1, v);
@@ -93,8 +89,9 @@ vec3 gullSD(vec2 q, float span) {
   float wing = max(max(q.x - lead, lead - chord - q.x), y - reach - 1.0);
   return vec3(min(body, tail), wing, u);
 }
+`;
 
-void main() {
+const FS_MAIN = `void main() {
   vec2 p = vec2(gl_FragCoord.x, uRes.y * uScale - gl_FragCoord.y) / uScale;
   float t = uTime;
   // 喷绘颗粒：约 1.3px 的随机点（静止，像印刷纸面上的颗粒）
@@ -339,8 +336,12 @@ void main() {
   o = vec4(col, 1.0);
 }`;
 
+// main 之前的部分（声明 + 公共函数 + 海滩函数）：海滩与棕榈树着色器共用
+const FS_PRE = FS_HEADER + GLSL_COMMON + FS_FUNCS;
+const FS = FS_PRE + FS_MAIN;
+
 export class FlatEngine extends SceneEngine {
-  static FS = FS_SRC;        // 片元着色器（SceneEngine 约定）
+  static FS = FS;                                      // 片元着色器（SceneEngine 约定）
 
   constructor(canvas, opts = {}) {
     super(canvas, opts);
@@ -414,8 +415,8 @@ export class FlatEngine extends SceneEngine {
   buildShaders() {
     super.buildShaders();
     if (typeof BEACH_PALM_FS === 'string' && typeof BEACH_PALM_VS === 'string') {
-      const palmFS = this.constructor.FS.slice(0, this.constructor.FS.indexOf('void main() {')) + BEACH_PALM_FS;
-      this.palmPR = this.program(palmFS, BEACH_PALM_VS);
+      // 显式拼接：FS_PRE 是海滩着色器 main 之前的部分（声明 + 公共函数 + 海滩函数）
+      this.palmPR = this.program(FS_PRE + BEACH_PALM_FS, BEACH_PALM_VS);
     }
   }
 
@@ -447,7 +448,7 @@ export class FlatEngine extends SceneEngine {
     this.configureBeachPass(now, this.PR);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     if (this.palmPR && typeof drawMaldivesPalms === 'function') drawMaldivesPalms(now, this.palmPR, this.configureBeachPass);
-    if (this._frameN % 20 === 0) gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, this.px);
+    // 同 SceneEngine：不再每 20 帧 readPixels 强制同步（实测海滩 6.3ms → 0ms）
   }
 
   configureBeachPass = (now, pass) => {
@@ -566,7 +567,7 @@ export class FlatEngine extends SceneEngine {
   }
 
   /* ======================================================================
-     海鸟：在画面上空滑翔，时而盘旋、时而扇几下翅膀；飞出画面会兜回来
+    海鸟：在画面上空滑翔，时而盘旋、时而扇几下翅膀；飞出画面会兜回来
      ====================================================================== */
   spawnBird(fromEdge) {
     const H2 = this.H - TASKBAR;
@@ -603,7 +604,7 @@ export class FlatEngine extends SceneEngine {
   }
 
   /* ======================================================================
-     涟漪 / 场景变更钩子
+    涟漪 / 场景变更钩子
      ====================================================================== */
   addRipple(x, y, str = 1) {
     this.ripples.push({ x, y, t0: performance.now(), str });

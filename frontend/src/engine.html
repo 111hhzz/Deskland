@@ -51,27 +51,35 @@
 
 <script type="module">
 // 主题注册表：静态导入（避免动态 import 的模块加载开销）
-import { MeadowEngine } from './engine/MeadowEngine.js';
-import { SkyEngine } from './engine/SkyEngine.js';
-import { FlatEngine } from './engine/FlatEngine.js';
+import { MeadowEngine } from './scenes/MeadowEngine.js';
+import { SkyEngine } from './scenes/SkyEngine.js';
+import { FlatEngine } from './scenes/FlatEngine.js';
+import { AuroraEngine } from './scenes/AuroraEngine.js';
 import { DeskApp } from './engine/DeskApp.js';
-const ENGINES = { meadow: () => MeadowEngine, sky: () => SkyEngine, flat: () => FlatEngine };
-const THEME_STYLE = {
-  meadow: 'themes/meadow/theme.css',
-  sky:    'themes/sky/theme.css',
-  flat:   'themes/flat/theme.css',
+
+// 注册表以 themes.json 的 theme id 为键（宿主传来的 ?theme=<id>）；主题样式统一 themes/<id>/theme.css。
+const ENGINES = {
+  meadow: () => MeadowEngine,
+  sky:    () => SkyEngine,
+  beach:  () => FlatEngine,
+  aurora: () => AuroraEngine,
 };
-const EXTRAS = { meadow: ['meadow-boy.js', 'meadow-cat.js'] };
+const THEME_STYLE = id => 'themes/' + id + '/theme.css';
+const EXTRAS = {
+  meadow: ['engine/legacy/meadow-boy.js', 'engine/legacy/meadow-cat.js'],
+  beach:  ['engine/legacy/beach-palms.js'],
+};
 
 const QS = new URLSearchParams(location.search);
 const canvas = document.getElementById('art');
 
-let engine = null, app = null;
+let engine = null, app = null, currentTheme = null;
 
 async function loadTheme(id) {
-  const Cls = ENGINES[id] ? ENGINES[id]() : MeadowEngine;
+  const known = !!ENGINES[id];
+  const Cls = known ? ENGINES[id]() : MeadowEngine;
   // 主题样式（热切换时换掉）
-  document.getElementById('themeCss').href = THEME_STYLE[id] || THEME_STYLE.meadow;
+  document.getElementById('themeCss').href = THEME_STYLE(known ? id : 'meadow');
   // 附加脚本（经典脚本，只加载一次）
   const loadScript = src => new Promise((res, rej) => {
     const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = rej;
@@ -85,32 +93,43 @@ async function loadTheme(id) {
 }
 
 async function boot(id) {
-  if (engine) { engine.stop(); engine.dispose(); engine = null; }
+  currentTheme = id;
+  // 旧实例整个收掉（引擎销毁 + 外壳卸监听 / 定时器 / 图标），否则还会在后台响应消息
+  if (app) { app.destroy(); app = null; }
+  if (engine) { engine.destroy(); engine = null; }
   engine = await loadTheme(id);
-  app = new DeskApp(engine);
+  app = new DeskApp(engine, id);
   await engine.init();
   app.start();
   engine.start();
   requestAnimationFrame(() => {
     window.__desklandReady = true;
     const host = window.chrome && window.chrome.webview;
-    if (host) host.postMessage(JSON.stringify({ t: 'firstframe' }));
+    if (host) host.postMessage(JSON.stringify({ t: 'firstframe', theme: id }));
   });
 }
 
 window.__dbg = {
+  get theme() { return currentTheme; },
   P: () => engine && engine.params,
   get seed() { return engine && engine.seed; },
   settle: () => engine && engine.settleAndRender(),
+  bench: () => engine && engine.bench(),   // 调试：10 帧中位耗时（含每帧 readPixels 同步）
   switchTheme: id => {
-    if (!ENGINES[id]) return Promise.resolve(false);   // 不支持（如海滩旧脚本）→ 交由宿主回退整页导航
-    return boot(id).then(() => true);
+    if (!ENGINES[id]) return false;   // 不支持（如海滩旧脚本）→ 交由宿主回退整页导航
+    boot(id).catch(e => {
+      window.__bootError = String((e && e.stack) || (e && e.message) || e);
+      // 告诉宿主本次热切换失败，由它回退整页导航（否则会停在一个空页面）
+      const host = window.chrome && window.chrome.webview;
+      if (host) host.postMessage(JSON.stringify({ t: 'switchfailed', theme: id }));
+    });
+    return true;
   },
 };
 
 const initial = QS.get('theme') || 'meadow';
 boot(initial);
 </script>
-<script src="ripple.js"></script>
+<script src="lib/ripple.js"></script>
 </body>
 </html>

@@ -2,7 +2,7 @@
 // 用途：缩略图卡片实际显示宽度很小（~300px），源图 294×168 却要 40—80KB，
 // 重编码后每张约 8—15KB，首屏图片体积约降到 1/4。
 // 运行：npm run thumbs   （需要先 npm install，仅在新增/替换缩略图时执行）
-import { readdir, readFile, writeFile, stat } from 'node:fs/promises';
+import { readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';

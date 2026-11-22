@@ -13,17 +13,12 @@
 // 让 meadow-boy.js / meadow-cat.js 等旧脚本继续以全局方式读取。
 
 import { BaseEngine } from './BaseEngine.js';
+import { GLSL_VS, CIRC_K, GRID_PAD } from './glsl/common.js';
 
 const STEP = 5;          // 陆地场的格子大小（px）
 const MORPH_MS = 1800;   // 图标挪动时、场在新旧两张之间过渡的时长
 const TASKBAR = 48;      // 任务栏高度（与 DeskApp 保持一致）
-const CELL_G = 48, CIRC_K = 36;
-
-const VS_SRC = `#version 300 es
-void main() {
-  vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2));
-  gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0);
-}`;
+const CELL_G = 48;      // 云格子大小（px，与 GLSL 的 uCellG 对应）；CIRC_K / GRID_PAD 在 glsl/common.js
 
 // ---- 纯函数助手（不依赖实例状态）----
 const sstep = (a, b, x) => { const t = Math.min(Math.max((x - a) / (b - a), 0), 1); return t * t * (3 - 2 * t); };
@@ -87,7 +82,7 @@ export class SceneEngine extends BaseEngine {
      着色器与资源
      ====================================================================== */
   // 编译着色器：boy/cat 脚本也通过 window.program 调用它（过渡期），因此用箭头函数保持 this
-  program = (fs, vsSrc = VS_SRC) => {
+  program = (fs, vsSrc = GLSL_VS) => {
     const gl = this.gl;
     // 同一 WebGL 上下文内（页内热切换）按 GLSL 复用已编译程序，省掉重复编译
     const key = vsSrc + '\n' + fs;
@@ -216,8 +211,9 @@ export class SceneEngine extends BaseEngine {
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     };
     this.drawScene(draw);
-    // 每 20 帧（含一次 readPixels 强制同步）测一次单帧耗时，语义同迁移前的 frameMs
-    if (this._frameN % 20 === 0) gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, this.px);
+    // 这里原来每 20 帧 readPixels 强制同步去测单帧耗时。实测（1920×1200）：
+    // 同步使每帧从 ~1.7ms 涨到 ~18ms（meadow 18.3 / sky 17.8 / aurora 20.9），
+    // 相当于每 20 帧卡一次，已移除。单帧耗时改用 bench()（含同步，仅调试用）。
   }
 
   setSceneUniforms(U) {
@@ -472,7 +468,8 @@ export class SceneEngine extends BaseEngine {
   uploadCircles(t) {
     const gl = this.gl;
     gl.activeTexture(gl.TEXTURE3);                            // 用第 3 号纹理单元，不要动到别的纹理
-    const gw = Math.ceil(this.W / CELL_G) + 7, gh = Math.ceil(this.H / CELL_G) + 7;   // 左、上多 4 格（右下方的云影要用到画面外的云），右、下多 3 格
+    // 左、上多 GRID_PAD 格（右下方的云影要用到画面外的云），右、下多 GRID_PAD - 1 格
+    const gw = Math.ceil(this.W / CELL_G) + GRID_PAD + (GRID_PAD - 1), gh = Math.ceil(this.H / CELL_G) + GRID_PAD + (GRID_PAD - 1);
     if (!this.circTex || gw !== this.cgW || gh !== this.cgH) {
       this.cgW = gw; this.cgH = gh;
       if (this.circTex) gl.deleteTexture(this.circTex);
@@ -507,11 +504,11 @@ export class SceneEngine extends BaseEngine {
     order.sort((a, b) => list[b + 2] - list[a + 2]);
     for (const i of order) {
       const x = list[i], y = list[i + 1], r = list[i + 2] + 6;
-      const x0 = Math.max(0, Math.floor((x - r) / CELL_G) + 4), x1 = Math.min(gw - 1, Math.floor((x + r) / CELL_G) + 4);
-      const y0 = Math.max(0, Math.floor((y - r) / CELL_G) + 4), y1 = Math.min(gh - 1, Math.floor((y + r) / CELL_G) + 4);
+      const x0 = Math.max(0, Math.floor((x - r) / CELL_G) + GRID_PAD), x1 = Math.min(gw - 1, Math.floor((x + r) / CELL_G) + GRID_PAD);
+      const y0 = Math.max(0, Math.floor((y - r) / CELL_G) + GRID_PAD), y1 = Math.min(gh - 1, Math.floor((y + r) / CELL_G) + GRID_PAD);
       for (let gy = y0; gy <= y1; gy++) for (let gx = x0; gx <= x1; gx++) {
         const ci = gy * gw + gx;
-        const nx = Math.max((gx - 4) * CELL_G, Math.min(x, (gx - 3) * CELL_G)), ny = Math.max((gy - 4) * CELL_G, Math.min(y, (gy - 3) * CELL_G));
+        const nx = Math.max((gx - GRID_PAD) * CELL_G, Math.min(x, (gx - (GRID_PAD - 1)) * CELL_G)), ny = Math.max((gy - GRID_PAD) * CELL_G, Math.min(y, (gy - (GRID_PAD - 1)) * CELL_G));
         if ((nx - x) * (nx - x) + (ny - y) * (ny - y) > r * r) continue;   // 圆碰不到这个格子
         if (cnt[ci] >= CIRC_K) continue;
         const o = ((gy * gw + gx) * CIRC_K + cnt[ci]++) * 4;

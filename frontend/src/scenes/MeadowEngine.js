@@ -1,12 +1,14 @@
 // 草地主题引擎：只保留草地特有的部分（着色器、调色板、人物 / 小猫）。
 // 共享的场景机制（噪声、陆地场、云的圆、渲染骨架）在 SceneEngine。
 //
-// 过渡期约定：渲染上下文（gl/cv/program）与共享状态（W/H/P/icons/seed/TASKBAR）由 DeskApp 挂到 window，
+// 过渡期约定：渲染上下文（gl/cv/program）与共享状态（W/H/icons/seed/TASKBAR）由 DeskApp 挂到 window，
 // 让 meadow-boy.js / meadow-cat.js 等旧脚本继续以全局方式读取，行为保持 100% 一致。
 
-import { SceneEngine } from './SceneEngine.js';
+import { SceneEngine } from '../engine/SceneEngine.js';
+import { GLSL_COMMON, GLSL_CLOUD, GLSL_MEADOW_EXTRA, withDefines } from '../engine/glsl/common.js';
 
-const FS_SRC = `#version 300 es
+// 头部：本主题自己的 uniform 声明与常量；函数体在 common.js，主体（main）在下面
+const FS_HEADER = `#version 300 es
 precision highp float;
 uniform sampler2D uNoise, uFA, uFB;
 uniform vec2 uRes, uGrid;
@@ -29,39 +31,9 @@ out vec4 o;
 // ---- 调色板（由主题 theme.css 的 --scene-* Token 驱动，JS 读取后传入）----
 uniform vec3 uGroundLight, uGroundMid, uGroundDeep, uInk, uShadow, uCloudHi, uCloudBody, uCloudSh;
 uniform vec2 uLightDir, uShadowOff;
-const int CIRC_K = 36;
+`;
 
-float hash2(vec2 p) {
-  vec3 p3 = fract(vec3(p.xyx) * 0.1031);
-  p3 += dot(p3, p3.yzx + 33.33);
-  return fract((p3.x + p3.y) * p3.z);
-}
-float ss(float a, float b, float x) { float t = clamp((x - a) / (b - a), 0.0, 1.0); return t * t * (3.0 - 2.0 * t); }
-vec4 N(vec2 p, float scale) { return texture(uNoise, p / scale + uSeed * 0.013); }
-float fieldS(sampler2D t, vec2 p) { return texture(t, (p / uStep + 0.5) / uGrid).r; }
-float smin(float a, float b, float k) { float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0); return mix(b, a, h) - k * h * (1.0 - h); }
-
-// 到云的距离（<0 在云里）：图标周围云团的主体 + 自己格子里的圆（和天空主题同一套）
-// front = true 时顺便找出盖住这个点、圆心最靠下（最前面）的那个圆：fc = (圆心 x, y, 半径, 色调)
-float cloudDist(vec2 q, bool front, inout vec4 fc) {
-  float sF = mix(fieldS(uFA, q), fieldS(uFB, q), uMix);
-  float d = sF - uEdge + 0.6 * 95.0;                                              // 主体：把圆之间的缝填上
-  ivec2 cell = ivec2(floor(q / uCellG)) + 4;                                      // 格子比屏幕左、上多 4 格（右下方的云影要用到），右、下多 3 格
-  if (cell.x < 0 || cell.y < 0 || float(cell.x) >= uCGrid.x || float(cell.y) >= uCGrid.y) return d;
-  for (int k = 0; k < CIRC_K; k++) {
-    vec4 c = texelFetch(uCirc, ivec2(cell.x * CIRC_K + k, cell.y), 0);
-    if (c.z <= 0.0) break;
-    float di = length(q - c.xy) - c.z;
-    d = smin(d, di, 6.0);
-    if (front && di < 0.0 && c.y > fc.y) fc = c;
-  }
-  return d;
-}
-float cloudDist(vec2 q) { vec4 fc = vec4(0.0, -1e9, 0.0, 0.0); return cloudDist(q, false, fc); }
-
-// 到一段线的距离
-float segD(vec2 p, vec2 a, vec2 b) { vec2 pa = p - a, ba = b - a; return length(pa - ba * clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0)); }
-
+const FS_BODY = `
 // 画草的短线：每个 12×6 的格子里最多一笔，方向跟着大片区域走（一片片平行的排线），疏密也跟着区域变（有的地方密、有的地方空）
 // 只看自己的格子和上下两格（一笔不会伸出左右的格子）
 float grassInk(vec2 p) {
@@ -83,23 +55,6 @@ float grassInk(vec2 p) {
   }
   return ink;
 }
-
-#ifdef MEADOW_CAT
-float catTailMask(vec2 uv) {
-  return smoothstep(.635,.665,uv.x)*smoothstep(.715,.75,uv.y);
-}
-vec4 catColor(vec2 uv) {
-  vec2 pivot=vec2(.68,.73),delta=uv-pivot;
-  // 尾根固定，越靠尾尖摆幅越大；只变形尾巴，身体和四肢保持原位。
-  float angle=-uCatTail*smoothstep(.025,.16,length(delta));
-  float c=cos(angle),s=sin(angle);
-  vec2 source=pivot+vec2(c*delta.x-s*delta.y,s*delta.x+c*delta.y);
-  vec4 body=texture(uCat,uv),tail=texture(uCat,source);
-  body.a*=1.-catTailMask(uv);tail.a*=catTailMask(source);
-  float alpha=body.a+tail.a;
-  return vec4((body.rgb*body.a+tail.rgb*tail.a)/max(alpha,.001),min(alpha,1.));
-}
-#endif
 
 void main() {
   vec2 p = vec2(gl_FragCoord.x, uRes.y * uScale - gl_FragCoord.y) / uScale;
@@ -155,8 +110,16 @@ void main() {
   o = vec4(col, 1.0);
 }`;
 
+const FS = FS_HEADER + GLSL_COMMON + GLSL_CLOUD + GLSL_MEADOW_EXTRA + FS_BODY;
+const FS_ACTOR = withDefines(FS, ['MEADOW_ACTOR']);
+const FS_CAT = withDefines(FS, ['MEADOW_CAT']);
+const FS_ACTOR_CAT = withDefines(FS, ['MEADOW_ACTOR', 'MEADOW_CAT']);
+
 export class MeadowEngine extends SceneEngine {
-  static FS = FS_SRC;        // 片元着色器（SceneEngine 约定）
+  static FS = FS;                     // 片元着色器（SceneEngine 约定）
+  static FS_ACTOR = FS_ACTOR;         // 带人物的变体
+  static FS_CAT = FS_CAT;             // 带小猫的变体
+  static FS_ACTOR_CAT = FS_ACTOR_CAT; // 人物 + 小猫
 
   constructor(canvas, opts = {}) {
     super(canvas, opts);
@@ -216,7 +179,7 @@ export class MeadowEngine extends SceneEngine {
     const actor = P.showBoy === 1 ? boy : null;
     const cat = P.showCat === 1 && typeof prepareMeadowCat === 'function' ? prepareMeadowCat(boy, now) : null;
     // 官网不加载人物脚本，沿用原来的草地着色器和开销。
-    if (actor && !this.actorPR) this.actorPR = this.program(this.constructor.FS.replace('#version 300 es', '#version 300 es\n#define MEADOW_ACTOR'));
+    if (actor && !this.actorPR) this.actorPR = this.program(this.constructor.FS_ACTOR);
     this._actor = actor; this._cat = cat;
     this.actorTex = actor ? actor.actor : null;
     this.actorShadowTex = actor ? actor.shadow : null;
@@ -228,8 +191,8 @@ export class MeadowEngine extends SceneEngine {
     draw(actor ? this.actorPR : this.PR, false);
     if (!cat) return;
     // 人物 / 猫共用一份片的变体，按需懒编译（保持既有开销）
-    if (actor && !this.catActorPR) this.catActorPR = this.program(this.constructor.FS.replace('#version 300 es', '#version 300 es\n#define MEADOW_ACTOR\n#define MEADOW_CAT'));
-    if (!actor && !this.catPR) this.catPR = this.program(this.constructor.FS.replace('#version 300 es', '#version 300 es\n#define MEADOW_CAT'));
+    if (actor && !this.catActorPR) this.catActorPR = this.program(this.constructor.FS_ACTOR_CAT);
+    if (!actor && !this.catPR) this.catPR = this.program(this.constructor.FS_CAT);
     this.catTex = cat.texture; this.catRect = cat.rect; this.catShadow = cat.shadow; this.catTail = cat.tail;
     const k = cv._scale, [x, y, w, h] = cat.bounds;
     const left = Math.max(0, Math.floor(x * k)), top = Math.max(0, Math.floor(y * k));

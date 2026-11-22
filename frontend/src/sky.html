@@ -8,7 +8,7 @@
   Deskland · 天空主题原型（纯 WebGL2，2D，每帧直接计算；图标坐在一团团圆鼓鼓的云上，云下是自己淡淡的影子）
   画风参考：钢笔淡彩的插画——天空分白天 / 傍晚 / 晚上三种时段，图标周围的云和草地主题完全一样（同一个场、同一套圆）
 
-  本文件只是引导壳：渲染逻辑在 engine/SkyEngine.js，应用层（图标 / 面板 / 宿主消息）在 engine/DeskApp.js。
+  本文件只是引导壳：渲染逻辑在 scenes/SkyEngine.js，应用层（图标 / 面板 / 宿主消息）在 engine/DeskApp.js。
 -->
 <link rel="stylesheet" href="themes/base.css">
 <link rel="stylesheet" href="themes/sky/theme.css">
@@ -61,7 +61,7 @@
 <div id="nogl">当前浏览器不支持 WebGL2，无法运行原型。</div>
 
 <script type="module">
-import { SkyEngine } from './engine/SkyEngine.js';
+import { SkyEngine } from './scenes/SkyEngine.js';
 import { DeskApp } from './engine/DeskApp.js';
 
 const QS = new URLSearchParams(location.search);
@@ -93,6 +93,6 @@ engine.init().then(ok => {
   });
 });
 </script>
-<script src="ripple.js"></script>   <!-- 桌面点击涟漪（只读鼠标钩子） -->
+<script src="lib/ripple.js"></script>   <!-- 桌面点击涟漪（只读鼠标钩子） -->
 </body>
 </html>

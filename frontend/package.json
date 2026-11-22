@@ -5,11 +5,20 @@
   "type": "module",
   "description": "Deskland+ 前端构建期工具（仅开发用，运行时无依赖）",
   "devDependencies": {
-    "sharp": "0.33.5",
-    "esbuild": "0.24.2"
+    "@eslint/js": "^10.0.1",
+    "axe-core": "^4.14.1",
+    "esbuild": "^0.28.2",
+    "eslint": "^10.15.0",
+    "globals": "^17.14.0",
+    "sharp": "^0.35.5",
+    "stylelint": "^18.1.0",
+    "stylelint-config-standard": "^41.1.0"
   },
   "scripts": {
     "thumbs": "node thumbs.mjs",
-    "minify": "node minify.mjs"
+    "minify": "node minify.mjs",
+    "lint": "npm run lint:js && npm run lint:css",
+    "lint:js": "eslint .",
+    "lint:css": "stylelint \"src/**/*.css\""
   }
 }

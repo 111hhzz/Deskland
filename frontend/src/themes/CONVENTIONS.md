@@ -5,11 +5,13 @@
 
 ## 1. 文件放在哪里
 
-宿主把 `https://app.local` 虚拟域映射到 `prototype/`（见 `host/DesktopHost.cs` 的
-`SetVirtualHostNameToFolderMapping`），所以一切主题文件都必须在 `prototype/` 下。
+主题源码在 `frontend/src/` 下；`frontend/build.ps1` 复制到 `frontend/dist/`，`host/build.ps1` 再复制到
+`host/bin/prototype/`。宿主把 `https://app.local` 虚拟域映射到 `<exe 目录>\prototype`（见
+`host/DesktopHost.cs` 的 `SetVirtualHostNameToFolderMapping`），所以运行时一切主题文件都在 `prototype/` 下。
+**开发时只改 `frontend/src/`，不要改构建产物。**
 
 ```
-prototype/
+frontend/src/
   themes.json                 # 注册表：宿主 / 设置页读它（id、status、page、product、thumb、groups）
   themes/
     CONVENTIONS.md            # 本文件
@@ -21,14 +23,14 @@ prototype/
       <id>.html               # 可选：主题页面（新主题建议放在这里）
 ```
 
-现有三个 ready 主题的页面仍留在 `prototype/*.html`（`meadow.html` / `sky.html` / `flat.html`），
+现有三个 ready 主题的页面仍留在 `frontend/src/*.html`（`meadow.html` / `sky.html` / `flat.html`），
 它们的 `themes/<id>/` 目录只放 `theme.json` 与 `theme.css`；新主题建议把页面放进自己的目录。
 
 ## 2. 各文件的职责
 
 | 文件 | 职责 | 谁读 |
 |---|---|---|
-| `prototype/themes.json` | 注册表：主题列表、产品权限、缩略图、参数（groups） | 宿主 `Themes.cs`、设置页 `settings.html`、打包脚本 |
+| `themes.json` | 注册表：主题列表、产品权限、缩略图、参数（groups） | 宿主 `Themes.cs`、设置页 `settings.html`、打包脚本 |
 | `themes/<id>/theme.json` | 主题自描述 + Token schema（名字/类型/说明） | 约定测试、工具链、未来设置页 |
 | `themes/<id>/theme.css` | 主题 Token **值**（只含 `:root` 自定义属性） | 浏览器（CSS）+ 引擎（JS 读 computed style） |
 | `themes/base.css` | 公共样式 + 跨主题 Token 默认值 | 浏览器 |
@@ -37,7 +39,7 @@ prototype/
 `theme.json` 的 `tokens` 是 **schema**（声明本主题用了哪些 Token），值在 `theme.css`；
 约定测试会交叉校验“schema 里的每个名字都存在于 theme.css”。
 
-`theme.json` 的 `page` 是相对 `prototype/` 的路径（如 `themes/<id>/<id>.html`），
+`theme.json` 的 `page` 是相对运行时 `prototype/` 的路径（如 `themes/<id>/<id>.html`），
 必须与 `themes.json` 里该主题的 `page` 一致。
 
 ## 3. Token 命名规则

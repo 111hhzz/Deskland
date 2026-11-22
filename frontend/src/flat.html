@@ -13,7 +13,7 @@
   - 沙滩：几层淡紫灰 / 灰粉的湿沙色带（之前海浪到过的位置），往内陆过渡到奶白干沙
   - 皮划艇：在深水里慢慢划，会绕开陆地；海鸟：在画面上空滑翔；椰子树：种在沙地上
 
-  本文件只是引导壳：渲染逻辑在 engine/FlatEngine.js，应用层（图标 / 面板 / 宿主消息）在 engine/DeskApp.js。
+  本文件只是引导壳：渲染逻辑在 scenes/FlatEngine.js，应用层（图标 / 面板 / 宿主消息）在 engine/DeskApp.js。
 -->
 <link rel="stylesheet" href="themes/base.css">
 <link rel="stylesheet" href="themes/beach/theme.css">
@@ -61,9 +61,9 @@
 </aside>
 <div id="nogl">当前浏览器不支持 WebGL2，无法运行原型。</div>
 
-<script src="beach-palms.js"></script>
+<script src="engine/legacy/beach-palms.js"></script>
 <script type="module">
-import { FlatEngine } from './engine/FlatEngine.js';
+import { FlatEngine } from './scenes/FlatEngine.js';
 import { DeskApp } from './engine/DeskApp.js';
 
 const QS = new URLSearchParams(location.search);
@@ -96,6 +96,6 @@ engine.init().then(ok => {
   });
 });
 </script>
-<script src="ripple.js"></script>   <!-- 桌面点击涟漪（只读鼠标钩子） -->
+<script src="lib/ripple.js"></script>   <!-- 桌面点击涟漪（只读鼠标钩子） -->
 </body>
 </html>

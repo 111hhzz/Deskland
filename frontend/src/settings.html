@@ -8,7 +8,7 @@
   Deskland 设置窗口
   - 由桌面宿主（host/Deskland.exe）在 WebView2 里打开；单独用浏览器打开时使用模拟数据，方便调界面
   - 主题与参数来自 themes.json，控件按清单自动生成
-  - 主题预览：直接显示 thumbs-data.js 里的静态缩略图，不启动第二套 WebGL2 页面
+  - 主题预览：直接显示 thumbs/ 里的静态缩略图（CSS background），不启动第二套 WebGL2 页面
   - 和宿主的消息（JSON 字符串）：
       发出：hello / set {theme,key,value} / reset {theme} / theme {id} / autostart {v} / updateProgram
       收到：init {theme,params,screen,autostart,autostartWarn} / autostart {v}
@@ -125,7 +125,6 @@
   </div>
 </footer>
 
-<script src="thumbs-data.js"></script>
 <script src="assets/settings.js"></script>
 </body>
 </html>

@@ -1,0 +1,26 @@
+{
+  "id": "aurora",
+  "name": "夜航 · 极光",
+  "desc": "夜空下流动的极光，图标浮在发光的云原上；星星闪烁、偶有流星",
+  "page": "themes/aurora/aurora.html",
+  "status": "ready",
+  "product": "free",
+  "tokens": {
+    "color": {
+      "bg": { "type": "color", "description": "页面 / 场景底色" }
+    },
+    "scene": {
+      "sky-top": { "type": "vec3", "description": "夜空天顶" },
+      "sky-bottom": { "type": "vec3", "description": "地平线" },
+      "aurora-a": { "type": "vec3", "description": "极光主色" },
+      "aurora-b": { "type": "vec3", "description": "极光副色" },
+      "cloud-hi": { "type": "vec3", "description": "云亮部" },
+      "cloud-body": { "type": "vec3", "description": "云主体" },
+      "cloud-shade": { "type": "vec3", "description": "云暗部" },
+      "cloud-shadow": { "type": "vec3", "description": "云影" },
+      "light-dir": { "type": "vec2", "description": "光方向" },
+      "shadow-offset": { "type": "vec2", "description": "云影偏移" },
+      "moon": { "type": "vec3", "description": "月亮颜色" }
+    }
+  }
+}

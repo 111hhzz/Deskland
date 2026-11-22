@@ -11,7 +11,7 @@
   - 草地：大块的水彩晕染 + 纸的颗粒；一片片平行的短线画草（疏密跟着区域变）；几道很淡的长线像起伏的地势
   - 云影：同一个云的形状往右下方偏一段，把草地压成深绿
 
-  本文件只是引导壳：渲染逻辑在 engine/MeadowEngine.js，应用层（图标 / 面板 / 宿主消息）在 engine/DeskApp.js。
+  本文件只是引导壳：渲染逻辑在 scenes/MeadowEngine.js，应用层（图标 / 面板 / 宿主消息）在 engine/DeskApp.js。
 -->
 <link rel="stylesheet" href="themes/base.css">
 <link rel="stylesheet" href="themes/meadow/theme.css">
@@ -59,7 +59,7 @@
 <div id="nogl">当前浏览器不支持 WebGL2，无法运行原型。</div>
 
 <script type="module">
-import { MeadowEngine } from './engine/MeadowEngine.js';
+import { MeadowEngine } from './scenes/MeadowEngine.js';
 import { DeskApp } from './engine/DeskApp.js';
 
 const QS = new URLSearchParams(location.search);
@@ -91,8 +91,8 @@ engine.init().then(ok => {
   });
 });
 </script>
-<script src="meadow-boy.js"></script>
-<script src="meadow-cat.js"></script>
-<script src="ripple.js"></script>   <!-- 桌面点击涟漪（只读鼠标钩子） -->
+<script src="engine/legacy/meadow-boy.js"></script>
+<script src="engine/legacy/meadow-cat.js"></script>
+<script src="lib/ripple.js"></script>   <!-- 桌面点击涟漪（只读鼠标钩子） -->
 </body>
 </html>

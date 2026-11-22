@@ -1,4 +1,4 @@
-# 编译 Win32 Probe
+﻿# 编译 Win32 Probe
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
 $bin = Join-Path $root 'bin'

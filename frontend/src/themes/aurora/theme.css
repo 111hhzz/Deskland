@@ -1,0 +1,16 @@
+/* 夜航 · 极光 主题 Token 值。
+ * 只声明自定义属性，禁止写选择器；公共默认值见 ../base.css。 */
+:root {
+  --color-bg: #071026;
+  --scene-sky-top: 0.03 0.05 0.14;       /* 夜空天顶 */
+  --scene-sky-bottom: 0.08 0.12 0.26;    /* 地平线 */
+  --scene-aurora-a: 0.24 0.86 0.59;      /* 极光主色（绿） */
+  --scene-aurora-b: 0.48 0.38 1.00;      /* 极光副色（紫） */
+  --scene-cloud-hi: 0.75 0.92 0.86;      /* 云亮部（反射极光） */
+  --scene-cloud-body: 0.30 0.42 0.62;    /* 云主体 */
+  --scene-cloud-shade: 0.20 0.28 0.46;   /* 云暗部 */
+  --scene-cloud-shadow: 0.16 0.22 0.40; /* 云影 */
+  --scene-light-dir: -0.6 -0.8;
+  --scene-shadow-offset: 115 156;
+  --scene-moon: 0.91 0.89 0.82;
+}

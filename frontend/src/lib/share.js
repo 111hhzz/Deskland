@@ -337,7 +337,7 @@
         if (demo) commit();                                  // 仅演示编排需要恢复图标场
         if (typeof paused !== 'undefined') paused = hostPause === null ? wasPaused : hostPause;
         busy = false;
-        if (err) { try { mr.stop(); } catch (e) { } reject(err); return; }
+        if (err) { try { mr.stop(); } catch (e) { /* 录像已结束/不可用，忽略 */ } reject(err); return; }
         mr.onstop = () => {
           const blob = new Blob(chunks, { type: mime.split(';')[0] });
           (mp4 ? markLimitedRange(blob) : Promise.resolve(blob)).then(b => resolve({ blob: b, mime: mime.split(';')[0], poster }));

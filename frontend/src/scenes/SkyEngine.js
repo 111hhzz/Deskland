@@ -3,9 +3,11 @@
 //
 // 过渡期约定：渲染上下文与共享状态由 DeskApp 挂到 window，与 meadow 保持一致的实例化顺序。
 
-import { SceneEngine } from './SceneEngine.js';
+import { SceneEngine } from '../engine/SceneEngine.js';
+import { GLSL_COMMON, GLSL_CLOUD } from '../engine/glsl/common.js';
 
-const FS_SRC = `#version 300 es
+// 头部：本主题自己的 uniform 声明与常量；函数体在 common.js，主体（main）在下面
+const FS_HEADER = `#version 300 es
 precision highp float;
 #define SKY_SCHEME
 uniform int uScheme;   // 0 白天 / 1 傍晚 / 2 晚上
@@ -30,60 +32,14 @@ out vec4 o;
 // ---- 调色板（由主题 theme.css 的 --scene-* Token 驱动，JS 读取后传入）----
 uniform vec3 uShadow, uCloudHi, uCloudBody, uCloudSh, uCloudShadow;
 uniform vec2 uLightDir, uShadowOff;
-const int CIRC_K = 36;
 
 // 天空：三种时段的上半 / 下半渐变（顶 → 地平线）
 uniform vec3 uSkyDayTop, uSkyDayBot, uSkyDuskTop, uSkyDuskBot, uSkyNightTop, uSkyNightBot;
 vec3 skyTop() { return uScheme == 1 ? uSkyDuskTop : (uScheme == 2 ? uSkyNightTop : uSkyDayTop); }
 vec3 skyBot() { return uScheme == 1 ? uSkyDuskBot : (uScheme == 2 ? uSkyNightBot : uSkyDayBot); }
+`;
 
-float hash2(vec2 p) {
-  vec3 p3 = fract(vec3(p.xyx) * 0.1031);
-  p3 += dot(p3, p3.yzx + 33.33);
-  return fract((p3.x + p3.y) * p3.z);
-}
-float ss(float a, float b, float x) { float t = clamp((x - a) / (b - a), 0.0, 1.0); return t * t * (3.0 - 2.0 * t); }
-vec4 N(vec2 p, float scale) { return texture(uNoise, p / scale + uSeed * 0.013); }
-float fieldS(sampler2D t, vec2 p) { return texture(t, (p / uStep + 0.5) / uGrid).r; }
-float smin(float a, float b, float k) { float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0); return mix(b, a, h) - k * h * (1.0 - h); }
-
-// 到云的距离（<0 在云里）：图标周围云团的主体 + 自己格子里的圆（和天空主题同一套）
-// front = true 时顺便找出盖住这个点、圆心最靠下（最前面）的那个圆：fc = (圆心 x, y, 半径, 色调)
-float cloudDist(vec2 q, bool front, inout vec4 fc) {
-  float sF = mix(fieldS(uFA, q), fieldS(uFB, q), uMix);
-  float d = sF - uEdge + 0.6 * 95.0;                                              // 主体：把圆之间的缝填上
-  ivec2 cell = ivec2(floor(q / uCellG)) + 4;                                      // 格子比屏幕左、上多 4 格（右下方的云影要用到），右、下多 3 格
-  if (cell.x < 0 || cell.y < 0 || float(cell.x) >= uCGrid.x || float(cell.y) >= uCGrid.y) return d;
-  for (int k = 0; k < CIRC_K; k++) {
-    vec4 c = texelFetch(uCirc, ivec2(cell.x * CIRC_K + k, cell.y), 0);
-    if (c.z <= 0.0) break;
-    float di = length(q - c.xy) - c.z;
-    d = smin(d, di, 6.0);
-    if (front && di < 0.0 && c.y > fc.y) fc = c;
-  }
-  return d;
-}
-float cloudDist(vec2 q) { vec4 fc = vec4(0.0, -1e9, 0.0, 0.0); return cloudDist(q, false, fc); }
-
-// 到一段线的距离
-float segD(vec2 p, vec2 a, vec2 b) { vec2 pa = p - a, ba = b - a; return length(pa - ba * clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0)); }
-#ifdef MEADOW_CAT
-float catTailMask(vec2 uv) {
-  return smoothstep(.635,.665,uv.x)*smoothstep(.715,.75,uv.y);
-}
-vec4 catColor(vec2 uv) {
-  vec2 pivot=vec2(.68,.73),delta=uv-pivot;
-  // 尾根固定，越靠尾尖摆幅越大；只变形尾巴，身体和四肢保持原位。
-  float angle=-uCatTail*smoothstep(.025,.16,length(delta));
-  float c=cos(angle),s=sin(angle);
-  vec2 source=pivot+vec2(c*delta.x-s*delta.y,s*delta.x+c*delta.y);
-  vec4 body=texture(uCat,uv),tail=texture(uCat,source);
-  body.a*=1.-catTailMask(uv);tail.a*=catTailMask(source);
-  float alpha=body.a+tail.a;
-  return vec4((body.rgb*body.a+tail.rgb*tail.a)/max(alpha,.001),min(alpha,1.));
-}
-#endif
-
+const FS_BODY = `
 void main() {
   vec2 p = vec2(gl_FragCoord.x, uRes.y * uScale - gl_FragCoord.y) / uScale;
 
@@ -137,7 +93,7 @@ void main() {
 }`;
 
 export class SkyEngine extends SceneEngine {
-  static FS = FS_SRC;        // 片元着色器（SceneEngine 约定）
+  static FS = FS_HEADER + GLSL_COMMON + GLSL_CLOUD + FS_BODY;   // 片元着色器（SceneEngine 约定）
 
   constructor(canvas, opts = {}) {
     super(canvas, opts);
