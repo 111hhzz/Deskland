@@ -1,5 +1,7 @@
 // 全局声明：WebView2 宿主注入的对象与测试同步信号。
 
+import type { EngineParams } from './engine/BaseEngine.js';
+
 export {};
 
 declare global {
@@ -16,7 +18,7 @@ declare global {
     __desklandIcons?: boolean;
     __dbg?: {
       readonly theme: string | null;
-      P(): Record<string, number> | null;
+      P(): EngineParams | null;
       readonly seed: number;
       settle(): void;
       bench(): unknown;

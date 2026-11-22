@@ -8,6 +8,7 @@ import { SkyEngine } from '../scenes/SkyEngine.js';
 import { FlatEngine } from '../scenes/FlatEngine.js';
 import { AuroraEngine } from '../scenes/AuroraEngine.js';
 import { DeskApp } from './DeskApp.js';
+import type { EngineParams } from './BaseEngine.js';
 import { WallShell } from './ui';
 
 // 静态外壳（任务栏 / 调试面板）用 React 渲染：容器是独立的 #ui，
@@ -19,7 +20,7 @@ if (uiHost) {
 
 // 引擎只用到这几个成员（main 负责创建 / 启停 / 就绪回执 / 调试钩子），其余能力在 DeskApp 与引擎内部。
 export interface EngineInstance {
-  params: Record<string, number>;
+  params: EngineParams;
   seed: number;
   init(): Promise<unknown>;
   start(): void;

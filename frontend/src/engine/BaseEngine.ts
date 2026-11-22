@@ -17,6 +17,10 @@ export interface EngineStats {
   frame: number;
 }
 
+// 引擎参数值：绝大多数是数值，少量开关是布尔（debug / snap / cap30）
+export type EngineParamValue = number | boolean;
+export type EngineParams = Record<string, EngineParamValue>;
+
 // 事件回调：emit 的数据形状因事件而异（stats 对象 / 无数据），统一按 unknown 处理
 type EngineListener = (data: unknown) => void;
 
@@ -24,7 +28,7 @@ export class BaseEngine {
   canvas: HTMLCanvasElement;
   opts: EngineOpts;
   gl: WebGL2RenderingContext | null;
-  params: Record<string, number>;
+  params: EngineParams;
   paused: boolean;
 
   _raf: number;
@@ -55,7 +59,7 @@ export class BaseEngine {
     this._resizeT = 0;
   }
 
-  defaultParams(): Record<string, number> { return {}; }
+  defaultParams(): EngineParams { return {}; }
 
   async init(): Promise<boolean> {
     this._t0 = performance.now();
