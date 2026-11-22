@@ -24,7 +24,7 @@ function Get-RuntimeFiles {
                'Microsoft.Web.WebView2.WinForms.dll', 'WebView2Loader.dll') |
         ForEach-Object { 'host\bin\' + $_ }
     $files += Get-ChildItem -LiteralPath $proto -Recurse -File -Force |
-        Where-Object { $_.Name -ne 'serve.mjs' -and $_.FullName -notmatch '\\themes\\_template\\' } |
+        Where-Object { $_.FullName -notmatch '\\themes\\_template\\' } |
         ForEach-Object { $_.FullName.Substring($root.Length + 1) }
     return @($files)
 }

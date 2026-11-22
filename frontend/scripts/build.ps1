@@ -1,38 +1,32 @@
-﻿# 前端打包：frontend/src（源）→ frontend/dist（产物）。
-# 产物为纯静态文件，供 host 构建时复制到 bin/prototype。
+﻿# 前端产物：Vite 构建（root=src，public=../public 原样拷贝，产物 ../dist，固定名无哈希）。
+# 由 host/build.ps1 调用；也可单独 `powershell frontend\scripts\build.ps1`。
+# 需要 Node（本机已装 LTS）；未装则跳过（宿主会因缺 dist 报错提示）。
 $ErrorActionPreference = 'Stop'
-$here = $PSScriptRoot                              # frontend/scripts（本文件是工具，不属 src）
+
+$here = $PSScriptRoot                              # frontend/scripts
 $front = Split-Path $here -Parent                  # frontend
-$root = Split-Path $front -Parent                  # Deskland 仓库根
-$src = Join-Path $front 'src'
 $dist = Join-Path $front 'dist'
-if (-not (Test-Path -LiteralPath $src)) { throw "缺少前端源目录：$src" }
+$versionTxt = Join-Path $dist 'version.txt'
 
-# 清理并重建产物（枚举删除，避免子目录残留）
-if (Test-Path -LiteralPath $dist) {
-    Get-ChildItem -LiteralPath $dist -Recurse -File -Force | Remove-Item -Force -Confirm:$false
-    Get-ChildItem -LiteralPath $dist -Recurse -Directory -Force | Sort-Object -Property FullName -Descending | Remove-Item -Force -Confirm:$false
-}
-New-Item -ItemType Directory -Force -Path $dist | Out-Null
-
-# 复制（保留目录结构）
-Copy-Item -Path (Join-Path $src '*') -Destination $dist -Recurse -Force
-
-# 可选：esbuild 压缩 dist/assets（开发机装有 frontend/node_modules 才执行；无依赖时跳过）
-$nodeCmd = Get-Command node -ErrorAction SilentlyContinue
-if ($nodeCmd -and (Test-Path (Join-Path $front 'node_modules\esbuild'))) {
-    & node (Join-Path $here 'minify.mjs')
-} else {
-    Write-Host '  （跳过 JS/CSS 压缩：未安装 frontend/node_modules）'
+if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
+    Write-Host '未找到 node，跳过前端构建（安装 Node LTS 后重试）'
+    exit 0
 }
 
-# 校验关键入口存在
-foreach ($need in @('settings.html', 'engine.html', 'themes.json', 'themes/base.css')) {
-    if (-not (Test-Path -LiteralPath (Join-Path $dist $need))) { throw "产物缺少关键文件：$need" }
+Push-Location $front
+try {
+    # 依赖缺失时装一次；平时直接构建（Vite 构建本身很快）
+    if (-not (Test-Path (Join-Path $front 'node_modules\vite'))) {
+        & npm ci
+        if ($LASTEXITCODE -ne 0) { throw "npm ci 失败（exit $LASTEXITCODE）" }
+    }
+    & npm run build
+    if ($LASTEXITCODE -ne 0) { throw "Vite 构建失败（exit $LASTEXITCODE）" }
+} finally {
+    Pop-Location
 }
 
-# 版本戳（缓存清理用）
-$ver = (Get-Content -LiteralPath (Join-Path $root 'tools\version.json') -Raw | ConvertFrom-Json).version
-[IO.File]::WriteAllText((Join-Path $dist 'version.txt'), $ver, (New-Object Text.UTF8Encoding($false)))
-
-Write-Host "前端打包完成：$dist （$ver）"
+# 浏览器缓存清理：宿主每次构建改 ?v=版本号，资源引用不带版本，所以额外写 version.txt 供宿主比对
+$version = (Get-Content (Join-Path $front 'package.json') -Raw | ConvertFrom-Json).version
+Set-Content -LiteralPath $versionTxt -Value $version -Encoding utf8
+Write-Host "前端打包完成：$dist （$version）"

@@ -87,10 +87,11 @@ Tests are organised in four layers: **unit** (theme conventions, no browser), **
 ## Browser preview
 
 ```powershell
-node frontend\scripts\serve.mjs
+cd frontend
+npm run dev      # Vite dev server（默认 5173 端口）
 ```
 
-Open **http://localhost:5178/settings.html**. The browser uses sample icons; adaptation to real desktop icons requires the Windows host.
+Open **http://localhost:5173/settings.html**. The browser uses sample icons; adaptation to real desktop icons requires the Windows host.
 
 ## Windows installer
 
@@ -222,10 +223,11 @@ powershell -ExecutionPolicy Bypass -File tools\ci.ps1
 ### 浏览器预览
 
 ```powershell
-node frontend\scripts\serve.mjs
+cd frontend
+npm run dev      # Vite dev server（默认 5173 端口）
 ```
 
-打开 **http://localhost:5178/settings.html**。浏览器使用示例图标，真实桌面图标适配需要 Windows 宿主。
+打开 **http://localhost:5173/settings.html**。浏览器使用示例图标，真实桌面图标适配需要 Windows 宿主。
 
 ### Windows 安装包
 

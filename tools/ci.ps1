@@ -13,7 +13,7 @@ $root = Split-Path $PSScriptRoot -Parent
 
 function Write-Step($text) { Write-Host "`n==== $text ====" -ForegroundColor Cyan }
 
-# 1) 前端打包（frontend/src → frontend/dist）
+# 1) 前端打包（Vite：src + public → frontend/dist）
 Write-Step '前端打包'
 & (Join-Path $root 'frontend\scripts\build.ps1')
 if (-not $?) { throw '前端打包失败' }

@@ -5,26 +5,30 @@
 
 ## 1. 文件放在哪里
 
-主题源码在 `frontend/src/` 下；`frontend/scripts/build.ps1` 复制到 `frontend/dist/`，`host/build.ps1` 再复制到
-`host/bin/prototype/`。宿主把 `https://app.local` 虚拟域映射到 `<exe 目录>\prototype`（见
-`host/DesktopHost.cs` 的 `SetVirtualHostNameToFolderMapping`），所以运行时一切主题文件都在 `prototype/` 下。
-**开发时只改 `frontend/src/`，不要改构建产物。**
+Vite 结构：`frontend/src/` 放**代码**（Vite root），`frontend/public/` 放**配置型静态**（原样拷贝到产物根）；
+`frontend/scripts/build.ps1` 调 Vite 打包到 `frontend/dist/`，`host/build.ps1` 再复制到 `host/bin/prototype/`。
+宿主把 `https://app.local` 虚拟域映射到 `<exe 目录>\prototype`（见 `host/DesktopHost.cs` 的
+`SetVirtualHostNameToFolderMapping`），所以运行时一切主题文件都在 `prototype/` 下。
+**开发时只改 `frontend/src/` 与 `frontend/public/`，不要改构建产物。**
 
 ```
-frontend/src/
-  themes.json                 # 注册表：宿主 / 设置页读它（id、status、page、product、thumb、groups）
+frontend/src/                  # 代码（Vite root = src）
+  themes/<id>/<id>.html        # 主题页入口（MPA，vite 自动扫描全部 HTML）
+  engine/ scenes/ assets/       # 引擎、场景、设置页逻辑
+frontend/public/                # 配置型静态（原样拷贝到 dist 根）
+  themes.json                   # 注册表：宿主 / 设置页读它（id、status、page、product、thumb、groups）
   themes/
-    CONVENTIONS.md            # 本文件
-    base.css                  # 公共样式：唯一允许写选择器的地方，全部用 var() 引用 Token
-    _template/                # 新增主题的模板（theme.json / theme.css / README.md）
+    CONVENTIONS.md              # 本文件
+    base.css                    # 公共样式：唯一允许写选择器的地方，全部用 var() 引用 Token
+    _template/                  # 新增主题的模板（theme.json / theme.css / README.md）
     <id>/
-      theme.json              # 主题清单 + Token schema（id/name/desc/page/status/product/tokens）
-      theme.css               # 主题 Token 值（只含 :root 自定义属性）
-      <id>.html               # 可选：主题页面（新主题建议放在这里）
+      theme.json                # 主题清单 + Token schema（id/name/desc/page/status/product/tokens）
+      theme.css                 # 主题 Token 值（只含 :root 自定义属性）
+  i18n/ thumbs/ lib/ engine/legacy/ assets/*.png
 ```
 
 现有三个 ready 主题的页面仍留在 `frontend/src/*.html`（`meadow.html` / `sky.html` / `flat.html`），
-它们的 `themes/<id>/` 目录只放 `theme.json` 与 `theme.css`；新主题建议把页面放进自己的目录。
+它们的 `theme.json` / `theme.css` 在 `frontend/public/themes/<id>/`；新主题建议把页面放进 `src/themes/<id>/`。
 
 ## 2. 各文件的职责
 
@@ -101,11 +105,12 @@ frontend/src/
 页面按 **先 base、后 theme** 的顺序引入（同为主题 `:root`，后加载的覆盖前者）：
 
 ```html
-<link rel="stylesheet" href="themes/base.css">
-<link rel="stylesheet" href="themes/<id>/theme.css">
+<link rel="stylesheet" href="/themes/base.css">
+<link rel="stylesheet" href="/themes/<id>/theme.css">
 ```
 
-- 新主题页面放在 `themes/<id>/<id>.html` 时，路径写成 `../base.css` 与 `theme.css`。
+- 样式在 `public/`，HTML 里用**绝对路径**（`/themes/...`），Vite 不会打包它们，运行时按站点根解析。
+- 新主题页面放在 `src/themes/<id>/<id>.html` 时，同样写 `/themes/base.css` 与 `/themes/<id>/theme.css`。
 - 页面专属的**布局**例外（如沙滩始终隐藏调试面板）可以留一个不含颜色的小 `<style>`。
 - 页面在 `<html>` 上设 `data-theme="<id>"`（可选，便于调试与未来扩展）。
 
@@ -133,5 +138,5 @@ frontend/src/
 ## 7. 验证
 
 - 约定测试：`dotnet test --filter ThemeConvention`（校验上述红线与 schema 一致性）。
-- 视觉基线：设置页（浅/深）+ 三个壁纸页（暂停动画后采样）共 5 张，见 `test/Deskland.Tests/`。
+- 视觉基线：设置页（浅/深）+ 四个壁纸页（暂停动画后采样）共 6 张，见 `test/Deskland.Tests/`。
 - 性能：`theme_switch` 埋点阈值，见 `DesklandE2ETests`。

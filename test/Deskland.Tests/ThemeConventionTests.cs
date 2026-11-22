@@ -12,8 +12,9 @@ public class ThemeConventionTests
 {
     private static readonly string RepoRoot = Path.GetFullPath(Path.Combine(
         AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
-    private static readonly string PrototypeDir = Path.Combine(RepoRoot, "frontend", "src");
-    private static readonly string ThemesDir = Path.Combine(PrototypeDir, "themes");
+    private static readonly string SrcDir = Path.Combine(RepoRoot, "frontend", "src");
+    private static readonly string PublicDir = Path.Combine(RepoRoot, "frontend", "public");
+    private static readonly string ThemesDir = Path.Combine(PublicDir, "themes");
 
     private static string[] ThemeIds => Directory.GetDirectories(ThemesDir)
         .Select(p => Path.GetFileName(p)!)
@@ -108,7 +109,7 @@ public class ThemeConventionTests
     [Fact]
     public void ReadyThemes_HaveThemeFolderAndManifest()
     {
-        using var themes = JsonDocument.Parse(File.ReadAllText(Path.Combine(PrototypeDir, "themes.json")));
+        using var themes = JsonDocument.Parse(File.ReadAllText(Path.Combine(PublicDir, "themes.json")));
         foreach (var t in themes.RootElement.GetProperty("themes").EnumerateArray())
         {
             if (t.GetProperty("status").GetString() != "ready") continue;
@@ -132,8 +133,9 @@ public class ThemeConventionTests
     [Fact]
     public void ReadyThemes_EngineRegistryCoversAll()
     {
-        var engineHtml = File.ReadAllText(Path.Combine(PrototypeDir, "engine.html"));
-        using var themes = JsonDocument.Parse(File.ReadAllText(Path.Combine(PrototypeDir, "themes.json")));
+        // 注册表已抽到 engine/main.js（Vite 入口），engine.html 只是容器
+        var engineHtml = File.ReadAllText(Path.Combine(SrcDir, "engine", "main.js"));
+        using var themes = JsonDocument.Parse(File.ReadAllText(Path.Combine(PublicDir, "themes.json")));
         foreach (var t in themes.RootElement.GetProperty("themes").EnumerateArray())
         {
             if (t.GetProperty("status").GetString() != "ready") continue;
