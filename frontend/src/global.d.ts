@@ -1,8 +1,8 @@
-// 全局声明：WebView2 宿主注入的对象与测试同步信号。
+// 全局声明：WebView2 宿主注入的对象、DeskApp 挂到 window 的共享状态、测试同步信号。
 
 import type { EngineParams } from './engine/BaseEngine.js';
 import type { MeadowActor, MeadowCat } from './scenes/MeadowEngine.js';
-import type { Program } from './engine/SceneEngine.js';
+import type { Field, IconItem, Program, ScaledCanvas } from './engine/SceneEngine.js';
 
 export {};
 
@@ -30,6 +30,21 @@ declare global {
     };
     __bootError?: string;
     __errors?: string[];
+    // DeskApp 挂到 window 的共享状态：经典脚本（boy/cat/palms）仍以全局方式读取，
+    // 迁移完成后这层会被消除（见 DeskApp.mountToWindow 的说明）。
+    TASKBAR: number;
+    P: EngineParams;
+    gl: WebGL2RenderingContext | null;
+    cv: ScaledCanvas;
+    program: (fs: string, vsSrc?: string) => Program;
+    W: number;
+    H: number;
+    icons: IconItem[];
+    seed: number;
+    FB: Field | null;
+    sampleArr: (a: Float32Array, x: number, y: number) => number;
+    curS: (x: number, y: number) => number;
+    mulberry32: (a: number) => () => number;
   }
 
   // 经典脚本（meadow-boy.js / meadow-cat.js）在全局暴露的人物 / 小猫准备函数。
