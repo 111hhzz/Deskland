@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using Xunit;
 
@@ -584,6 +585,41 @@ public class DesklandE2ETests : IAsyncLifetime
             Assert.True(baseSrc.Contains(h) || sceneSrc.Contains(h), $"引擎缺少钩子/方法：{h}");
 
         Assert.Contains("defaultParams", baseSrc);
+
+        // 场景引擎：每个 ready 主题都要有对应的 scenes/<Class>.ts，且
+        //   1) 声明了非空片元着色器（static FS + 着色器入口 void main）；
+        //   2) theme.json 开放的每个参数都在 defaultParams 里给了默认值。
+        // 这两条挡住两类静默故障：主题加了却忘接入引擎、设置页加了开关却没有默认值。
+        var srcDir = Path.Combine(RepoRoot, "frontend", "src");
+        var scenesDir = Path.Combine(srcDir, "scenes");
+        var themesDir = Path.Combine(RepoRoot, "frontend", "public", "themes");
+        var mainSrc = await File.ReadAllTextAsync(Path.Combine(srcDir, "engine", "main.tsx"));
+        var registry = Regex.Matches(mainSrc, @"(?m)^\s*(\w+):\s*\(\)\s*=>\s*(\w+),")
+            .Cast<Match>()
+            .ToDictionary(m => m.Groups[1].Value, m => m.Groups[2].Value);
+
+        foreach (var id in ReadyThemeIds())
+        {
+            Assert.True(registry.ContainsKey(id), $"引擎注册表缺少 ready 主题：{id}");
+            var cls = registry[id];
+            var scenePath = Path.Combine(scenesDir, cls + ".ts");
+            Assert.True(File.Exists(scenePath), $"缺少场景引擎源码：{scenePath}");
+            var engineSrc = await File.ReadAllTextAsync(scenePath);
+
+            Assert.Contains("static override FS", engineSrc, StringComparison.Ordinal);
+            Assert.Contains("void main", engineSrc, StringComparison.Ordinal);
+
+            var defaults = Regex.Match(engineSrc, @"defaultParams\(\)[^{]*\{(.*?)\}", RegexOptions.Singleline);
+            Assert.True(defaults.Success, $"{cls} 缺少 defaultParams");
+            using var manifest = System.Text.Json.JsonDocument.Parse(
+                File.ReadAllText(Path.Combine(themesDir, id, "theme.json")));
+            foreach (var group in manifest.RootElement.GetProperty("groups").EnumerateArray())
+                foreach (var param in group.GetProperty("params").EnumerateArray())
+                {
+                    var key = param.GetProperty("key").GetString()!;
+                    Assert.Contains(key + ":", defaults.Groups[1].Value, StringComparison.Ordinal);
+                }
+        }
     }
 
     /// <summary>
