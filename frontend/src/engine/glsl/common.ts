@@ -56,7 +56,7 @@ float cloudDist(vec2 q, bool front, inout vec4 fc) {
 float cloudDist(vec2 q) { vec4 fc = vec4(0.0, -1e9, 0.0, 0.0); return cloudDist(q, false, fc); }
 `;
 
-// 排线与小猫：meadow / sky 共用（sky 暂时用不上小猫，留作同一套）
+// 排线与小猫：meadow 专用（sky / aurora / beach 都不用，各自 FS 里没有这两段）
 export const GLSL_MEADOW_EXTRA = `
 // 到一段线的距离
 float segD(vec2 p, vec2 a, vec2 b) { vec2 pa = p - a, ba = b - a; return length(pa - ba * clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0)); }

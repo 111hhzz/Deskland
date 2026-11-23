@@ -1,7 +1,5 @@
 // 天空主题引擎：只保留天空特有的部分（天空渐变着色器、时段调色板、云影颜色）。
 // 共享的场景机制（噪声、陆地场、渲染骨架）在 SceneEngine，云的圆在 CloudSceneEngine。
-//
-// 过渡期约定：渲染上下文与共享状态由 DeskApp 挂到 window，与 meadow 保持一致的实例化顺序。
 
 import { CloudSceneEngine } from '../engine/CloudSceneEngine.js';
 import { numParam } from '../engine/SceneEngine.js';
@@ -17,23 +15,13 @@ uniform int uScheme;   // 0 白天 / 1 傍晚 / 2 晚上
 uniform sampler2D uNoise, uFA, uFB;
 uniform vec2 uRes, uGrid;
 uniform float uScale, uSeed, uStep, uMix, uTime, uDebug, uEdge;
-#ifdef MEADOW_ACTOR
-uniform sampler2D uActor, uActorShadow;
-uniform vec4 uActorRect;
-#endif
-#ifdef MEADOW_CAT
-uniform sampler2D uCat;
-uniform vec4 uCatRect;
-uniform vec2 uCatShadow;
-uniform float uCatTail;
-#endif
 uniform highp sampler2D uCirc;   // 云的圆（CPU 算好、按格子分好）：每格最多 CIRC_K 个，(x, y, 半径, 色调)，半径 0 = 没有了
 uniform vec2 uCGrid;             // 格子数
 uniform float uCellG;            // 格子大小（px）
 out vec4 o;
 
 // ---- 调色板（由主题 theme.css 的 --scene-* Token 驱动，JS 读取后传入）----
-uniform vec3 uShadow, uCloudHi, uCloudBody, uCloudSh, uCloudShadow;
+uniform vec3 uCloudHi, uCloudBody, uCloudSh, uCloudShadow;
 uniform vec2 uLightDir, uShadowOff;
 
 // 天空：三种时段的上半 / 下半渐变（顶 → 地平线）
@@ -52,29 +40,6 @@ void main() {
   float w1 = N(p, 1900.0).b, w2 = N(p + 311.0, 650.0).g;
   col = mix(col, col * 1.06, ss(0.3, 0.75, w1 * 0.7 + w2 * 0.3) * 0.5);    // 浅色的云絮晕染
   col *= 1.0 + (hash2(floor(p * (0.8 * max(uScale, 1.0)))) - 0.5) * 0.03;   // 颗粒按屏幕的实际像素取
-
-#ifdef MEADOW_ACTOR
-  // 人物、风筝和完整投影都先落在草地上，随后由同一层云影和白云覆盖。
-  vec2 actorUV=(p-uActorRect.xy)/uActorRect.zw;
-  actorUV.y=1.0-actorUV.y;
-  float inActor=step(0.0,actorUV.x)*step(0.0,actorUV.y)*step(actorUV.x,1.0)*step(actorUV.y,1.0);
-  vec4 actor=texture(uActor,actorUV);
-  float actorShadow=texture(uActorShadow,actorUV).r*inActor;
-  col=mix(col,col*uShadow,actorShadow*0.85);
-  col=mix(col,actor.rgb,actor.a*inActor);
-#endif
-
-#ifdef MEADOW_CAT
-  // 只在猫所在的小矩形内启用这份着色器，猫与贴地阴影同样位于云层之下。
-  vec2 catUV=(p-uCatRect.xy)/uCatRect.zw;
-  vec2 catShadowUV=(p-uCatShadow-uCatRect.xy)/uCatRect.zw;
-  vec4 cat=catColor(catUV);
-  float catShadow=catColor(catShadowUV).a;
-  float inCat=step(0.,catUV.x)*step(0.,catUV.y)*step(catUV.x,1.)*step(catUV.y,1.);
-  float inShadow=step(0.,catShadowUV.x)*step(0.,catShadowUV.y)*step(catShadowUV.x,1.)*step(catShadowUV.y,1.);
-  col=mix(col,col*uShadow,catShadow*inShadow*.78);
-  col=mix(col,cat.rgb,cat.a*inCat);
-#endif
 
   // ---------- 云投在天空上的影子（右下方）：淡淡的蓝灰 ----------
   float sd = cloudDist(p - uShadowOff);
@@ -123,7 +88,6 @@ export class SkyEngine extends CloudSceneEngine {
 
   override buildScenePalette(): ScenePalette {
     return {
-      shadow:      this.sceneToken('--scene-shadow')         || [0.56, 0.66, 0.52],
       cloudHi:     this.sceneToken('--scene-cloud-hi')       || [1.0, 1.0, 0.99],
       cloudBody:   this.sceneToken('--scene-cloud-body')     || [0.90, 0.93, 0.96],
       cloudSh:     this.sceneToken('--scene-cloud-shade')    || [0.80, 0.85, 0.90],

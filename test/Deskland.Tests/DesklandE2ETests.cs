@@ -707,6 +707,19 @@ public class DesklandE2ETests : IAsyncLifetime
         }
         Assert.Contains("extends ActorSceneEngine",
             await File.ReadAllTextAsync(Path.Combine(scenesDir, "MeadowEngine.ts")), StringComparison.Ordinal);
+
+        // 着色器层红线：人物 / 小猫的 ifdef 段与 GLSL_MEADOW_EXTRA 只允许 meadow 有（其他主题曾复制回来过）
+        foreach (var src in new[] { "SkyEngine.ts", "AuroraEngine.ts", "FlatEngine.ts" })
+        {
+            var s = await File.ReadAllTextAsync(Path.Combine(scenesDir, src));
+            Assert.DoesNotContain("#ifdef MEADOW_", s, StringComparison.Ordinal);
+            Assert.DoesNotContain("uActor", s, StringComparison.Ordinal);
+            Assert.DoesNotContain("uCat", s, StringComparison.Ordinal);
+            Assert.DoesNotContain("GLSL_MEADOW_EXTRA", s, StringComparison.Ordinal);
+        }
+        var meadowSrc = await File.ReadAllTextAsync(Path.Combine(scenesDir, "MeadowEngine.ts"));
+        Assert.Contains("withDefines", meadowSrc, StringComparison.Ordinal);
+        Assert.Contains("GLSL_MEADOW_EXTRA", meadowSrc, StringComparison.Ordinal);
     }
 
     /// <summary>

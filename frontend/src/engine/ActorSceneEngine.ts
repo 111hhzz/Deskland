@@ -1,7 +1,7 @@
 // 人物 / 小猫场景引擎：在 CloudSceneEngine 之上加入 meadow 专用的人物（boy）与小猫（cat）绘制。
 // 两个角色由各自的 legacy 模块（themes/meadow/legacy/boy.ts、cat.ts）经 LegacyHost 注入，
 // 引擎侧只持有它们当帧的纹理与矩形，在每次绘制时绑定到着色器（uActor / uCat 系列）。
-// 只有 meadow 同时需要云与人物；sky / aurora 着色器虽声明了同名 uniform，但不设置数据、也不绑纹理。
+// 只有 meadow 同时需要云与人物；sky / aurora / beach 都不声明、也不绑定 uActor / uCat。
 
 import { CloudSceneEngine } from './CloudSceneEngine.js';
 import type { EngineOpts } from './BaseEngine.js';
