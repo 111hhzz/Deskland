@@ -1,6 +1,7 @@
 // 场景引擎：所有"场"主题（meadow / sky / aurora / beach）共用的底座。
 // 共享：CPU 噪声、陆地场（图标周围的有符号距离场）、主循环渲染骨架、销毁。
-// 天上的云与圆纹理在 CloudSceneEngine（见该文件）：海滩没有云，直接继承本类。
+// 天上的云与圆纹理在 CloudSceneEngine、人物与小猫在 ActorSceneEngine（均见各文件）；
+// 海滩没有云，直接继承本类。
 // 主题差异通过钩子注入，子类只写自己那部分：
 //   static FS            片元着色器源码
 //   defaultParams()      参数默认值
@@ -10,8 +11,8 @@
 //   drawScene(draw)      绘制编排（meadow：人物 + 猫；sky：只画一次）
 //   sliders / displayKeys 面板配置（应用层 DeskApp 直接读取）
 //
-// 过渡期约定：渲染上下文（gl/cv/program）与共享状态由 DeskApp 挂到 window，
-// 让 meadow-boy.js / meadow-cat.js 等旧脚本继续以全局方式读取。
+// 云钩子：uploadClouds / bindCloudUniforms / resetClouds / settleClouds / disposeClouds；
+// 人物钩子：bindActorUniforms / disposeActor。默认均为空实现，由 CloudSceneEngine / ActorSceneEngine 覆盖。
 
 import { BaseEngine } from './BaseEngine.js';
 import type { EngineOpts, EngineParams, EngineStats } from './BaseEngine.js';
@@ -83,13 +84,6 @@ export class SceneEngine extends BaseEngine {
   PR: Program | null;
   GPU: string;
   px: Uint8Array;
-  actorPR: Program | null; catPR: Program | null; catActorPR: Program | null;
-  actorTex: WebGLTexture | null; actorShadowTex: WebGLTexture | null;
-  actorRect: [number, number, number, number] | null;
-  catTex: WebGLTexture | null;
-  catRect: [number, number, number, number] | null;
-  catShadow: [number, number] | null;
-  catTail: number;
   sliders: SliderDef[];
   displayKeys: DisplayKeyDef[];
   scene: ScenePalette;
@@ -111,10 +105,6 @@ export class SceneEngine extends BaseEngine {
     this.vao = null; this.PR = null;
     this.GPU = '';
     this.px = new Uint8Array(4);
-    // 人物 / 小猫（meadow 用；sky 留空 → 相关 uniform 不会被绑定）
-    this.actorPR = this.catPR = this.catActorPR = null;
-    this.actorTex = this.actorShadowTex = null; this.actorRect = null;
-    this.catTex = null; this.catRect = null; this.catShadow = null; this.catTail = 0;
     // 面板配置（应用层 DeskApp 读取；子类覆盖）
     this.sliders = [];
     this.displayKeys = [];
@@ -136,6 +126,10 @@ export class SceneEngine extends BaseEngine {
   resetClouds(): void {}
   settleClouds(): void {}
   disposeClouds(): void {}
+
+  /* ---- 人物钩子：由 ActorSceneEngine 覆盖；无人物主题不实现 ---- */
+  bindActorUniforms(_U: Uniforms, _withCat: boolean): void {}
+  disposeActor(): void {}
 
   // 画布别名（迁移前页面里的 cv）
   get cv(): ScaledCanvas { return this.canvas as ScaledCanvas; }
@@ -271,16 +265,7 @@ export class SceneEngine extends BaseEngine {
       gl.uniform1f(U.uDebug ?? null, P.debug ? 1 : 0);
       this.bindCloudUniforms(U);
       this.setSceneUniforms(U);
-      if (this.actorTex && U.uActor) {
-        gl.activeTexture(gl.TEXTURE5); gl.bindTexture(gl.TEXTURE_2D, this.actorTex); gl.uniform1i(U.uActor, 5);
-        gl.activeTexture(gl.TEXTURE6); gl.bindTexture(gl.TEXTURE_2D, this.actorShadowTex); gl.uniform1i(U.uActorShadow ?? null, 6);
-        gl.uniform4f(U.uActorRect ?? null, ...this.actorRect!);
-      }
-      if (withCat && U.uCat) {
-        gl.activeTexture(gl.TEXTURE8); gl.bindTexture(gl.TEXTURE_2D, this.catTex); gl.uniform1i(U.uCat, 8);
-        gl.uniform4f(U.uCatRect ?? null, ...this.catRect!); gl.uniform2f(U.uCatShadow ?? null, ...this.catShadow!);
-        gl.uniform1f(U.uCatTail ?? null, this.catTail);
-      }
+      this.bindActorUniforms(U, withCat);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     };
     this.drawScene(draw);
@@ -444,10 +429,9 @@ export class SceneEngine extends BaseEngine {
     // program() 记录的所有程序（含 legacy 模块经 host.program 创建的）；缓存的程序跨引擎复用，不删
     // program 由静态 _progCache 持有（页内热切换跨引擎复用），不随引擎 dispose 释放；
     // 整页卸载时随 JS 堆与 WebGL 上下文一起回收。
-    this.PR = this.actorPR = this.catPR = this.catActorPR = null;
-    this.actorTex = this.actorShadowTex = null; this.actorRect = null;
-    this.catTex = null; this.catRect = null; this.catShadow = null; this.catTail = 0;
+    this.PR = null;
     this.NZ = null; this.FA = this.FB = null;
+    this.disposeActor();
     this.disposeClouds();
   }
 

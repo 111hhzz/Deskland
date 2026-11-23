@@ -666,7 +666,8 @@ public class DesklandE2ETests : IAsyncLifetime
         }
 
         // C1：云机制（圆纹理 + 天上的云）已从 SceneEngine 剥离到 CloudSceneEngine；
-        // 天空系三个主题继承 CloudSceneEngine，无云的海滩直接继承 SceneEngine（不再背负死代码）。
+        // 天空系主题继承 CloudSceneEngine（meadow 经 ActorSceneEngine 间接继承），
+        // 无云的海滩直接继承 SceneEngine（不再背负死代码）。
         var cloudSrc = await File.ReadAllTextAsync(Path.Combine(srcDir, "engine", "CloudSceneEngine.ts"));
         Assert.Contains("export class CloudSceneEngine extends SceneEngine", cloudSrc, StringComparison.Ordinal);
         foreach (var api in new[] { "makeSkyCloud", "stepSkyClouds", "uploadCircles", "buildMassCircles", "skyClouds" })
@@ -679,12 +680,33 @@ public class DesklandE2ETests : IAsyncLifetime
             Assert.Contains(hook, cloudSrc, StringComparison.Ordinal);
         foreach (var api in new[] { "circTex", "massList", "flowT", "CELL_G", "SETTLE_DT" })
             Assert.DoesNotContain(api, sceneSrc, StringComparison.Ordinal);
-        foreach (var cls in new[] { "MeadowEngine", "SkyEngine", "AuroraEngine" })
+        foreach (var cls in new[] { "SkyEngine", "AuroraEngine" })
             Assert.Contains("extends CloudSceneEngine",
                 await File.ReadAllTextAsync(Path.Combine(scenesDir, cls + ".ts")), StringComparison.Ordinal);
         var flatSrc = await File.ReadAllTextAsync(Path.Combine(scenesDir, "FlatEngine.ts"));
         Assert.Contains("extends SceneEngine", flatSrc, StringComparison.Ordinal);
         Assert.DoesNotContain("CloudSceneEngine", flatSrc, StringComparison.Ordinal);
+
+        // 人物 / 小猫（meadow 专用）已从 SceneEngine 剥离到 ActorSceneEngine（继承 CloudSceneEngine）
+        var actorSrc = await File.ReadAllTextAsync(Path.Combine(srcDir, "engine", "ActorSceneEngine.ts"));
+        Assert.Contains("export class ActorSceneEngine extends CloudSceneEngine", actorSrc, StringComparison.Ordinal);
+        foreach (var api in new[] { "actorPR", "catPR", "actorTex", "catTex" })
+        {
+            Assert.Contains(api, actorSrc, StringComparison.Ordinal);
+            Assert.DoesNotContain(api, sceneSrc, StringComparison.Ordinal);
+        }
+        // 调用点必须挂在 SceneEngine 骨架上（否则人物绑定根本不会发生）
+        foreach (var call in new[] { "this.bindActorUniforms(U, withCat)", "this.disposeActor()" })
+            Assert.Contains(call, sceneSrc, StringComparison.Ordinal);
+        // 其他主题不得覆写人物钩子 / 引用人物字段（防未来误覆盖静默生效）
+        foreach (var src in new[] { "SkyEngine.ts", "AuroraEngine.ts", "FlatEngine.ts" })
+        {
+            var s = await File.ReadAllTextAsync(Path.Combine(scenesDir, src));
+            Assert.DoesNotContain("override bindActorUniforms", s, StringComparison.Ordinal);
+            Assert.DoesNotContain("actorPR", s, StringComparison.Ordinal);
+        }
+        Assert.Contains("extends ActorSceneEngine",
+            await File.ReadAllTextAsync(Path.Combine(scenesDir, "MeadowEngine.ts")), StringComparison.Ordinal);
     }
 
     /// <summary>
