@@ -48,12 +48,4 @@ declare global {
     seed: number;
     FB: Field | null;
   }
-
-  // 经典脚本 beach/palms.js 暴露的棕榈树着色器与绘制函数（页面未加载时为 undefined）。
-  // configurePass 由主题引擎提供（海滩引擎的 configureBeachPass）。
-  var BEACH_PALM_FS: string | undefined;
-  var BEACH_PALM_VS: string | undefined;
-  var drawMaldivesPalms:
-    | ((now: number, pass: Program, configurePass: (now: number, pass: Program) => void, context?: unknown) => void)
-    | undefined;
 }

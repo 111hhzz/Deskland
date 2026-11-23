@@ -1,13 +1,15 @@
 // 沙滩（海边）主题引擎：海滩着色器 + 皮划艇 / 海鸟 / 涟漪。
 // 没有云，所以覆写 update / render，不碰基类的圆的机制。
 //
-// 过渡期约定：渲染上下文与共享状态（W/H/P/icons/seed/TASKBAR/FB/sampleArr）由 DeskApp 挂到 window，
-// 让 beach-palms.js 等旧脚本继续以全局方式读取，行为保持 100% 一致。
+// 椰子树已 TS 化（themes/beach/legacy/palms.ts），由 installLegacy 注入，
+// 依赖经 LegacyHost 显式传入，不再读 window 全局（P4 迁移，见 docs/2026-11-23-p4-legacy-ts-design.md）。
 
 import { SceneEngine, numParam } from '../engine/SceneEngine.js';
 import { GLSL_COMMON } from '../engine/glsl/common.js';
 import type { EngineOpts, EngineParams } from '../engine/BaseEngine.js';
 import type { Program, ScenePalette, Uniforms } from '../engine/SceneEngine.js';
+import type { LegacyHost } from '../engine/LegacyHost.js';
+import type { MaldivesPalmsScene } from '../themes/beach/legacy/palms.js';
 
 const TASKBAR = 48;
 
@@ -19,7 +21,7 @@ interface Bird { x: number; y: number; h: number; v: number; mode: number; modeT
 interface Ripple { x: number; y: number; t0: number; str: number; }
 
 // 头部：本主题自己的 uniform 声明、常量与海滩函数；公共的 hash2 / ss / N / fieldS 在 common.js。
-// FS_PRE 是「main 之前」的部分：棕榈树着色器（beach-palms.js）复用同一批声明与函数。
+// FS_PRE 是「main 之前」的部分：棕榈树着色器（beach palms 模块）复用同一批声明与函数。
 const FS_HEADER = `#version 300 es
 precision highp float;
 uniform sampler2D uNoise, uFA, uFB;
@@ -359,6 +361,27 @@ export class FlatEngine extends SceneEngine {
   kayBuf: Float32Array;
   birdBuf: Float32Array;
   palmPR: Program | null;
+  private _palms: MaldivesPalmsScene | null = null;
+  private _legacyHost: LegacyHost | null = null;
+  private _legacyDef: {
+    FS: string;
+    VS: string;
+    create: (host: LegacyHost) => MaldivesPalmsScene;
+  } | null = null;
+
+  // 由页面装配（installLegacyFor）在 init 之前调用：FS/VS 给 buildShaders 编译 palmPR，
+  // create 在 init 末尾（gl 就绪后）创建实例。
+  installLegacy(host: LegacyHost, def: { FS: string; VS: string; create: (host: LegacyHost) => MaldivesPalmsScene }): void {
+    this._legacyHost = host;
+    this._legacyDef = def;
+  }
+
+  override async init(): Promise<boolean> {
+    const ok = await super.init();
+    // legacy 实例会立即建纹理，必须在 gl 就绪（super.init）之后
+    if (ok && this._legacyHost && this._legacyDef) this._palms = this._legacyDef.create(this._legacyHost);
+    return ok;
+  }
 
   constructor(canvas: HTMLCanvasElement, opts: EngineOpts = {}) {
     super(canvas, opts);
@@ -428,13 +451,14 @@ export class FlatEngine extends SceneEngine {
   }
 
   /* ======================================================================
-     着色器：海滩 + 棕榈树（beach-palms.js 提供，复用海滩着色器的常量与函数）
+     着色器：海滩 + 棕榈树（beach palms 模块提供，复用海滩着色器的常量与函数）
      ====================================================================== */
   override buildShaders(): void {
     super.buildShaders();
-    if (typeof BEACH_PALM_FS === 'string' && typeof BEACH_PALM_VS === 'string') {
+    const def = this._legacyDef;
+    if (def) {
       // 显式拼接：FS_PRE 是海滩着色器 main 之前的部分（声明 + 公共函数 + 海滩函数）
-      this.palmPR = this.program(FS_PRE + BEACH_PALM_FS, BEACH_PALM_VS);
+      this.palmPR = this.program(FS_PRE + def.FS, def.VS);
     }
   }
 
@@ -466,7 +490,7 @@ export class FlatEngine extends SceneEngine {
 
     this.configureBeachPass(now, pass);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
-    if (this.palmPR && typeof drawMaldivesPalms === 'function') drawMaldivesPalms(now, this.palmPR, this.configureBeachPass);
+    if (this._palms && this.palmPR) this._palms.draw(now, this.palmPR, this.configureBeachPass);
     // 同 SceneEngine：不再每 20 帧 readPixels 强制同步（实测海滩 6.3ms → 0ms）
   }
 

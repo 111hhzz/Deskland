@@ -36,10 +36,6 @@ const ENGINES: Record<string, () => EngineCtor> = {
   aurora: () => AuroraEngine,
 };
 const THEME_STYLE = (id: string) => '/themes/' + id + '/theme.css';   // 绝对路径：主题样式在 public，运行时按站点根解析
-// 还未 TS 化的经典脚本（beach palms；P4 第 2 步迁走后删掉这套动态插 script 的机制）
-const EXTRAS: Record<string, string[]> = {
-  beach:  ['/themes/beach/legacy/palms.js'],
-};
 
 const QS = new URLSearchParams(location.search);
 const canvas = document.getElementById('art') as HTMLCanvasElement;
@@ -68,17 +64,6 @@ async function loadTheme(id: string): Promise<EngineInstance> {
   const Cls = factory ? factory() : MeadowEngine;
   // 主题样式（热切换时换掉）
   (document.getElementById('themeCss') as HTMLLinkElement).href = THEME_STYLE(known ? id : 'meadow');
-  // 附加脚本（经典脚本，只加载一次）
-  const loadScript = (src: string) => new Promise<void>((res, rej) => {
-    const s = document.createElement('script');
-    s.src = src;
-    s.onload = () => res();
-    s.onerror = () => rej(new Error('加载失败: ' + src));
-    document.body.appendChild(s);
-  });
-  for (const s of EXTRAS[id] || []) {
-    if (!document.querySelector(`script[src="${s}"]`)) await loadScript(s);
-  }
   return new Cls(canvas, { wallpaper: QS.has('wallpaper'), preview: QS.has('preview') });
 }
 

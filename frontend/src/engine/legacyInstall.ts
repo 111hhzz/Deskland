@@ -4,8 +4,10 @@
 import type { DeskApp } from './DeskApp.js';
 import type { SceneEngine } from './SceneEngine.js';
 import { MeadowEngine } from '../scenes/MeadowEngine.js';
+import { FlatEngine } from '../scenes/FlatEngine.js';
 import { createMeadowBoyScene } from '../themes/meadow/legacy/boy.js';
 import { createMeadowCatScene } from '../themes/meadow/legacy/cat.js';
+import { BEACH_PALM_FS, BEACH_PALM_VS, createMaldivesPalmsScene } from '../themes/beach/legacy/palms.js';
 
 export function installLegacyFor(id: string, app: DeskApp, engine: SceneEngine): void {
   const host = app.legacyHost('/themes/' + id + '/');
@@ -13,6 +15,12 @@ export function installLegacyFor(id: string, app: DeskApp, engine: SceneEngine):
     engine.installLegacy(host, {
       createBoy: h => createMeadowBoyScene(h),
       createCat: h => createMeadowCatScene(h),
+    });
+  } else if (id === 'beach' && engine instanceof FlatEngine) {
+    engine.installLegacy(host, {
+      FS: BEACH_PALM_FS,
+      VS: BEACH_PALM_VS,
+      create: h => createMaldivesPalmsScene(h),
     });
   }
 }
