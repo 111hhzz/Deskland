@@ -463,6 +463,8 @@ export class DeskApp {
       const key = keys.find(d => d.key === k);
       if (!slider && !key) continue;
       if (typeof val !== typeof cur || cur === val) continue;
+      // 数值比较前先把类型收窄到 number：走到这里 val 与当前值同型（见上一行），
+      // 而 displayKeys / sliders 声明的都是数值键，所以布尔值不会进入这两个分支。
       if (key && typeof val === 'number' && (val < key.min || val > key.max)) continue;   // 超出主题声明范围的值不接受
       this.P[k] = slider && typeof val === 'number' ? Math.min(slider.max, Math.max(slider.min, val)) : val;
       if (k === 'adaptive') adaptiveChanged = true;

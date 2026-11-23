@@ -107,7 +107,7 @@ window.__dbg = {
   get theme() { return currentTheme; },
   P: () => (engine ? engine.params : null),
   get seed() { return engine ? engine.seed : 0; },
-  settle: () => { if (engine && engine.settleAndRender) engine.settleAndRender(); },
+  settle: () => { if (engine) engine.settleAndRender(); },
   bench: () => (engine ? engine.bench() : null),   // 调试：10 帧中位耗时（含每帧 readPixels 同步）
   switchTheme: (id: string) => {
     if (!ENGINES[id]) return false;   // 不支持（如海滩旧脚本）→ 交由宿主回退整页导航

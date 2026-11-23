@@ -158,7 +158,7 @@ export class MeadowEngine extends SceneEngine {
   }
 
   override defaultParams(): EngineParams {
-    // 默认值要和 themes.json 里草地主题的 default 保持一致；grain、quality 不开放调节
+    // 默认值要和 themes/meadow/theme.json 里草地主题的 default 保持一致；grain、quality 不开放调节
     return {
       sigma: 72, warp: 40, edge: 10, cover: 0.3, flow: 1, grain: 1, quality: 2,   // quality 2：按屏幕的实际像素画（150% 缩放时不再放大发糊）
       debug: false, snap: true, cap30: true,

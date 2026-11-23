@@ -384,7 +384,7 @@ export class FlatEngine extends SceneEngine {
   }
 
   override defaultParams(): EngineParams {
-    // 默认值要和 themes.json 里海边主题的 default 保持一致
+    // 默认值要和 themes/beach/theme.json 里海边主题的 default 保持一致
     // 海浪（speed、runup、wave、spacing、waves）和 grain、quality 不再开放调节，固定为这里的值
     return {
       sigma: 85, warp: 34, shallow: 260, shoal: 110,
