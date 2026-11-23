@@ -4,10 +4,19 @@
 // 过渡期约定：渲染上下文与共享状态（W/H/P/icons/seed/TASKBAR/FB/sampleArr）由 DeskApp 挂到 window，
 // 让 beach-palms.js 等旧脚本继续以全局方式读取，行为保持 100% 一致。
 
-import { SceneEngine } from '../engine/SceneEngine.js';
+import { SceneEngine, numParam } from '../engine/SceneEngine.js';
 import { GLSL_COMMON } from '../engine/glsl/common.js';
+import type { EngineOpts, EngineParams } from '../engine/BaseEngine.js';
+import type { Program, ScenePalette, Uniforms } from '../engine/SceneEngine.js';
 
 const TASKBAR = 48;
+
+// 皮划艇：在深水里慢慢划，互相避让
+interface Kayak { x: number; y: number; h: number; v: number; ph: number; wander: number; fade: number; }
+// 海鸟：画面上空滑翔，时而盘旋、时而扇翅膀
+interface Bird { x: number; y: number; h: number; v: number; mode: number; modeT: number; ph: number; flap: boolean; flapT: number; wander: number; }
+// 涟漪：点击水面留下的一圈圈细白圈
+interface Ripple { x: number; y: number; t0: number; str: number; }
 
 // 头部：本主题自己的 uniform 声明、常量与海滩函数；公共的 hash2 / ss / N / fieldS 在 common.js。
 // FS_PRE 是「main 之前」的部分：棕榈树着色器（beach-palms.js）复用同一批声明与函数。
@@ -341,15 +350,23 @@ const FS_PRE = FS_HEADER + GLSL_COMMON + FS_FUNCS;
 const FS = FS_PRE + FS_MAIN;
 
 export class FlatEngine extends SceneEngine {
-  static FS = FS;                                      // 片元着色器（SceneEngine 约定）
+  static override FS = FS;                             // 片元着色器（SceneEngine 约定）
 
-  constructor(canvas, opts = {}) {
+  kayaks: Kayak[] = [];
+  birds: Bird[] = [];
+  ripples: Ripple[] = [];
+  ripBuf: Float32Array;
+  kayBuf: Float32Array;
+  birdBuf: Float32Array;
+  palmPR: Program | null;
+
+  constructor(canvas: HTMLCanvasElement, opts: EngineOpts = {}) {
     super(canvas, opts);
     // 面板配置：应用层 DeskApp 直接读取（主题只加配置，不改宿主代码）
     this.sliders = [
       { key: 'palms', label: '椰子树数量', min: 0, max: 10, step: 1, fmt: v => v + ' 棵' },
       { key: 'sigma', label: '离岸距离', min: 40, max: 200, step: 1, fmt: v => v + ' px', act: 'field' },
-      { key: 'warp', label: '海岸曲折', min: 0, max: 80, step: 1, fmt: v => v, act: 'field' },
+      { key: 'warp', label: '海岸曲折', min: 0, max: 80, step: 1, fmt: v => String(v), act: 'field' },
       { key: 'shoal', label: '透明浅滩', min: 0, max: 300, step: 1, fmt: v => v + ' px' },
       { key: 'shallow', label: '浅海宽度', min: 120, max: 700, step: 1, fmt: v => v + ' px' },
       { key: 'kayaks', label: '皮划艇', min: 0, max: 4, step: 1, fmt: v => v + ' 艘', act: 'kayaks' },
@@ -366,7 +383,7 @@ export class FlatEngine extends SceneEngine {
     this.palmPR = null;
   }
 
-  defaultParams() {
+  override defaultParams(): EngineParams {
     // 默认值要和 themes.json 里海边主题的 default 保持一致
     // 海浪（speed、runup、wave、spacing、waves）和 grain、quality 不再开放调节，固定为这里的值
     return {
@@ -377,7 +394,7 @@ export class FlatEngine extends SceneEngine {
     };
   }
 
-  buildScenePalette() {
+  override buildScenePalette(): ScenePalette {
     return {
       sea0: this.sceneToken('--scene-sea-0') || [0.74, 0.93, 0.87],
       sea1: this.sceneToken('--scene-sea-1') || [0.47, 0.87, 0.84],
@@ -394,25 +411,26 @@ export class FlatEngine extends SceneEngine {
   }
 
   // 海滩特有的 uniform：海 / 沙 / 浪花 / 湿沙
-  applyThemeUniforms(U) {
+  override applyThemeUniforms(U: Uniforms): void {
     const gl = this.gl, S = this.scene;
-    if (U.uSea0) gl.uniform3fv(U.uSea0, S.sea0);
-    if (U.uSea1) gl.uniform3fv(U.uSea1, S.sea1);
-    if (U.uSea2) gl.uniform3fv(U.uSea2, S.sea2);
-    if (U.uSea3) gl.uniform3fv(U.uSea3, S.sea3);
-    if (U.uSea4) gl.uniform3fv(U.uSea4, S.sea4);
-    if (U.uSand0) gl.uniform3fv(U.uSand0, S.sand0);
-    if (U.uSand1) gl.uniform3fv(U.uSand1, S.sand1);
-    if (U.uSand2) gl.uniform3fv(U.uSand2, S.sand2);
-    if (U.uSand3) gl.uniform3fv(U.uSand3, S.sand3);
-    if (U.uFoam) gl.uniform3fv(U.uFoam, S.foam);
-    if (U.uWetSand) gl.uniform3fv(U.uWetSand, S.wetsand);
+    if (!gl) return;
+    if (U.uSea0 && S.sea0) gl.uniform3fv(U.uSea0, S.sea0);
+    if (U.uSea1 && S.sea1) gl.uniform3fv(U.uSea1, S.sea1);
+    if (U.uSea2 && S.sea2) gl.uniform3fv(U.uSea2, S.sea2);
+    if (U.uSea3 && S.sea3) gl.uniform3fv(U.uSea3, S.sea3);
+    if (U.uSea4 && S.sea4) gl.uniform3fv(U.uSea4, S.sea4);
+    if (U.uSand0 && S.sand0) gl.uniform3fv(U.uSand0, S.sand0);
+    if (U.uSand1 && S.sand1) gl.uniform3fv(U.uSand1, S.sand1);
+    if (U.uSand2 && S.sand2) gl.uniform3fv(U.uSand2, S.sand2);
+    if (U.uSand3 && S.sand3) gl.uniform3fv(U.uSand3, S.sand3);
+    if (U.uFoam && S.foam) gl.uniform3fv(U.uFoam, S.foam);
+    if (U.uWetSand && S.wetsand) gl.uniform3fv(U.uWetSand, S.wetsand);
   }
 
   /* ======================================================================
      着色器：海滩 + 棕榈树（beach-palms.js 提供，复用海滩着色器的常量与函数）
      ====================================================================== */
-  buildShaders() {
+  override buildShaders(): void {
     super.buildShaders();
     if (typeof BEACH_PALM_FS === 'string' && typeof BEACH_PALM_VS === 'string') {
       // 显式拼接：FS_PRE 是海滩着色器 main 之前的部分（声明 + 公共函数 + 海滩函数）
@@ -420,7 +438,7 @@ export class FlatEngine extends SceneEngine {
     }
   }
 
-  dispose() {
+  override dispose(): void {
     super.dispose();
     this.palmPR = null;
     this.ripples.length = 0;
@@ -429,15 +447,16 @@ export class FlatEngine extends SceneEngine {
   /* ======================================================================
      主循环：场插值 + 皮划艇 + 海鸟（没有云）
      ====================================================================== */
-  update(dt, now) {
+  override update(dt: number, now: number): void {
     const e = Math.min((now - this.morphT0) / this.morphDur, 1);
     this.curMix = e < 0.5 ? 2 * e * e : 1 - Math.pow(-2 * e + 2, 2) / 2;
-    this.stepKayaks(dt, now);
+    this.stepKayaks(dt);
     this.stepBirds(dt);
   }
 
-  render(now) {
-    const gl = this.gl;
+  override render(now: number): void {
+    const gl = this.gl, pass = this.PR;
+    if (!gl || !pass) return;
     this.ripBuf.fill(0);
     this.ripples.forEach((r, i) => { const age = (now - r.t0) / 1000; if (age < 3) this.ripBuf.set([r.x, r.y, age, r.str], i * 4); });
     this.kayBuf.fill(0);
@@ -445,43 +464,44 @@ export class FlatEngine extends SceneEngine {
     this.birdBuf.fill(0);
     this.birds.forEach((b, i) => this.birdBuf.set([b.x, b.y, b.h, 0.68 + 0.32 * Math.cos(b.ph)], i * 4));
 
-    this.configureBeachPass(now, this.PR);
+    this.configureBeachPass(now, pass);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     if (this.palmPR && typeof drawMaldivesPalms === 'function') drawMaldivesPalms(now, this.palmPR, this.configureBeachPass);
     // 同 SceneEngine：不再每 20 帧 readPixels 强制同步（实测海滩 6.3ms → 0ms）
   }
 
-  configureBeachPass = (now, pass) => {
+  configureBeachPass = (now: number, pass: Program): void => {
     const gl = this.gl, cv = this.cv, P = this.params, U = pass.U;
+    if (!gl) return;
     gl.useProgram(pass.p);
     gl.viewport(0, 0, cv.width, cv.height);
     gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, this.noiseTex);
-    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, this.ftex[this.fromI]);
-    gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, this.ftex[this.toI]);
-    gl.uniform1i(U.uNoise, 0); gl.uniform1i(U.uFA, 1); gl.uniform1i(U.uFB, 2);
-    gl.uniform2f(U.uRes, cv.width / cv._scale, cv.height / cv._scale);   // 和画布的实际像素对齐（innerWidth、innerHeight 是取整过的）
-    gl.uniform2f(U.uGrid, this.Gw, this.Gh);
-    gl.uniform1f(U.uScale, cv._scale);
-    gl.uniform1f(U.uSeed, (this._seed % 997) * 0.37);
-    gl.uniform1f(U.uStep, 5);
-    gl.uniform1f(U.uMix, this.curMix);
-    gl.uniform1f(U.uTime, this.sceneTime(now));
-    gl.uniform1f(U.uSpeed, P.speed); gl.uniform1f(U.uRunup, P.runup);
-    gl.uniform1f(U.uShallow, P.shallow); gl.uniform1f(U.uShoal, P.shoal); gl.uniform1f(U.uGrain, P.grain);
-    gl.uniform1f(U.uWave, P.wave); gl.uniform1f(U.uSigma, P.sigma);
-    gl.uniform1f(U.uSpacing, P.spacing); gl.uniform1f(U.uWaves, P.waves);
-    gl.uniform1f(U.uDebug, P.debug ? 1 : 0);
-    gl.uniform1f(U.uKayN, this.kayaks.length);
-    gl.uniform4fv(U.uKay, this.kayBuf);
-    gl.uniform4fv(U.uRip, this.ripBuf);
-    gl.uniform1f(U.uBirdN, this.birds.length); gl.uniform4fv(U.uBird, this.birdBuf);
+    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, this.ftex[this.fromI] ?? null);
+    gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, this.ftex[this.toI] ?? null);
+    gl.uniform1i(U.uNoise ?? null, 0); gl.uniform1i(U.uFA ?? null, 1); gl.uniform1i(U.uFB ?? null, 2);
+    gl.uniform2f(U.uRes ?? null, cv.width / cv._scale, cv.height / cv._scale);   // 和画布的实际像素对齐（innerWidth、innerHeight 是取整过的）
+    gl.uniform2f(U.uGrid ?? null, this.Gw, this.Gh);
+    gl.uniform1f(U.uScale ?? null, cv._scale);
+    gl.uniform1f(U.uSeed ?? null, (this._seed % 997) * 0.37);
+    gl.uniform1f(U.uStep ?? null, 5);
+    gl.uniform1f(U.uMix ?? null, this.curMix);
+    gl.uniform1f(U.uTime ?? null, this.sceneTime(now));
+    gl.uniform1f(U.uSpeed ?? null, numParam(P, 'speed')); gl.uniform1f(U.uRunup ?? null, numParam(P, 'runup'));
+    gl.uniform1f(U.uShallow ?? null, numParam(P, 'shallow')); gl.uniform1f(U.uShoal ?? null, numParam(P, 'shoal')); gl.uniform1f(U.uGrain ?? null, numParam(P, 'grain'));
+    gl.uniform1f(U.uWave ?? null, numParam(P, 'wave')); gl.uniform1f(U.uSigma ?? null, numParam(P, 'sigma'));
+    gl.uniform1f(U.uSpacing ?? null, numParam(P, 'spacing')); gl.uniform1f(U.uWaves ?? null, numParam(P, 'waves'));
+    gl.uniform1f(U.uDebug ?? null, P.debug ? 1 : 0);
+    gl.uniform1f(U.uKayN ?? null, this.kayaks.length);
+    gl.uniform4fv(U.uKay ?? null, this.kayBuf);
+    gl.uniform4fv(U.uRip ?? null, this.ripBuf);
+    gl.uniform1f(U.uBirdN ?? null, this.birds.length); gl.uniform4fv(U.uBird ?? null, this.birdBuf);
     this.applyThemeUniforms(U);
   };
 
   /* ======================================================================
      皮划艇：在深水里慢慢划，提前避开陆地和其他船
      ====================================================================== */
-  spawnKayak() {
+  spawnKayak(): Kayak | null {
     for (let t = 0; t < 400; t++) {
       const x = 60 + Math.random() * (this.W - 120), y = 60 + Math.random() * (this.H - TASKBAR - 120);
       if (this.curS(x, y) > 170 && this.kayaks.every(k => Math.hypot(k.x - x, k.y - y) > 160))
@@ -489,16 +509,17 @@ export class FlatEngine extends SceneEngine {
     }
     return null;
   }
-  syncKayaks() {
-    const want = Math.max(0, Math.min(4, Math.round(this.params.kayaks)));
+  syncKayaks(): void {
+    const want = Math.max(0, Math.min(4, Math.round(numParam(this.params, 'kayaks'))));
     while (this.kayaks.length > want) this.kayaks.pop();
     while (this.kayaks.length < want) { const k = this.spawnKayak(); if (!k) break; this.kayaks.push(k); }
   }
-  stepKayaks(dt, now) {
+  stepKayaks(dt: number): void {
     const clearance = 64; // 船身长 44px，连同划桨留出安全间距。
-    const plans = [];
+    const plans: { h: number; dx: number; dy: number }[] = [];
     for (let i = 0; i < this.kayaks.length; i++) {
       const k = this.kayaks[i];
+      if (!k) continue;
       let heading = k.h;
       const ax = k.x + Math.cos(k.h) * 70, ay = k.y + Math.sin(k.h) * 70;
       const margin = ax < 40 || ay < 40 || ax > this.W - 40 || ay > this.H - TASKBAR - 40;
@@ -517,7 +538,9 @@ export class FlatEngine extends SceneEngine {
       let steerX = Math.cos(heading), steerY = Math.sin(heading), speed = 1, avoiding = false;
       for (let j = 0; j < this.kayaks.length; j++) {
         if (i === j) continue;
-        const other = this.kayaks[j], dx = other.x - k.x, dy = other.y - k.y;
+        const other = this.kayaks[j];
+        if (!other) continue;
+        const dx = other.x - k.x, dy = other.y - k.y;
         const distance = Math.hypot(dx, dy);
         if (distance > 210) continue;
         const rvx = Math.cos(other.h) * other.v - fx * k.v;
@@ -548,7 +571,9 @@ export class FlatEngine extends SceneEngine {
     // 根据同一帧的路线检查最近间距。极端相遇时减速，继续转向，不推开或瞬移船只。
     for (let pass = 0; pass < this.kayaks.length; pass++) {
       for (let i = 0; i < this.kayaks.length; i++) for (let j = i + 1; j < this.kayaks.length; j++) {
-        const a = plans[i], b = plans[j], dx = this.kayaks[j].x - this.kayaks[i].x, dy = this.kayaks[j].y - this.kayaks[i].y;
+        const a = plans[i], b = plans[j];
+        if (!a || !b) continue;
+        const dx = this.kayaks[j]!.x - this.kayaks[i]!.x, dy = this.kayaks[j]!.y - this.kayaks[i]!.y;
         const vx = b.dx - a.dx, vy = b.dy - a.dy, vv = vx * vx + vy * vy;
         const dot = dx * vx + dy * vy;
         if (dot >= 0 || vv < 1e-12) continue;
@@ -561,6 +586,7 @@ export class FlatEngine extends SceneEngine {
     }
     for (let i = this.kayaks.length - 1; i >= 0; i--) {
       const k = this.kayaks[i], plan = plans[i];
+      if (!k || !plan) continue;
       k.h = plan.h; k.x += plan.dx; k.y += plan.dy;
       if (this.curS(k.x, k.y) < 40) { const n = this.spawnKayak(); if (n) this.kayaks[i] = n; else this.kayaks.splice(i, 1); }   // 被陆地"吞掉"就换个地方出现
     }
@@ -569,7 +595,7 @@ export class FlatEngine extends SceneEngine {
   /* ======================================================================
     海鸟：在画面上空滑翔，时而盘旋、时而扇几下翅膀；飞出画面会兜回来
      ====================================================================== */
-  spawnBird(fromEdge) {
+  spawnBird(fromEdge: boolean): Bird {
     const H2 = this.H - TASKBAR;
     let x = Math.random() * this.W, y = Math.random() * H2;
     if (fromEdge) {                                    // 从画面外飞进来
@@ -579,14 +605,14 @@ export class FlatEngine extends SceneEngine {
     const h = Math.atan2(H2 / 2 - y, this.W / 2 - x) + (Math.random() - 0.5) * 1.2;
     return { x, y, h, v: 36 + Math.random() * 16, mode: 0, modeT: 2 + Math.random() * 4, ph: 0, flap: false, flapT: Math.random() * 3, wander: Math.random() * 100 };
   }
-  syncBirds(fromEdge = true) {
-    const want = Math.max(0, Math.min(8, Math.round(this.params.birds)));
+  syncBirds(fromEdge = true): void {
+    const want = Math.max(0, Math.min(8, Math.round(numParam(this.params, 'birds'))));
     while (this.birds.length > want) this.birds.pop();
     while (this.birds.length < want) this.birds.push(this.spawnBird(fromEdge));
   }
-  stepBirds(dt) {
+  stepBirds(dt: number): void {
     const H2 = this.H - TASKBAR, m = 90;
-    const turnToward = (h, target, rate) => { let d = target - h; d = Math.atan2(Math.sin(d), Math.cos(d)); return h + Math.sign(d) * Math.min(Math.abs(d), rate); };
+    const turnToward = (h: number, target: number, rate: number): number => { let d = target - h; d = Math.atan2(Math.sin(d), Math.cos(d)); return h + Math.sign(d) * Math.min(Math.abs(d), rate); };
     this.birds.forEach((b, i) => {
       if ((b.modeT -= dt) <= 0) {                       // 换一种飞法：直飞 / 向左或向右盘旋
         b.mode = Math.random() < 0.4 ? (Math.random() < 0.5 ? -1 : 1) : 0;
@@ -606,13 +632,13 @@ export class FlatEngine extends SceneEngine {
   /* ======================================================================
     涟漪 / 场景变更钩子
      ====================================================================== */
-  addRipple(x, y, str = 1) {
+  addRipple(x: number, y: number, str = 1): void {
     this.ripples.push({ x, y, t0: performance.now(), str });
     if (this.ripples.length > 6) this.ripples.shift();
   }
 
   // DeskApp 在布局 / 换种子 / 宿主首帧之后回调，主题自己决定要重排哪些动态元素
-  onSceneChanged(kind) {
+  onSceneChanged(kind: string): void {
     if (kind === 'hostInit') { this.syncBirds(false); return; }
     if (kind === 'reseed') { this.curMix = 1; this.kayaks.length = 0; this.syncKayaks(); this.curMix = 0; return; }
     if (kind === 'layout' || kind === 'firstIcons') {
@@ -621,7 +647,7 @@ export class FlatEngine extends SceneEngine {
     }
   }
 
-  onSliderAction(act) {
+  onSliderAction(act: string): void {
     if (act === 'kayaks') this.syncKayaks();
     else if (act === 'birds') this.syncBirds();
   }
