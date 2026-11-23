@@ -5,7 +5,7 @@
 // 依赖经 LegacyHost 显式传入，不再读 window 全局（P4 迁移，见 docs/2026-11-23-p4-legacy-ts-design.md）。
 
 import { SceneEngine, numParam } from '../engine/SceneEngine.js';
-import { GLSL_COMMON } from '../engine/glsl/common.js';
+import { GLSL_COMMON, GLSL_SEG } from '../engine/glsl/common.js';
 import type { EngineOpts, EngineParams } from '../engine/BaseEngine.js';
 import type { Program, ScenePalette, Uniforms } from '../engine/SceneEngine.js';
 import type { LegacyHost } from '../engine/LegacyHost.js';
@@ -20,13 +20,13 @@ interface Bird { x: number; y: number; h: number; v: number; mode: number; modeT
 // 涟漪：点击水面留下的一圈圈细白圈
 interface Ripple { x: number; y: number; t0: number; str: number; }
 
-// 头部：本主题自己的 uniform 声明、常量与海滩函数；公共的 hash2 / ss / N / fieldS 在 common.js。
+// 头部：本主题自己的 uniform 声明、常量与海滩函数；公共的 hash2 / ss / N / fieldS / segD 在 common.js。
 // FS_PRE 是「main 之前」的部分：棕榈树着色器（beach palms 模块）复用同一批声明与函数。
 const FS_HEADER = `#version 300 es
 precision highp float;
 uniform sampler2D uNoise, uFA, uFB;
 uniform vec2 uRes, uGrid;
-uniform float uScale, uSeed, uStep, uMix, uTime, uSpeed, uRunup, uShallow, uShoal, uGrain, uDebug, uWave, uSigma, uSpacing, uWaves;
+uniform float uScale, uSeed, uStep, uMix, uTime, uSpeed, uRunup, uShallow, uShoal, uGrain, uDebug, uWave, uSigma, uSpacing;
 uniform float uKayN;
 uniform vec4 uKay[4];          // x, y, 朝向, 划桨相位
 uniform vec4 uRip[6];
@@ -77,12 +77,11 @@ float hullSD(vec2 q) {
   float w = Wd * (1.0 - t * t);
   return max(abs(q.y) - w, abs(q.x) - L);
 }
-float segSD(vec2 p, vec2 a, vec2 b) { vec2 pa = p - a, ba = b - a; float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0); return length(pa - ba * h); }
 // 桨：一根细杆 + 两头红色桨叶
 vec2 paddleSD(vec2 q, float ph) {
   float a = 1.5708 + sin(ph) * 0.55;
   vec2 dir = vec2(cos(a), sin(a)) , c = vec2(0.5, 0.0);
-  float shaft = segSD(q, c - dir * 13.0, c + dir * 13.0) - 0.7;
+  float shaft = segD(q, c - dir * 13.0, c + dir * 13.0) - 0.7;
   vec2 b1 = q - (c + dir * 13.5), b2 = q - (c - dir * 13.5);
   mat2 r = rot(-a);
   vec2 l1 = r * b1, l2 = r * b2;
@@ -348,7 +347,7 @@ const FS_MAIN = `void main() {
 }`;
 
 // main 之前的部分（声明 + 公共函数 + 海滩函数）：海滩与棕榈树着色器共用
-const FS_PRE = FS_HEADER + GLSL_COMMON + FS_FUNCS;
+const FS_PRE = FS_HEADER + GLSL_COMMON + GLSL_SEG + FS_FUNCS;
 const FS = FS_PRE + FS_MAIN;
 
 export class FlatEngine extends SceneEngine {
@@ -408,10 +407,10 @@ export class FlatEngine extends SceneEngine {
 
   override defaultParams(): EngineParams {
     // 默认值要和 themes/beach/theme.json 里海边主题的 default 保持一致
-    // 海浪（speed、runup、wave、spacing、waves）和 grain、quality 不再开放调节，固定为这里的值
+    // 海浪（speed、runup、wave、spacing）和 grain、quality 不再开放调节，固定为这里的值
     return {
       sigma: 85, warp: 34, shallow: 260, shoal: 110,
-      speed: 22, runup: 120, wave: 1.6, spacing: 70, waves: 1, grain: 1, quality: 2,   // quality 2：按屏幕的实际像素画（150% 缩放时不再放大发糊）
+      speed: 22, runup: 120, wave: 1.6, spacing: 70, grain: 1, quality: 2,   // quality 2：按屏幕的实际像素画（150% 缩放时不再放大发糊）
       kayaks: 2, birds: 3, palms: 4, debug: false, snap: true, cap30: true,
       adaptive: 1,   // 基类 commit/refresh 用它判断是否把图标矩形计入陆地场（海滩始终要计）
     };
@@ -515,7 +514,7 @@ export class FlatEngine extends SceneEngine {
     gl.uniform1f(U.uSpeed ?? null, numParam(P, 'speed')); gl.uniform1f(U.uRunup ?? null, numParam(P, 'runup'));
     gl.uniform1f(U.uShallow ?? null, numParam(P, 'shallow')); gl.uniform1f(U.uShoal ?? null, numParam(P, 'shoal')); gl.uniform1f(U.uGrain ?? null, numParam(P, 'grain'));
     gl.uniform1f(U.uWave ?? null, numParam(P, 'wave')); gl.uniform1f(U.uSigma ?? null, numParam(P, 'sigma'));
-    gl.uniform1f(U.uSpacing ?? null, numParam(P, 'spacing')); gl.uniform1f(U.uWaves ?? null, numParam(P, 'waves'));
+    gl.uniform1f(U.uSpacing ?? null, numParam(P, 'spacing'));
     gl.uniform1f(U.uDebug ?? null, P.debug ? 1 : 0);
     gl.uniform1f(U.uKayN ?? null, this.kayaks.length);
     gl.uniform4fv(U.uKay ?? null, this.kayBuf);

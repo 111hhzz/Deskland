@@ -716,10 +716,25 @@ public class DesklandE2ETests : IAsyncLifetime
             Assert.DoesNotContain("uActor", s, StringComparison.Ordinal);
             Assert.DoesNotContain("uCat", s, StringComparison.Ordinal);
             Assert.DoesNotContain("GLSL_MEADOW_EXTRA", s, StringComparison.Ordinal);
+            Assert.DoesNotContain("segSD", s, StringComparison.Ordinal);
         }
         var meadowSrc = await File.ReadAllTextAsync(Path.Combine(scenesDir, "MeadowEngine.ts"));
         Assert.Contains("withDefines", meadowSrc, StringComparison.Ordinal);
         Assert.Contains("GLSL_MEADOW_EXTRA", meadowSrc, StringComparison.Ordinal);
+
+        // 死 uniform / 死参数：FlatEngine 曾声明并绑定 uWaves，但着色器主体从不使用，
+        // 参数 waves 也随之无人消费；两者都应清零（否则会误以为海滩有“浪的层数”可调）
+        Assert.DoesNotContain("uWaves", flatSrc, StringComparison.Ordinal);
+        Assert.DoesNotContain("waves:", flatSrc, StringComparison.Ordinal);
+        Assert.DoesNotContain("numParam(P, 'waves')", flatSrc, StringComparison.Ordinal);
+        // segD（点到线段距离）唯一事实来源在 common.ts：FlatEngine 曾自带一份等价的 segSD，
+        // 且必须仍被桨的绘制使用（删了调用会让桨杆消失）
+        Assert.DoesNotContain("segSD", flatSrc, StringComparison.Ordinal);
+        Assert.Contains("segD(", flatSrc, StringComparison.Ordinal);
+        Assert.Contains("GLSL_SEG", flatSrc, StringComparison.Ordinal);
+        var commonSrc = await File.ReadAllTextAsync(Path.Combine(srcDir, "engine", "glsl", "common.ts"));
+        Assert.Single(Regex.Matches(commonSrc, Regex.Escape("float segD(")));
+        Assert.Contains("export const GLSL_SEG", commonSrc, StringComparison.Ordinal);
     }
 
     /// <summary>

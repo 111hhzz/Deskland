@@ -56,10 +56,13 @@ float cloudDist(vec2 q, bool front, inout vec4 fc) {
 float cloudDist(vec2 q) { vec4 fc = vec4(0.0, -1e9, 0.0, 0.0); return cloudDist(q, false, fc); }
 `;
 
-// 排线与小猫：meadow 专用（sky / aurora / beach 都不用，各自 FS 里没有这两段）
-export const GLSL_MEADOW_EXTRA = `
-// 到一段线的距离
+// 点到线段的距离：meadow 的排线 / beach 的桨共用（单一事实来源，改一处两边一起变）
+export const GLSL_SEG = `
 float segD(vec2 p, vec2 a, vec2 b) { vec2 pa = p - a, ba = b - a; return length(pa - ba * clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0)); }
+`;
+
+// 小猫：meadow 专用（sky / aurora / beach 都不用，各自 FS 里没有这一段）
+export const GLSL_MEADOW_EXTRA = GLSL_SEG + `
 #ifdef MEADOW_CAT
 float catTailMask(vec2 uv) {
   return smoothstep(.635,.665,uv.x)*smoothstep(.715,.75,uv.y);
