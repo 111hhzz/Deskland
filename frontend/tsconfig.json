@@ -16,11 +16,12 @@
     "esModuleInterop": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
-    "allowJs": true,
-    "checkJs": false,
+    "noImplicitReturns": true,
+    "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "noEmit": true,
     "types": []
   },
   "include": ["src"]
+  // 纯 TS 工程：legacy 经典脚本在 public/ 下，不参与编译，只用 global.d.ts 做 ambient 声明
 }

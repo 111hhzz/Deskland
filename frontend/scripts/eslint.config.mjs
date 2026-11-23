@@ -1,5 +1,6 @@
 // ESLint 配置（flat config）。仅报告，不阻断提交。
-// 源码在 src/（浏览器脚本），工具脚本在仓库根（.mjs，Node ESM）。
+// 源码在 src/（浏览器脚本，已全量 TS），工具脚本在仓库根（.mjs，Node ESM）；
+// public/ 下的 classic 脚本（ripple / 各主题 legacy）按 script 解析。
 import js from '@eslint/js';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
@@ -36,10 +37,5 @@ export default [
       'no-undef': 'off',
       'no-unused-vars': 'off',
     },
-  },
-  {
-    // 引擎与主题引擎使用 import/export（ES 模块）；lib/ 与 assets/ 是经典脚本
-    files: ['src/engine/**/*.js', 'src/scenes/**/*.js'],
-    languageOptions: { ecmaVersion: 2022, sourceType: 'module', globals: { ...globals.browser } },
   },
 ];
