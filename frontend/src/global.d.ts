@@ -1,7 +1,6 @@
-// 全局声明：WebView2 宿主注入的对象、DeskApp 挂到 window 的共享状态、测试同步信号。
+// 全局声明：WebView2 宿主注入的对象与测试同步信号（P4 第 3 步起不再有 window 桥接）。
 
 import type { EngineParams } from './engine/BaseEngine.js';
-import type { Field, IconItem, Program, ScaledCanvas } from './engine/SceneEngine.js';
 
 export {};
 
@@ -29,23 +28,5 @@ declare global {
     };
     __bootError?: string;
     __errors?: string[];
-    // DeskApp 挂到 window 的共享状态：目前只剩 beach palms 经典脚本在读取，
-    // 第 2/3 步迁完后这层会整体删除（见 DeskApp.mountToWindow 的说明）。
-    // 快照赋值：TASKBAR / P / gl / cv / program / sampleArr / curS / mulberry32
-    TASKBAR: number;
-    P: EngineParams;
-    gl: WebGL2RenderingContext | null;
-    cv: ScaledCanvas;
-    program: (fs: string, vsSrc?: string) => Program;
-    sampleArr: (a: Float32Array, x: number, y: number) => number;
-    curS: (x: number, y: number) => number;
-    mulberry32: (a: number) => () => number;
-    // live getter（引擎尺寸随窗口变）：W / H 只读
-    readonly W: number;
-    readonly H: number;
-    // live getter + setter（引擎侧会改写）
-    icons: IconItem[];
-    seed: number;
-    FB: Field | null;
   }
 }

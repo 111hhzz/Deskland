@@ -348,6 +348,9 @@ public class DesklandE2ETests : IAsyncLifetime
             // 截图前把随机序列归位，保证这一帧与之前跑了几帧无关。
             await _pageWallpaper.EvaluateAsync("window.__resetRand && window.__resetRand()");
             await _pageWallpaper.EvaluateAsync("window.__dbg && window.__dbg.settle && window.__dbg.settle()");
+            // ripple 的入场淡入（模块顶部启动）在截图时可能未结束，body 还处于半透明；
+            // 等它把注入的 style / class 摘掉、opacity 回到 1 再截图，否则整图被淡入权重污染。
+            await _pageWallpaper.WaitForTimeoutAsync(600);
             shots.Add(($"wallpaper-{id}", await _pageWallpaper.ScreenshotAsync()));
         }
 
@@ -544,8 +547,9 @@ public class DesklandE2ETests : IAsyncLifetime
     }
 
     /// <summary>
-    /// 壁纸模式下的宿主绑定：DeskApp.setupHostMessages 应加 wall 类、
-    /// 挂好共享状态，并接收宿主 icons 消息初始化 icons。
+    /// 壁纸模式下的宿主绑定：DeskApp.setupHostMessages 应加 wall 类，
+    /// 并接收宿主 icons 消息初始化引擎 icons（__desklandIcons 信号）。
+    /// P4 第 3 步起 legacy 模块走 LegacyHost 显式注入，window 上不再有 P/gl/cv 桥接。
     /// （视觉基线只验证画面，宿主消息链路靠本测试兜底。）
     /// </summary>
     [Fact]
@@ -555,13 +559,14 @@ public class DesklandE2ETests : IAsyncLifetime
         await Task.Delay(2000);
         Assert.True(await _pageWallpaper.EvaluateAsync<bool>("document.body.classList.contains('wall')"),
             "wallpaper 模式应加 wall 类");
-        Assert.True(await _pageWallpaper.EvaluateAsync<bool>("Array.isArray(window.icons)"),
-            "宿主 icons 消息应已初始化 icons");
+        Assert.True(await _pageWallpaper.EvaluateAsync<bool>("window.__desklandIcons === true"),
+            "宿主 icons 消息应已初始化引擎 icons");
         Assert.True(await _pageWallpaper.EvaluateAsync<bool>(
-            "typeof window.P === 'object' && typeof window.P.sigma === 'number'"),
-            "共享参数应挂到 window（boy/cat 脚本依赖）");
-        Assert.True(await _pageWallpaper.EvaluateAsync<bool>("typeof window.gl === 'object' && typeof window.cv === 'object'"),
-            "渲染上下文应挂到 window（boy/cat 脚本依赖）");
+            "!!window.__dbg && !!window.__dbg.P && typeof window.__dbg.P.sigma === 'number'"),
+            "引擎参数应经 __dbg 暴露（替代原 window.P 桥接）");
+        Assert.True(await _pageWallpaper.EvaluateAsync<bool>(
+            "typeof window.P === 'undefined' && typeof window.gl === 'undefined' && typeof window.cv === 'undefined'"),
+            "P4 第 3 步后 window 不应再有 legacy 桥接字段");
     }
 
     /// <summary>
@@ -620,6 +625,22 @@ public class DesklandE2ETests : IAsyncLifetime
                     Assert.Contains(key + ":", defaults.Groups[1].Value, StringComparison.Ordinal);
                 }
         }
+
+        // P4 第 3 步：legacy 已整体 TS 化进 src/，public 下不再有经典 .js 脚本；
+        // 装配统一走 legacyInstall，动态插 script 的老路（EXTRAS / loadScript）与 window 桥接都已删除。
+        var frontendRoot = Path.Combine(RepoRoot, "frontend");
+        Assert.Empty(Directory.EnumerateFiles(srcDir, "*.js", SearchOption.AllDirectories));
+        Assert.Empty(Directory.EnumerateFiles(Path.Combine(frontendRoot, "public"), "*.js", SearchOption.AllDirectories));
+        var installSrc = await File.ReadAllTextAsync(Path.Combine(srcDir, "engine", "legacyInstall.ts"));
+        Assert.Contains("installLegacyFor", installSrc, StringComparison.Ordinal);
+        Assert.Contains("installLegacy", await File.ReadAllTextAsync(Path.Combine(scenesDir, "MeadowEngine.ts")), StringComparison.Ordinal);
+        Assert.Contains("installLegacy", await File.ReadAllTextAsync(Path.Combine(scenesDir, "FlatEngine.ts")), StringComparison.Ordinal);
+        Assert.DoesNotContain("EXTRAS", mainSrc, StringComparison.Ordinal);
+        Assert.DoesNotContain("loadScript", mainSrc, StringComparison.Ordinal);
+        var globalDts = await File.ReadAllTextAsync(Path.Combine(srcDir, "global.d.ts"));
+        Assert.DoesNotContain("prepareMeadowBoy", globalDts, StringComparison.Ordinal);
+        Assert.DoesNotContain("BEACH_PALM", globalDts, StringComparison.Ordinal);
+        Assert.DoesNotContain("mountToWindow", globalDts, StringComparison.Ordinal);
     }
 
     /// <summary>

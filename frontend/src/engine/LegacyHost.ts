@@ -1,5 +1,5 @@
 // legacy 脚本（草地人物 / 小猫、海滩棕榈）的显式依赖入口。
-// 这些脚本原本是 public/ 下的经典脚本，靠 DeskApp.mountToWindow() 挂到 window 的裸全局名读引擎状态；
+// 这些脚本原本是 public/ 下的经典脚本，靠挂到 window 的裸全局名读引擎状态（P4 第 3 步已删除该桥接）；
 // 现在是 src/themes/<id>/legacy/ 下的 TS 模块，由页面把 host 传进来（P4 迁移，见 docs/2026-11-23-p4-legacy-ts-design.md）。
 import type { EngineParams } from './BaseEngine.js';
 import type { Field, IconItem, Program, ScaledCanvas } from './SceneEngine.js';

@@ -184,35 +184,12 @@ export class DeskApp {
     this._engineStats = () => this.updateStats();
     this.engine.on('resize', this._engineResize);
     this.engine.on('stats', this._engineStats);
-    this.mountToWindow();
     this.tickClock();
     this._clockT = window.setInterval(() => this.tickClock(), 15000);
     if (!this.WALL && !this.PREVIEW) { this.layoutIcons('mine'); this.syncPanel(); }
   }
 
-  // 过渡期：把共享状态挂到 window，供 boy/cat 等旧脚本以全局方式读取
-  mountToWindow(): void {
-    window.TASKBAR = TASKBAR;
-    window.P = this.engine.params;
-    window.gl = this.engine.gl;   // boy/cat 脚本仍直接读取渲染上下文
-    window.cv = this.engine.cv;
-    window.program = this.engine.program;
-    Object.defineProperty(window, 'W', { get: () => this.engine.W, configurable: true });
-    Object.defineProperty(window, 'H', { get: () => this.engine.H, configurable: true });
-    Object.defineProperty(window, 'icons', {
-      get: () => this.engine.icons, set: v => { this.engine.icons = v; }, configurable: true,
-    });
-    Object.defineProperty(window, 'seed', {
-      get: () => this.engine.seed, set: v => { this.engine.setSeed(v); }, configurable: true,
-    });
-    // 旧脚本还会直接读场数组 / 双线性采样 / 场的动态值 / 确定性随机（beach-palms.js）
-    Object.defineProperty(window, 'FB', { get: () => this.engine.FB, configurable: true });
-    window.sampleArr = this.engine.sampleArr.bind(this.engine);
-    window.curS = this.engine.curS.bind(this.engine);
-    window.mulberry32 = this.mulberry32.bind(this);
-  }
-
-  // P4：legacy TS 模块（boy/cat/palms）的显式依赖入口；第 3 步起取代 mountToWindow 的全局桥接
+  // P4：legacy TS 模块（boy/cat/palms）的显式依赖入口；第 3 步已删除 mountToWindow 全局桥接
   legacyHost(themeBase: string): LegacyHost {
     const e = this.engine, self = this;
     // 预先绑定一次，避免每帧新建函数

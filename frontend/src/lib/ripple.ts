@@ -1,10 +1,15 @@
 // 桌面点击涟漪：宿主通过只读鼠标钩子发来主屏物理像素坐标，覆盖在主题画布上。
 // 颜色 / 时长 / 层叠都从主题 Token 读取（base.css + themes/<id>/theme.css），读不到时用默认值。
-(function () {
-  function token(name, fallback) {
-    const v = getComputedStyle(document.documentElement).getPropertyValue(name);
-    return v && v.trim() ? v.trim() : fallback;
-  }
+// 主题切换淡入：新页面首帧准备好后，用 keyframe 动画把 body 从透明淡入到不透明。
+// 淡入起点颜色 = 页面背景 Token（--color-bg），避免白闪或颜色跳变；只覆盖「从空白到首帧可见」这一段。
+// 用法：模块顶层副作用（import 即装，与原来的 IIFE 行为一致）；导出供单测复用（P4 迁移）。
+
+function token(name: string, fallback: string): string {
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name);
+  return v && v.trim() ? v.trim() : fallback;
+}
+
+export function installRipples(): void {
   const rippleColor = token('--color-ripple', 'rgba(255,255,255,.8)');
   const rippleGlow = token('--color-ripple-glow', 'rgba(255,255,255,.55)');
   const rippleInset = token('--color-ripple-inset', 'rgba(255,255,255,.35)');
@@ -26,7 +31,7 @@
   layer.className = 'deskland-ripples';
   document.body.appendChild(layer);
 
-  function ripple(x, y) {
+  function ripple(x: number, y: number): void {
     const k = window.devicePixelRatio || 1;
     const el = document.createElement('div');
     el.className = 'deskland-ripple';
@@ -34,21 +39,23 @@
     el.style.top = (y / k) + 'px';
     el.addEventListener('animationend', () => el.remove(), { once: true });
     layer.appendChild(el);
-    while (layer.children.length > 6) layer.firstElementChild.remove();
+    while (layer.children.length > 6) layer.firstElementChild?.remove();
   }
 
   // 页面预览和浏览器打开时没有宿主消息；只响应 WebView2 的 ripple 消息。
   const host = window.chrome && window.chrome.webview;
-  if (host) host.addEventListener('message', ev => {
-    const m = JSON.parse(ev.data);
-    if (m && m.t === 'ripple' && Number.isFinite(m.x) && Number.isFinite(m.y)) ripple(m.x, m.y);
+  if (!host) return;
+  host.addEventListener('message', ev => {
+    let m: unknown;
+    try { m = JSON.parse(ev.data as string); } catch { return; }
+    if (typeof m !== 'object' || m === null) return;
+    const msg = m as { t?: unknown; x?: unknown; y?: unknown };
+    if (msg.t === 'ripple' && typeof msg.x === 'number' && Number.isFinite(msg.x)
+      && typeof msg.y === 'number' && Number.isFinite(msg.y)) ripple(msg.x, msg.y);
   });
-})();
+}
 
-// 主题切换淡入：新页面首帧准备好后，用 keyframe 动画把 body 从透明淡入到不透明。
-// 淡入起点颜色 = 页面背景 Token（--color-bg），避免白闪或颜色跳变；
-// 只覆盖"从空白到首帧可见"这一段，不叠加在 sky 的 2.6s morph 上。三个主题页共用此函数。
-(function desklandFadeIn() {
+export function desklandFadeIn(): void {
   const fadeDuration = getComputedStyle(document.documentElement).getPropertyValue('--motion-fade').trim() || '250ms';
   const fadeEase = getComputedStyle(document.documentElement).getPropertyValue('--motion-ease-out').trim() || 'ease-out';
   const style = document.createElement('style');
@@ -66,7 +73,8 @@
     document.body.classList.add('deskland-ready');
     setTimeout(() => { style.remove(); document.body.classList.remove('deskland-ready'); }, parseFloat(fadeDuration) + 50);
   }));
-})();
+}
 
-// 首帧信号已移到各主题页：引擎就绪（init 分片完成）后由页面发出，
-// 静态画面（页面背景）在 init 分片期间已先渲染，不再作为首帧判定。
+// 顶层副作用：import 即装。ES 模块缓存保证热切换（engine.html 同上下文换主题）不会重复安装。
+installRipples();
+desklandFadeIn();

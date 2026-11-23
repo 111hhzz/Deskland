@@ -64,6 +64,7 @@
 <script type="module">
 import { FlatEngine } from '../../scenes/FlatEngine.js';
 import { DeskApp } from '../../engine/DeskApp.js';
+import '../../lib/ripple.js';   // 桌面点击涟漪（只读鼠标钩子），import 即装
 import { installLegacyFor } from '../../engine/legacyInstall.js';
 
 const QS = new URLSearchParams(location.search);
@@ -97,6 +98,5 @@ engine.init().then(ok => {
   });
 });
 </script>
-<script src="/lib/ripple.js"></script>   <!-- 桌面点击涟漪（只读鼠标钩子） -->
 </body>
 </html>

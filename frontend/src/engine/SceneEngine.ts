@@ -166,7 +166,7 @@ export class SceneEngine extends BaseEngine {
   /* ======================================================================
      着色器与资源
      ====================================================================== */
-  // 编译着色器：boy/cat 脚本也通过 window.program 调用它（过渡期），因此用箭头函数保持 this
+  // 编译着色器：legacy 模块经 LegacyHost.program 调用它，因此用箭头函数保持 this
   program = (fs: string, vsSrc: string = GLSL_VS): Program => {
     const gl = this.gl;
     if (!gl) throw new Error('SceneEngine.program: WebGL2 上下文尚未初始化');
@@ -672,7 +672,7 @@ export class SceneEngine extends BaseEngine {
     if (this.noiseTex) { gl.deleteTexture(this.noiseTex); this.noiseTex = null; }
     for (let i = 0; i < 2; i++) { const t = this.ftex[i]; if (t) { gl.deleteTexture(t); this.ftex[i] = null; } }
     if (this.circTex) { gl.deleteTexture(this.circTex); this.circTex = null; }
-    // program() 记录的所有程序（含 boy/cat 脚本通过 window.program 创建的）；缓存的程序跨引擎复用，不删
+    // program() 记录的所有程序（含 legacy 模块经 host.program 创建的）；缓存的程序跨引擎复用，不删
     for (const r of this._programs) if (r && r.p && !r.cached) gl.deleteProgram(r.p);
     this._programs.clear();
     this.PR = this.actorPR = this.catPR = this.catActorPR = null;
