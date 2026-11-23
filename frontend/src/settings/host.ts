@@ -1,8 +1,8 @@
 // 宿主桥接：设置页与桌面宿主之间的消息通道。
 // 有宿主（WebView2）时走 chrome.webview；没有时（浏览器里调界面）用 mock 数据。
 
-import type { InMessage, InitPayload, OutMessage, ThemeDef } from './types';
-import { browserLang } from './i18n';
+import type { InMessage, InitPayload, OutMessage, ThemeDef } from './types.js';
+import { browserLang } from './i18n.js';
 
 export interface HostBridge {
   send(msg: OutMessage): void;

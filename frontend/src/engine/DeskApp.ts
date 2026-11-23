@@ -1,9 +1,7 @@
 // Deskland 应用外壳：桌面图标布局 / 拖拽、面板、任务栏、时钟、宿主消息协议。
 // 构造器接收一个引擎实例（渲染侧的状态与能力），本类只负责应用层逻辑。
 //
-// 过渡期约定：把共享状态（W/H/P/icons/seed/TASKBAR）挂到 window，
-// 让 meadow-boy.js / meadow-cat.js 等旧脚本继续以全局方式读取，行为保持 100% 一致。
-// 待引擎迁移稳定后，再消除这层全局污染。
+// P4：legacy 模块（boy/cat/palms）已 TS 化并经 LegacyHost 显式注入，window 上不再挂共享状态。
 
 import type { EngineParams, EngineParamValue } from './BaseEngine.js';
 import type { IconItem, SceneEngine } from './SceneEngine.js';

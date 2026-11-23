@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ReactElement } from 'react';
-import { useSettings } from '../store';
-import { LANGS } from '../i18n';
-import type { LangSetting, ThemeMode } from '../types';
+import { useSettings } from '../store.js';
+import { LANGS } from '../i18n.js';
+import type { LangSetting, ThemeMode } from '../types.js';
 
 const GLOBE = (
   <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" aria-hidden="true">

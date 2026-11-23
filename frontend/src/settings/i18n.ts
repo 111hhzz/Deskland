@@ -1,7 +1,7 @@
 // 界面语言：文字表在 public/i18n/<语言>.json（ui：界面文字；themes：主题名和参数）。
 // 加载结果缓存在模块级 Map，translate / localizeRegistry 直接读取；语言切换由 React 状态触发重渲染。
 
-import type { LangCode, ThemeDef, ThemeRegistry } from './types';
+import type { LangCode, ThemeDef, ThemeRegistry } from './types.js';
 
 export const LANGS: Record<LangCode, string> = { en: 'English', 'zh-CN': '简体中文' };
 

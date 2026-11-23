@@ -1,6 +1,6 @@
 // 主题与参数的领域逻辑：默认值、当前值、格式化、缩略图地址。纯函数，组件与 store 共用。
 
-import type { ParamDef, ThemeDef } from './types';
+import type { ParamDef, ThemeDef } from './types.js';
 
 export type Params = Record<string, Record<string, number>>;
 

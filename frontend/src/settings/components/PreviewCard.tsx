@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { useSettings } from '../store';
-import { themeById, valuesOf, thumbUrl } from '../domain';
+import { useSettings } from '../store.js';
+import { themeById, valuesOf, thumbUrl } from '../domain.js';
 
 export function PreviewCard() {
   const { state, themes, t, setAdaptive, reseed } = useSettings();

@@ -410,7 +410,7 @@ void main() {
   float silhouette=max(max(person.a,kite.a),max(contactL,contactR));
   o=mix(result,vec4(vec3(silhouette),1.),uShadow);
 }`);
-  const U = shader.U as Record<string, WebGLUniformLocation | null>;
+  const U = shader.U;
   const texture = gl.createTexture()!, runTexture = gl.createTexture()!;
   const framebuffer = gl.createFramebuffer()!, layers: WebGLTexture[] = [gl.createTexture()!, gl.createTexture()!];
   let targetWidth = 0, targetHeight = 0;

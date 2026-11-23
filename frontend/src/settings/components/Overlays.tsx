@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
-import { useSettings } from '../store';
-import { translate } from '../i18n';
-import { themeById } from '../domain';
+import { useSettings } from '../store.js';
+import { translate } from '../i18n.js';
+import { themeById } from '../domain.js';
 
 // 连接类错误码 → 界面文案键（文案在 i18n/*.json，这里只做映射）
 const CONNECTION_KEYS: Record<string, string> = {

@@ -1,5 +1,5 @@
-import { useSettings } from '../store';
-import { AutostartWarn, UpdateNotice } from './Overlays';
+import { useSettings } from '../store.js';
+import { AutostartWarn, UpdateNotice } from './Overlays.js';
 
 export function ThemeList() {
   const { state, themes, t, selectTheme, setSearch, refreshThemes } = useSettings();

@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react';
-import { useSettings } from '../store';
-import { fmtParam, themeById, valuesOf } from '../domain';
-import type { ParamDef } from '../types';
+import { useSettings } from '../store.js';
+import { fmtParam, themeById, valuesOf } from '../domain.js';
+import type { ParamDef } from '../types.js';
 
 function ParamRow({ p, value }: { p: ParamDef; value: number }) {
   const { setParam, t } = useSettings();

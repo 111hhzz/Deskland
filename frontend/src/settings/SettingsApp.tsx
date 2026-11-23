@@ -1,10 +1,10 @@
 import { useEffect } from 'react';
-import { useSettings } from './store';
-import { TopBar } from './components/TopBar';
-import { ThemeList } from './components/ThemeList';
-import { PreviewCard } from './components/PreviewCard';
-import { Controls } from './components/Controls';
-import { HelpModal, PurchaseModal } from './components/Overlays';
+import { useSettings } from './store.js';
+import { TopBar } from './components/TopBar.js';
+import { ThemeList } from './components/ThemeList.js';
+import { PreviewCard } from './components/PreviewCard.js';
+import { Controls } from './components/Controls.js';
+import { HelpModal, PurchaseModal } from './components/Overlays.js';
 
 export function SettingsApp() {
   const { state, t, openHelp, closeHelp, closePurchase } = useSettings();

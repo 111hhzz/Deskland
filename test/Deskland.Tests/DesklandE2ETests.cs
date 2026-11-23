@@ -641,6 +641,17 @@ public class DesklandE2ETests : IAsyncLifetime
         Assert.DoesNotContain("prepareMeadowBoy", globalDts, StringComparison.Ordinal);
         Assert.DoesNotContain("BEACH_PALM", globalDts, StringComparison.Ordinal);
         Assert.DoesNotContain("mountToWindow", globalDts, StringComparison.Ordinal);
+
+        // 每个 ready 主题页都恰好 import 一次 ripple（ES 模块缓存保证只装一次），
+        // 且不再用 <script src> 插经典脚本；meadow / beach 还须经 legacyInstall 装配 legacy。
+        foreach (var id in ReadyThemeIds())
+        {
+            var page = await File.ReadAllTextAsync(Path.Combine(srcDir, "themes", id, id + ".html"));
+            Assert.Single(Regex.Matches(page, Regex.Escape("import '../../lib/ripple.js';")));
+            Assert.DoesNotContain("<script src=\"/lib/ripple.js\">", page, StringComparison.Ordinal);
+            if (id is "meadow" or "beach")
+                Assert.Contains("installLegacyFor('" + id + "'", page, StringComparison.Ordinal);
+        }
     }
 
     /// <summary>

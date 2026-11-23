@@ -1,7 +1,7 @@
 import { createRoot } from 'react-dom/client';
-import { SettingsProvider } from './store';
-import { SettingsApp } from './SettingsApp';
-import { createWebViewHost } from './host';
+import { SettingsProvider } from './store.js';
+import { SettingsApp } from './SettingsApp.js';
+import { createWebViewHost } from './host.js';
 
 // 直接挂到 body：顶栏 / 两栏 / 底栏要成为 body grid 的直接子项，
 // #root 包一层会破坏 body 的 grid-template-rows 布局。

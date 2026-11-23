@@ -23,5 +23,5 @@
     "types": []
   },
   "include": ["src"]
-  // 纯 TS 工程：legacy 经典脚本在 public/ 下，不参与编译，只用 global.d.ts 做 ambient 声明
+  // 纯 TS 工程：legacy 脚本已全部迁入 src/（P4），public/ 下无 .js
 }

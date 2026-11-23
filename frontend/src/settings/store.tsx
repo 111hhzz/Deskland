@@ -5,12 +5,12 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useReducer,
 import type { ReactNode } from 'react';
 import type {
   InitPayload, LangCode, LangSetting, ScreenSize, ThemeDef, ThemeMode, ThemeRegistry, UpdateState,
-} from './types';
-import { localizeRegistry, loadLang, translate } from './i18n';
-import type { HostBridge } from './host';
-import { mockInit, mockThemes } from './host';
-import { newSeed, seedOf } from './domain';
-import type { Params } from './domain';
+} from './types.js';
+import { localizeRegistry, loadLang, translate } from './i18n.js';
+import type { HostBridge } from './host.js';
+import { mockInit, mockThemes } from './host.js';
+import { newSeed, seedOf } from './domain.js';
+import type { Params } from './domain.js';
 
 export interface SettingsState {
   registry0: ThemeRegistry;

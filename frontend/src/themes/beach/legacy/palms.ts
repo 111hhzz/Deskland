@@ -194,7 +194,7 @@ export function createMaldivesPalmsScene(host: LegacyHost): MaldivesPalmsScene {
         scene.count = count;
       }
       configurePass(now, pass);
-      const U = pass.U as Record<string, WebGLUniformLocation | null>;
+      const U = pass.U;
       gl.activeTexture(gl.TEXTURE6); gl.bindTexture(gl.TEXTURE_2D, scene.atlas); gl.uniform1i(U.uPalmAtlas!, 6);
       gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
       for (const palm of scene.palms) {

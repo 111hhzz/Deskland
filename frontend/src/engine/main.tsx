@@ -11,7 +11,7 @@ import { DeskApp } from './DeskApp.js';
 import type { DeskEngine } from './DeskApp.js';
 import { installLegacyFor } from './legacyInstall.js';
 import '../lib/ripple.js';   // 桌面点击涟漪（只读鼠标钩子），import 即装
-import { WallShell } from './ui';
+import { WallShell } from './ui.js';
 
 // 静态外壳（任务栏 / 调试面板）用 React 渲染：容器是独立的 #ui，
 // 与 canvas 解耦，且这两个容器在真实壁纸模式下被 body.wall 隐藏，所以挂载不影响壁纸首帧。

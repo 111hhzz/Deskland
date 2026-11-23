@@ -9,6 +9,15 @@ function token(name: string, fallback: string): string {
   return v && v.trim() ? v.trim() : fallback;
 }
 
+// CSS 时长串（ms / s）转毫秒；非法值回落到 fallback，避免 parseFloat('0.25s') 得到 0.25ms。
+function durationMs(value: string, fallback: number): number {
+  const m = /^([\d.]+)\s*(ms|s)?$/.exec(value.trim());
+  if (!m) return fallback;
+  const n = parseFloat(m[1]!);
+  if (!Number.isFinite(n) || n < 0) return fallback;
+  return m[2] === 's' ? n * 1000 : n;
+}
+
 export function installRipples(): void {
   const rippleColor = token('--color-ripple', 'rgba(255,255,255,.8)');
   const rippleGlow = token('--color-ripple-glow', 'rgba(255,255,255,.55)');
@@ -56,8 +65,8 @@ export function installRipples(): void {
 }
 
 export function desklandFadeIn(): void {
-  const fadeDuration = getComputedStyle(document.documentElement).getPropertyValue('--motion-fade').trim() || '250ms';
-  const fadeEase = getComputedStyle(document.documentElement).getPropertyValue('--motion-ease-out').trim() || 'ease-out';
+  const fadeDuration = token('--motion-fade', '250ms');
+  const fadeEase = token('--motion-ease-out', 'ease-out');
   const style = document.createElement('style');
   style.textContent = `
     html { background: var(--color-bg, #1aa3c4); }
@@ -71,7 +80,7 @@ export function desklandFadeIn(): void {
   // 结束后移除注入的 <style>（body 回到默认 opacity:1）与 class，不会反向淡出。
   requestAnimationFrame(() => requestAnimationFrame(() => {
     document.body.classList.add('deskland-ready');
-    setTimeout(() => { style.remove(); document.body.classList.remove('deskland-ready'); }, parseFloat(fadeDuration) + 50);
+    setTimeout(() => { style.remove(); document.body.classList.remove('deskland-ready'); }, durationMs(fadeDuration, 250) + 50);
   }));
 }
 
