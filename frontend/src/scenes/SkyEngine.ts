@@ -3,10 +3,12 @@
 //
 // 过渡期约定：渲染上下文与共享状态由 DeskApp 挂到 window，与 meadow 保持一致的实例化顺序。
 
-import { SceneEngine } from '../engine/SceneEngine.js';
+import { SceneEngine, numParam } from '../engine/SceneEngine.js';
+import type { EngineOpts, EngineParams } from '../engine/BaseEngine.js';
+import type { ScenePalette, Uniforms } from '../engine/SceneEngine.js';
 import { GLSL_COMMON, GLSL_CLOUD } from '../engine/glsl/common.js';
 
-// 头部：本主题自己的 uniform 声明与常量；函数体在 common.js，主体（main）在下面
+// 头部：本主题自己的 uniform 声明与常量；函数体在 common.ts，主体（main）在下面
 const FS_HEADER = `#version 300 es
 precision highp float;
 #define SKY_SCHEME
@@ -93,9 +95,9 @@ void main() {
 }`;
 
 export class SkyEngine extends SceneEngine {
-  static FS = FS_HEADER + GLSL_COMMON + GLSL_CLOUD + FS_BODY;   // 片元着色器（SceneEngine 约定）
+  static override FS = FS_HEADER + GLSL_COMMON + GLSL_CLOUD + FS_BODY;   // 片元着色器（SceneEngine 约定）
 
-  constructor(canvas, opts = {}) {
+  constructor(canvas: HTMLCanvasElement, opts: EngineOpts = {}) {
     super(canvas, opts);
     // 面板配置：应用层 DeskApp 直接读取（主题只加配置，不改宿主代码）
     this.sliders = [
@@ -109,7 +111,7 @@ export class SkyEngine extends SceneEngine {
     ];
   }
 
-  defaultParams() {
+  override defaultParams(): EngineParams {
     // 默认值要和 themes.json 里天空主题的 default 保持一致；grain、quality 不开放调节
     return {
       sigma: 72, warp: 40, edge: 10, cover: 0.3, flow: 1, grain: 1, quality: 2,   // quality 2：按屏幕的实际像素画（150% 缩放时不再放大发糊）
@@ -118,7 +120,7 @@ export class SkyEngine extends SceneEngine {
     };
   }
 
-  buildScenePalette() {
+  override buildScenePalette(): ScenePalette {
     return {
       shadow:      this.sceneToken('--scene-shadow')         || [0.56, 0.66, 0.52],
       cloudHi:     this.sceneToken('--scene-cloud-hi')       || [1.0, 1.0, 0.99],
@@ -137,15 +139,16 @@ export class SkyEngine extends SceneEngine {
   }
 
   // 天空特有的 uniform：时段、云影色、三种时段的天空渐变
-  applyThemeUniforms(U) {
+  override applyThemeUniforms(U: Uniforms): void {
     const gl = this.gl, S = this.scene;
-    if (U.uScheme) gl.uniform1i(U.uScheme, this.params.scheme | 0);
-    if (U.uCloudShadow) gl.uniform3fv(U.uCloudShadow, S.cloudShadow);
-    if (U.uSkyDayTop) gl.uniform3fv(U.uSkyDayTop, S.skyDayTop);
-    if (U.uSkyDayBot) gl.uniform3fv(U.uSkyDayBot, S.skyDayBot);
-    if (U.uSkyDuskTop) gl.uniform3fv(U.uSkyDuskTop, S.skyDuskTop);
-    if (U.uSkyDuskBot) gl.uniform3fv(U.uSkyDuskBot, S.skyDuskBot);
-    if (U.uSkyNightTop) gl.uniform3fv(U.uSkyNightTop, S.skyNightTop);
-    if (U.uSkyNightBot) gl.uniform3fv(U.uSkyNightBot, S.skyNightBot);
+    if (!gl) return;
+    if (U.uScheme) gl.uniform1i(U.uScheme, numParam(this.params, 'scheme') | 0);
+    if (U.uCloudShadow && S.cloudShadow) gl.uniform3fv(U.uCloudShadow, S.cloudShadow);
+    if (U.uSkyDayTop && S.skyDayTop) gl.uniform3fv(U.uSkyDayTop, S.skyDayTop);
+    if (U.uSkyDayBot && S.skyDayBot) gl.uniform3fv(U.uSkyDayBot, S.skyDayBot);
+    if (U.uSkyDuskTop && S.skyDuskTop) gl.uniform3fv(U.uSkyDuskTop, S.skyDuskTop);
+    if (U.uSkyDuskBot && S.skyDuskBot) gl.uniform3fv(U.uSkyDuskBot, S.skyDuskBot);
+    if (U.uSkyNightTop && S.skyNightTop) gl.uniform3fv(U.uSkyNightTop, S.skyNightTop);
+    if (U.uSkyNightBot && S.skyNightBot) gl.uniform3fv(U.uSkyNightBot, S.skyNightBot);
   }
 }

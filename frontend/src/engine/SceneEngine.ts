@@ -19,6 +19,9 @@ import { GLSL_VS, CIRC_K, GRID_PAD } from './glsl/common.js';
 const STEP = 5;          // 陆地场的格子大小（px）
 const MORPH_MS = 1800;   // 图标挪动时、场在新旧两张之间过渡的时长
 const TASKBAR = 48;      // 任务栏高度（与 DeskApp 保持一致）
+// 冻结帧里主循环首帧的 dt（见 BaseEngine._loop）：settleAndRender 用同一个值重建云，
+// 让测试帧与"首帧"完全一致。
+const SETTLE_DT = 0.03;
 const CELL_G = 48;      // 云格子大小（px，与 GLSL 的 uCellG 对应）；CIRC_K / GRID_PAD 在 glsl/common.ts
 
 // ---- 类型 ----
@@ -61,7 +64,7 @@ type Size2 = [number, number];
 type MassBand = [number, number, (ci: number) => number];
 
 // 数值参数读取：这些键由子类 defaultParams 保证存在且是数字（布尔开关不走这里）
-function numParam(params: EngineParams, key: string): number {
+export function numParam(params: EngineParams, key: string): number {
   const v = params[key];
   return typeof v === 'number' ? v : 0;
 }
@@ -432,8 +435,17 @@ export class SceneEngine extends BaseEngine {
 
   // 测试用：形态过渡直接走完并立刻画一帧。视觉基线把 performance.now 冻结了，
   // 页面只会画一帧，否则取到的可能是"图标还没就位"的那一帧。
+  // 云（天上的云、图标云团的呼吸）由主循环的帧数决定，而冻结后到底跑了几帧并不确定
+  // （同一份代码在隔离跑与整套跑里会落在两个状态）。这里把随机序列归位并重建一次云，
+  // 让这一帧恒等于"正好跑了一帧"的状态，与帧数无关。
   settleAndRender(): void {
+    window.__resetRand?.();
     this.morphT0 = -1e9; this.curMix = 1; this.massT = -1e9;
+    this.skyClouds.length = 0;
+    // flowT 是累加量：settle 前主循环可能已经跑过首帧，直接再 step 一次会变成两帧的相位。
+    // 先归零，让这一帧恒等于"首帧"。
+    this.flowT = 0;
+    this.stepSkyClouds(SETTLE_DT);
     this.render(performance.now());
   }
 

@@ -3,10 +3,12 @@
 //
 // 过渡期约定：渲染上下文与共享状态由 DeskApp 挂到 window。
 
-import { SceneEngine } from '../engine/SceneEngine.js';
+import { SceneEngine, numParam } from '../engine/SceneEngine.js';
+import type { EngineOpts, EngineParams } from '../engine/BaseEngine.js';
+import type { ScenePalette, Uniforms } from '../engine/SceneEngine.js';
 import { GLSL_COMMON, GLSL_CLOUD } from '../engine/glsl/common.js';
 
-// 头部：本主题自己的 uniform 声明与常量；函数体在 common.js，主体（main）在下面
+// 头部：本主题自己的 uniform 声明与常量；函数体在 common.ts，主体（main）在下面
 const FS_HEADER = `#version 300 es
 precision highp float;
 uniform sampler2D uNoise, uFA, uFB, uCirc;
@@ -90,9 +92,9 @@ void main() {
 }`;
 
 export class AuroraEngine extends SceneEngine {
-  static FS = FS_HEADER + GLSL_COMMON + GLSL_CLOUD + FS_BODY;
+  static override FS = FS_HEADER + GLSL_COMMON + GLSL_CLOUD + FS_BODY;
 
-  constructor(canvas, opts = {}) {
+  constructor(canvas: HTMLCanvasElement, opts: EngineOpts = {}) {
     super(canvas, opts);
     this.sliders = [
       { key: 'sigma',  label: '云团大小', min: 40, max: 200, step: 1,    fmt: v => v + ' px', act: 'field' },
@@ -106,14 +108,14 @@ export class AuroraEngine extends SceneEngine {
     ];
   }
 
-  defaultParams() {
+  override defaultParams(): EngineParams {
     return {
       sigma: 72, warp: 40, edge: 10, cover: 0.3, flow: 1, aurora: 0.9, stars: 0.55,
       grain: 1, quality: 2, debug: false, snap: true, cap30: true, adaptive: 1,
     };
   }
 
-  buildScenePalette() {
+  override buildScenePalette(): ScenePalette {
     return {
       skyTop:      this.sceneToken('--scene-sky-top')       || [0.03, 0.05, 0.14],
       skyBot:      this.sceneToken('--scene-sky-bottom')    || [0.08, 0.12, 0.26],
@@ -129,15 +131,16 @@ export class AuroraEngine extends SceneEngine {
     };
   }
 
-  applyThemeUniforms(U) {
+  override applyThemeUniforms(U: Uniforms): void {
     const gl = this.gl, S = this.scene;
-    if (U.uSkyTop) gl.uniform3fv(U.uSkyTop, S.skyTop);
-    if (U.uSkyBot) gl.uniform3fv(U.uSkyBot, S.skyBot);
-    if (U.uAurA) gl.uniform3fv(U.uAurA, S.aurA);
-    if (U.uAurB) gl.uniform3fv(U.uAurB, S.aurB);
-    if (U.uCloudShadow) gl.uniform3fv(U.uCloudShadow, S.cloudShadow);
-    if (U.uMoonCol) gl.uniform3fv(U.uMoonCol, S.moonCol);
-    if (U.uAurora) gl.uniform1f(U.uAurora, this.params.aurora);
-    if (U.uStars) gl.uniform1f(U.uStars, this.params.stars);
+    if (!gl) return;
+    if (U.uSkyTop && S.skyTop) gl.uniform3fv(U.uSkyTop, S.skyTop);
+    if (U.uSkyBot && S.skyBot) gl.uniform3fv(U.uSkyBot, S.skyBot);
+    if (U.uAurA && S.aurA) gl.uniform3fv(U.uAurA, S.aurA);
+    if (U.uAurB && S.aurB) gl.uniform3fv(U.uAurB, S.aurB);
+    if (U.uCloudShadow && S.cloudShadow) gl.uniform3fv(U.uCloudShadow, S.cloudShadow);
+    if (U.uMoonCol && S.moonCol) gl.uniform3fv(U.uMoonCol, S.moonCol);
+    if (U.uAurora) gl.uniform1f(U.uAurora, numParam(this.params, 'aurora'));
+    if (U.uStars) gl.uniform1f(U.uStars, numParam(this.params, 'stars'));
   }
 }
