@@ -26,7 +26,7 @@ float fieldS(sampler2D t, vec2 p) { return texture(t, (p / uStep + 0.5) / uGrid)
 `;
 
 // 云的布局常量：**JS 与 GLSL 的唯一事实来源**。
-// 改这里，SceneEngine 的格子分配与 cloudDist 的采样会一起变；不要在任何一边单独写魔数。
+// 改这里，CloudSceneEngine 的格子分配与 cloudDist 的采样会一起变；不要在任何一边单独写魔数。
 export const CIRC_K = 36 as const;      // 每格最多存多少个圆（云纹理的宽度 = 格数 × CIRC_K）
 export const GRID_PAD = 4 as const;     // 云格子比屏幕左、上多出的格数（右、下只多 GRID_PAD - 1 格）
 

@@ -1,9 +1,10 @@
-// 夜航 · 极光 主题引擎：复用 SceneEngine 的陆地场（图标让位）与云的圆机制，
+// 夜航 · 极光 主题引擎：复用 CloudSceneEngine 的陆地场（图标让位）与云的圆机制，
 // 只替换天空部分为「夜空 + 星 + 月亮 + 极光带 + 流星」，并把云染上极光色。
 //
 // 过渡期约定：渲染上下文与共享状态由 DeskApp 挂到 window。
 
-import { SceneEngine, numParam } from '../engine/SceneEngine.js';
+import { CloudSceneEngine } from '../engine/CloudSceneEngine.js';
+import { numParam } from '../engine/SceneEngine.js';
 import type { EngineOpts, EngineParams } from '../engine/BaseEngine.js';
 import type { ScenePalette, Uniforms } from '../engine/SceneEngine.js';
 import { GLSL_COMMON, GLSL_CLOUD } from '../engine/glsl/common.js';
@@ -91,7 +92,7 @@ void main() {
   o = vec4(col, 1.0);
 }`;
 
-export class AuroraEngine extends SceneEngine {
+export class AuroraEngine extends CloudSceneEngine {
   static override FS = FS_HEADER + GLSL_COMMON + GLSL_CLOUD + FS_BODY;
 
   constructor(canvas: HTMLCanvasElement, opts: EngineOpts = {}) {

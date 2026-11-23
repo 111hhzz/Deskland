@@ -1,10 +1,10 @@
 // 草地主题引擎：只保留草地特有的部分（着色器、调色板、人物 / 小猫）。
-// 共享的场景机制（噪声、陆地场、云的圆、渲染骨架）在 SceneEngine。
+// 共享的场景机制（噪声、陆地场、渲染骨架）在 SceneEngine，云的圆在 CloudSceneEngine。
 //
 // 人物 / 小猫已 TS 化（themes/meadow/legacy/boy.ts、cat.ts），由 installLegacy 注入，
 // 依赖经 LegacyHost 显式传入，不再读 window 全局（P4 迁移，见 docs/2026-11-23-p4-legacy-ts-design.md）。
 
-import { SceneEngine } from '../engine/SceneEngine.js';
+import { CloudSceneEngine } from '../engine/CloudSceneEngine.js';
 import type { EngineOpts, EngineParams } from '../engine/BaseEngine.js';
 import type { ScenePalette, SceneDraw, Uniforms } from '../engine/SceneEngine.js';
 import { GLSL_COMMON, GLSL_CLOUD, GLSL_MEADOW_EXTRA, withDefines } from '../engine/glsl/common.js';
@@ -125,7 +125,7 @@ const FS_ACTOR = withDefines(FS, ['MEADOW_ACTOR']);
 const FS_CAT = withDefines(FS, ['MEADOW_CAT']);
 const FS_ACTOR_CAT = withDefines(FS, ['MEADOW_ACTOR', 'MEADOW_CAT']);
 
-export class MeadowEngine extends SceneEngine {
+export class MeadowEngine extends CloudSceneEngine {
   static override FS = FS;                     // 片元着色器（SceneEngine 约定）
   static FS_ACTOR = FS_ACTOR;         // 带人物的变体
   static FS_CAT = FS_CAT;             // 带小猫的变体

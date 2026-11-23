@@ -1,9 +1,10 @@
 // 天空主题引擎：只保留天空特有的部分（天空渐变着色器、时段调色板、云影颜色）。
-// 共享的场景机制（噪声、陆地场、云的圆、渲染骨架）在 SceneEngine。
+// 共享的场景机制（噪声、陆地场、渲染骨架）在 SceneEngine，云的圆在 CloudSceneEngine。
 //
 // 过渡期约定：渲染上下文与共享状态由 DeskApp 挂到 window，与 meadow 保持一致的实例化顺序。
 
-import { SceneEngine, numParam } from '../engine/SceneEngine.js';
+import { CloudSceneEngine } from '../engine/CloudSceneEngine.js';
+import { numParam } from '../engine/SceneEngine.js';
 import type { EngineOpts, EngineParams } from '../engine/BaseEngine.js';
 import type { ScenePalette, Uniforms } from '../engine/SceneEngine.js';
 import { GLSL_COMMON, GLSL_CLOUD } from '../engine/glsl/common.js';
@@ -94,7 +95,7 @@ void main() {
   o = vec4(col, 1.0);
 }`;
 
-export class SkyEngine extends SceneEngine {
+export class SkyEngine extends CloudSceneEngine {
   static override FS = FS_HEADER + GLSL_COMMON + GLSL_CLOUD + FS_BODY;   // 片元着色器（SceneEngine 约定）
 
   constructor(canvas: HTMLCanvasElement, opts: EngineOpts = {}) {

@@ -664,6 +664,27 @@ public class DesklandE2ETests : IAsyncLifetime
             if (id is "meadow" or "beach")
                 Assert.Contains("installLegacyFor('" + id + "'", page, StringComparison.Ordinal);
         }
+
+        // C1：云机制（圆纹理 + 天上的云）已从 SceneEngine 剥离到 CloudSceneEngine；
+        // 天空系三个主题继承 CloudSceneEngine，无云的海滩直接继承 SceneEngine（不再背负死代码）。
+        var cloudSrc = await File.ReadAllTextAsync(Path.Combine(srcDir, "engine", "CloudSceneEngine.ts"));
+        Assert.Contains("export class CloudSceneEngine extends SceneEngine", cloudSrc, StringComparison.Ordinal);
+        foreach (var api in new[] { "makeSkyCloud", "stepSkyClouds", "uploadCircles", "buildMassCircles", "skyClouds" })
+        {
+            Assert.Contains(api, cloudSrc, StringComparison.Ordinal);
+            Assert.DoesNotContain(api, sceneSrc, StringComparison.Ordinal);
+        }
+        // 云钩子必须被 CloudSceneEngine 全部覆盖（漏覆盖会静默无云）；SceneEngine 里不留云实现细节
+        foreach (var hook in new[] { "override uploadClouds", "override bindCloudUniforms", "override resetClouds", "override settleClouds", "override disposeClouds" })
+            Assert.Contains(hook, cloudSrc, StringComparison.Ordinal);
+        foreach (var api in new[] { "circTex", "massList", "flowT", "CELL_G", "SETTLE_DT" })
+            Assert.DoesNotContain(api, sceneSrc, StringComparison.Ordinal);
+        foreach (var cls in new[] { "MeadowEngine", "SkyEngine", "AuroraEngine" })
+            Assert.Contains("extends CloudSceneEngine",
+                await File.ReadAllTextAsync(Path.Combine(scenesDir, cls + ".ts")), StringComparison.Ordinal);
+        var flatSrc = await File.ReadAllTextAsync(Path.Combine(scenesDir, "FlatEngine.ts"));
+        Assert.Contains("extends SceneEngine", flatSrc, StringComparison.Ordinal);
+        Assert.DoesNotContain("CloudSceneEngine", flatSrc, StringComparison.Ordinal);
     }
 
     /// <summary>
