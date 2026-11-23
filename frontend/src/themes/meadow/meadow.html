@@ -61,6 +61,7 @@
 <script type="module">
 import { MeadowEngine } from '../../scenes/MeadowEngine.js';
 import { DeskApp } from '../../engine/DeskApp.js';
+import { installLegacyFor } from '../../engine/legacyInstall.js';
 
 const QS = new URLSearchParams(location.search);
 const engine = new MeadowEngine(document.getElementById('art'), {
@@ -68,6 +69,7 @@ const engine = new MeadowEngine(document.getElementById('art'), {
   preview: QS.has('preview'),      // 预览模式：设置窗口里的缩略预览（iframe），消息来自父页面
 });
 const app = new DeskApp(engine);
+installLegacyFor('meadow', app, engine);   // 人物 / 小猫模块注入（必须在 init 之前）
 
 // 调试 / 测试探针（字段与迁移前保持一致）
 window.__dbg = {
@@ -91,8 +93,6 @@ engine.init().then(ok => {
   });
 });
 </script>
-<script src="/themes/meadow/legacy/boy.js"></script>
-<script src="/themes/meadow/legacy/cat.js"></script>
 <script src="/lib/ripple.js"></script>   <!-- 桌面点击涟漪（只读鼠标钩子） -->
 </body>
 </html>

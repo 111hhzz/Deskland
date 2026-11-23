@@ -9,6 +9,7 @@ import { FlatEngine } from '../scenes/FlatEngine.js';
 import { AuroraEngine } from '../scenes/AuroraEngine.js';
 import { DeskApp } from './DeskApp.js';
 import type { DeskEngine } from './DeskApp.js';
+import { installLegacyFor } from './legacyInstall.js';
 import { WallShell } from './ui';
 
 // 静态外壳（任务栏 / 调试面板）用 React 渲染：容器是独立的 #ui，
@@ -35,8 +36,8 @@ const ENGINES: Record<string, () => EngineCtor> = {
   aurora: () => AuroraEngine,
 };
 const THEME_STYLE = (id: string) => '/themes/' + id + '/theme.css';   // 绝对路径：主题样式在 public，运行时按站点根解析
+// 还未 TS 化的经典脚本（beach palms；P4 第 2 步迁走后删掉这套动态插 script 的机制）
 const EXTRAS: Record<string, string[]> = {
-  meadow: ['/themes/meadow/legacy/boy.js', '/themes/meadow/legacy/cat.js'],
   beach:  ['/themes/beach/legacy/palms.js'],
 };
 
@@ -90,6 +91,7 @@ async function boot(id: string) {
   engine = await loadTheme(id);
   if (gen !== bootGen) { engine.destroy(); engine = null; return; }   // 已被超时作废，别再往下起
   app = new DeskApp(engine, id);
+  installLegacyFor(id, app, engine);   // 主题 legacy 模块注入（必须在 init 之前）
   await engine.init();
   if (gen !== bootGen) { app.destroy(); engine.destroy(); app = engine = null; return; }
   app.start();

@@ -1,7 +1,6 @@
 // 全局声明：WebView2 宿主注入的对象、DeskApp 挂到 window 的共享状态、测试同步信号。
 
 import type { EngineParams } from './engine/BaseEngine.js';
-import type { MeadowActor, MeadowCat } from './scenes/MeadowEngine.js';
 import type { Field, IconItem, Program, ScaledCanvas } from './engine/SceneEngine.js';
 
 export {};
@@ -30,8 +29,8 @@ declare global {
     };
     __bootError?: string;
     __errors?: string[];
-    // DeskApp 挂到 window 的共享状态：经典脚本（boy/cat/palms）仍以全局方式读取，
-    // 迁移完成后这层会被消除（见 DeskApp.mountToWindow 的说明）。
+    // DeskApp 挂到 window 的共享状态：目前只剩 beach palms 经典脚本在读取，
+    // 第 2/3 步迁完后这层会整体删除（见 DeskApp.mountToWindow 的说明）。
     // 快照赋值：TASKBAR / P / gl / cv / program / sampleArr / curS / mulberry32
     TASKBAR: number;
     P: EngineParams;
@@ -49,11 +48,6 @@ declare global {
     seed: number;
     FB: Field | null;
   }
-
-  // 经典脚本（meadow-boy.js / meadow-cat.js）在全局暴露的人物 / 小猫准备函数。
-  // 页面未加载这些脚本时它们不存在（undefined），调用方需先 typeof 判断。
-  var prepareMeadowBoy: ((now: number, show: boolean) => MeadowActor | null) | undefined;
-  var prepareMeadowCat: ((boy: MeadowActor | null, now: number) => MeadowCat | null) | undefined;
 
   // 经典脚本 beach/palms.js 暴露的棕榈树着色器与绘制函数（页面未加载时为 undefined）。
   // configurePass 由主题引擎提供（海滩引擎的 configureBeachPass）。

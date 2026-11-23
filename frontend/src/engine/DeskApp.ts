@@ -8,6 +8,7 @@
 import type { EngineParams, EngineParamValue } from './BaseEngine.js';
 import type { IconItem, SceneEngine } from './SceneEngine.js';
 import { numParam } from './SceneEngine.js';
+import type { LegacyHost } from './LegacyHost.js';
 
 // DeskApp 需要的引擎能力：SceneEngine 的公共成员 + 各主题可选实现的扩展钩子
 export interface DeskEngine extends SceneEngine {
@@ -209,6 +210,31 @@ export class DeskApp {
     window.sampleArr = this.engine.sampleArr.bind(this.engine);
     window.curS = this.engine.curS.bind(this.engine);
     window.mulberry32 = this.mulberry32.bind(this);
+  }
+
+  // P4：legacy TS 模块（boy/cat/palms）的显式依赖入口；第 3 步起取代 mountToWindow 的全局桥接
+  legacyHost(themeBase: string): LegacyHost {
+    const e = this.engine, self = this;
+    // 预先绑定一次，避免每帧新建函数
+    const sampleArr = e.sampleArr.bind(e);
+    const curS = e.curS.bind(e);
+    const mulberry32 = self.mulberry32.bind(self);
+    return {
+      get gl() { return e.gl as WebGL2RenderingContext; },
+      get cv() { return e.cv; },
+      get program() { return e.program; },
+      get W() { return e.W; },
+      get H() { return e.H; },
+      get TASKBAR() { return TASKBAR; },
+      get icons() { return e.icons; },
+      get seed() { return e.seed; },
+      get P() { return e.params; },
+      get FB() { return e.FB; },
+      sampleArr,
+      curS,
+      mulberry32,
+      get themeBase() { return themeBase; },
+    };
   }
 
   /* ---------------- 事件与面板 ---------------- */

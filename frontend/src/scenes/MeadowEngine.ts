@@ -1,28 +1,21 @@
 // 草地主题引擎：只保留草地特有的部分（着色器、调色板、人物 / 小猫）。
 // 共享的场景机制（噪声、陆地场、云的圆、渲染骨架）在 SceneEngine。
 //
-// 过渡期约定：渲染上下文（gl/cv/program）与共享状态（W/H/icons/seed/TASKBAR）由 DeskApp 挂到 window，
-// 让 meadow-boy.js / meadow-cat.js 等旧脚本继续以全局方式读取，行为保持 100% 一致。
+// 人物 / 小猫已 TS 化（themes/meadow/legacy/boy.ts、cat.ts），由 installLegacy 注入，
+// 依赖经 LegacyHost 显式传入，不再读 window 全局（P4 迁移，见 docs/2026-11-23-p4-legacy-ts-design.md）。
 
 import { SceneEngine } from '../engine/SceneEngine.js';
 import type { EngineOpts, EngineParams } from '../engine/BaseEngine.js';
 import type { ScenePalette, SceneDraw, Uniforms } from '../engine/SceneEngine.js';
 import { GLSL_COMMON, GLSL_CLOUD, GLSL_MEADOW_EXTRA, withDefines } from '../engine/glsl/common.js';
+import type { LegacyHost } from '../engine/LegacyHost.js';
+import { isMeadowActor } from '../themes/meadow/legacy/boy.js';
+import type { MeadowActor, MeadowBoyScene } from '../themes/meadow/legacy/boy.js';
+import type { MeadowCat, MeadowCatScene } from '../themes/meadow/legacy/cat.js';
 
-// 人物（meadow-boy.js 旧脚本返回）
-export interface MeadowActor {
-  actor: WebGLTexture;
-  shadow: WebGLTexture;
-  rect: [number, number, number, number];
-}
-// 小猫（meadow-cat.js 旧脚本返回）
-export interface MeadowCat {
-  texture: WebGLTexture;
-  rect: [number, number, number, number];
-  shadow: [number, number];
-  tail: number;
-  bounds: [number, number, number, number];
-}
+// 人物 / 小猫的类型由各自的 legacy 模块定义（形状对应着色器 uActor / uCat 的输入），此处转供外部引用
+export type { MeadowActor, MeadowActorState } from '../themes/meadow/legacy/boy.js';
+export type { MeadowCat } from '../themes/meadow/legacy/cat.js';
 
 // 头部：本主题自己的 uniform 声明与常量；函数体在 common.ts，主体（main）在下面
 const FS_HEADER = `#version 300 es
@@ -140,6 +133,32 @@ export class MeadowEngine extends SceneEngine {
 
   _actor: MeadowActor | null;
   _cat: MeadowCat | null;
+  private _boy: MeadowBoyScene | null = null;
+  private _catScene: MeadowCatScene | null = null;
+  private _legacyHost: LegacyHost | null = null;
+  private _legacyDef: {
+    createBoy: (host: LegacyHost) => MeadowBoyScene;
+    createCat: (host: LegacyHost) => MeadowCatScene;
+  } | null = null;
+
+  // 由页面在 init() 之前调用：把人物 / 小猫模块注入引擎（P4）
+  installLegacy(host: LegacyHost, def: {
+    createBoy: (host: LegacyHost) => MeadowBoyScene;
+    createCat: (host: LegacyHost) => MeadowCatScene;
+  }): void {
+    this._legacyHost = host;
+    this._legacyDef = def;
+  }
+
+  override async init(): Promise<boolean> {
+    const ok = await super.init();
+    // legacy 实例会立即建纹理 / 编译 program，必须在 gl 就绪（super.init）之后
+    if (ok && this._legacyHost && this._legacyDef) {
+      this._boy = this._legacyDef.createBoy(this._legacyHost);
+      this._catScene = this._legacyDef.createCat(this._legacyHost);
+    }
+    return ok;
+  }
 
   constructor(canvas: HTMLCanvasElement, opts: EngineOpts = {}) {
     super(canvas, opts);
@@ -197,9 +216,10 @@ export class MeadowEngine extends SceneEngine {
   override prepareScene(): void {
     const P = this.params, now = this._now;
     // 隐藏男孩时只保留路线状态，小猫仍能独立显示并避开男孩再次出现的路线。
-    const boy = typeof prepareMeadowBoy === 'function' ? prepareMeadowBoy(now, P.showBoy === 1) : null;
-    const actor = P.showBoy === 1 ? boy : null;
-    const cat = P.showCat === 1 && typeof prepareMeadowCat === 'function' ? prepareMeadowCat(boy, now) : null;
+    const boy = this._boy ? this._boy.draw(now, P.showBoy === 1) : null;
+    // visible=false 时 boy 只有 state，用类型守卫区分完整帧
+    const actor = isMeadowActor(boy) ? boy : null;
+    const cat = P.showCat === 1 && this._catScene ? this._catScene.prepare(boy, now) : null;
     // 官网不加载人物脚本，沿用原来的草地着色器和开销。
     if (actor && !this.actorPR) this.actorPR = this.program((this.constructor as typeof MeadowEngine).FS_ACTOR);
     this._actor = actor; this._cat = cat;
