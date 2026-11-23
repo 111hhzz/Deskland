@@ -39,6 +39,8 @@ export interface MeadowActor {
 export interface MeadowBoyScene {
   // visible=false 时只回 state（男孩不在场，但小猫要读路线）
   draw(now: number, visible: boolean): MeadowActor | { state: MeadowActorState } | null;
+  // 引擎 destroy 时释放本模块创建的纹理 / FBO（program 由引擎 _programs 统一管）
+  dispose(): void;
 }
 // 完整帧与「仅 state」的区分：引擎只把完整帧当人物贴纹理
 export function isMeadowActor(x: MeadowActor | { state: MeadowActorState } | null): x is MeadowActor {
@@ -413,6 +415,7 @@ void main() {
   const U = shader.U;
   const texture = gl.createTexture()!, runTexture = gl.createTexture()!;
   const framebuffer = gl.createFramebuffer()!, layers: WebGLTexture[] = [gl.createTexture()!, gl.createTexture()!];
+  let disposed = false;
   let targetWidth = 0, targetHeight = 0;
   let ready = 0, time = 0, lastCheck = -Infinity, lastScale = 0;
   let position: Point | null = null, target: Point | null = null, trip: MeadowTrip | null = null;
@@ -430,6 +433,7 @@ void main() {
   function loadSprite(path: string, unit: number, targetTexture: WebGLTexture, size = 384): void {
     const image = new Image();
     image.onload = () => {
+      if (disposed) return;   // 引擎已销毁：不要再向已删除的纹理上传
       const sprite = document.createElement('canvas'); sprite.width = sprite.height = size;
       sprite.getContext('2d')!.drawImage(image, 0, 0, size, size);
       gl.activeTexture(unit); gl.bindTexture(gl.TEXTURE_2D, targetTexture);
@@ -459,7 +463,13 @@ void main() {
     }
     return best || { x: host.W * .48, y: (host.H - host.TASKBAR) * .40 };
   };
-  return { draw(now: number, visible = true): MeadowActor | { state: MeadowActorState } | null {
+  return {
+    dispose(): void {
+      disposed = true;
+      for (const t of [texture, runTexture, ...layers]) gl.deleteTexture(t);
+      gl.deleteFramebuffer(framebuffer);
+    },
+    draw(now: number, visible = true): MeadowActor | { state: MeadowActorState } | null {
     if (ready < 2) return null;
     const dt = previousTime === null ? 0 : Math.min(.05, Math.max(0, (now - previousTime) / 1000)); previousTime = now; time += dt;
     const s = Math.max(.24, Math.min(1.25, host.W / 1379, (host.H - host.TASKBAR) / 1141)) * .35;

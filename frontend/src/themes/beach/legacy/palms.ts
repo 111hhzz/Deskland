@@ -31,6 +31,8 @@ interface BeachPalmsSceneState {
 // 每帧绘制；pass 是棕榈树专用 program，configurePass 由海滩引擎提供（复用海滩着色器的 uniform）
 export interface MaldivesPalmsScene {
   draw(now: number, pass: Program, configurePass: (now: number, pass: Program) => void): void;
+  // 引擎 destroy 时释放 atlas 纹理（scene 可能尚未初始化）
+  dispose(): void;
 }
 
 const BEACH_PALM_STYLES: BeachPalmStyle[] = [
@@ -167,8 +169,14 @@ export function createMaldivesPalmsScene(host: LegacyHost): MaldivesPalmsScene {
     const image = new Image(); image.src = host.themeBase + 'images/' + style.file; return image;
   });
   let scene: BeachPalmsSceneState | null = null;
+  let disposed = false;
   return {
+    dispose(): void {
+      disposed = true;
+      if (scene) { gl.deleteTexture(scene.atlas); scene = null; }
+    },
     draw(now: number, pass: Program, configurePass: (now: number, pass: Program) => void): void {
+      if (disposed) return;
       const FB = host.FB;
       if (!FB || !images.every(image => image.complete && image.naturalWidth)) return;
       if (!scene) {

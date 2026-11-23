@@ -20,6 +20,8 @@ export interface MeadowCat {
 export interface MeadowCatScene {
   // boy 只用到 state（路线），所以入参收窄成 { state } | null
   prepare(boy: { state: MeadowActorState } | null, now?: number): MeadowCat | null;
+  // 引擎 destroy 时释放贴图纹理
+  dispose(): void;
 }
 interface MeadowCatPlace {
   x: number; y: number; size: number;
@@ -92,10 +94,11 @@ function meadowCatTailAngle(time: number, sceneSeed: number): number {
 export function createMeadowCatScene(host: LegacyHost): MeadowCatScene {
   const gl = host.gl;
   const texture = gl.createTexture()!;
-  let ready = false, layout = '', signature = '', routeState: MeadowActorState | null = null, place: MeadowCatPlace | null = null;
+  let ready = false, disposed = false, layout = '', signature = '', routeState: MeadowActorState | null = null, place: MeadowCatPlace | null = null;
   let time = 0, previousTime: number | null = null;
   const image = new Image();
   image.onload = () => {
+    if (disposed) return;   // 引擎已销毁：不要再向已删除的纹理上传
     const sprite = document.createElement('canvas'); sprite.width = sprite.height = 384;
     sprite.getContext('2d')!.drawImage(image, 0, 0, 384, 384);
     gl.activeTexture(gl.TEXTURE8); gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -108,7 +111,12 @@ export function createMeadowCatScene(host: LegacyHost): MeadowCatScene {
   };
   image.onerror = () => console.warn('草地小猫素材加载失败');
   image.src = host.themeBase + 'images/meadow-black-kitten.png';
-  return { prepare(boy, now = 0): MeadowCat | null {
+  return {
+    dispose(): void {
+      disposed = true;
+      gl.deleteTexture(texture);
+    },
+    prepare(boy, now = 0): MeadowCat | null {
     if (previousTime !== null) time += Math.max(0, Math.min(.05, (now - previousTime) / 1000));
     previousTime = now;
     const nextLayout = [host.W, host.H, host.TASKBAR].join(',');

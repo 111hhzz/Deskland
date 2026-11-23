@@ -104,7 +104,6 @@ export class SceneEngine extends BaseEngine {
   massT: number;
   vao: WebGLVertexArrayObject | null;
   PR: Program | null;
-  _programs: Set<Program>;
   GPU: string;
   px: Uint8Array;
   actorPR: Program | null; catPR: Program | null; catActorPR: Program | null;
@@ -137,7 +136,6 @@ export class SceneEngine extends BaseEngine {
     this.massList = null; this.massT = -1e9;
     // 着色器 / GL 对象
     this.vao = null; this.PR = null;
-    this._programs = new Set();            // program() 创建的所有程序（含 boy/cat 脚本创建的），dispose 时统一删除
     this.GPU = '';
     this.px = new Uint8Array(4);
     // 人物 / 小猫（meadow 用；sky 留空 → 相关 uniform 不会被绑定）
@@ -174,7 +172,7 @@ export class SceneEngine extends BaseEngine {
     const key = vsSrc + '\n' + fs;
     if (!SceneEngine._progCache) SceneEngine._progCache = new Map();
     const cached = SceneEngine._progCache.get(key);
-    if (cached) { this._programs.add(cached); return cached; }
+    if (cached) return cached;
     const mk = (type: number, src: string): WebGLShader => {
       const s = gl.createShader(type);
       if (!s) throw new Error('SceneEngine.program: createShader 失败');
@@ -199,7 +197,6 @@ export class SceneEngine extends BaseEngine {
     }
     const r: Program = { p, U, cached: true };
     SceneEngine._progCache.set(key, r);
-    this._programs.add(r);
     return r;
   };
 
@@ -673,8 +670,8 @@ export class SceneEngine extends BaseEngine {
     for (let i = 0; i < 2; i++) { const t = this.ftex[i]; if (t) { gl.deleteTexture(t); this.ftex[i] = null; } }
     if (this.circTex) { gl.deleteTexture(this.circTex); this.circTex = null; }
     // program() 记录的所有程序（含 legacy 模块经 host.program 创建的）；缓存的程序跨引擎复用，不删
-    for (const r of this._programs) if (r && r.p && !r.cached) gl.deleteProgram(r.p);
-    this._programs.clear();
+    // program 由静态 _progCache 持有（页内热切换跨引擎复用），不随引擎 dispose 释放；
+    // 整页卸载时随 JS 堆与 WebGL 上下文一起回收。
     this.PR = this.actorPR = this.catPR = this.catActorPR = null;
     this.actorTex = this.actorShadowTex = null; this.actorRect = null;
     this.catTex = null; this.catRect = null; this.catShadow = null; this.catTail = 0;

@@ -463,6 +463,8 @@ export class FlatEngine extends SceneEngine {
   }
 
   override dispose(): void {
+    this._palms?.dispose();
+    this._palms = null;
     super.dispose();
     this.palmPR = null;
     this.ripples.length = 0;

@@ -642,6 +642,18 @@ public class DesklandE2ETests : IAsyncLifetime
         Assert.DoesNotContain("BEACH_PALM", globalDts, StringComparison.Ordinal);
         Assert.DoesNotContain("mountToWindow", globalDts, StringComparison.Ordinal);
 
+        // legacy 场景必须在引擎 destroy 时释放自己的 GL 句柄：热切换复用同一 WebGL 上下文，
+        // 只增不减会持续累积纹理 / FBO。
+        var legacyFiles = Directory.EnumerateFiles(Path.Combine(srcDir, "themes"), "*.ts", SearchOption.AllDirectories)
+            .Where(p => p.Contains("legacy", StringComparison.Ordinal)).ToList();
+        Assert.NotEmpty(legacyFiles);
+        foreach (var f in legacyFiles)
+            Assert.Contains("dispose(): void", await File.ReadAllTextAsync(f), StringComparison.Ordinal);
+        var meadowEngineSrc = await File.ReadAllTextAsync(Path.Combine(scenesDir, "MeadowEngine.ts"));
+        Assert.Contains("_boy?.dispose()", meadowEngineSrc, StringComparison.Ordinal);
+        Assert.Contains("_catScene?.dispose()", meadowEngineSrc, StringComparison.Ordinal);
+        Assert.Contains("_palms?.dispose()", await File.ReadAllTextAsync(Path.Combine(scenesDir, "FlatEngine.ts")), StringComparison.Ordinal);
+
         // 每个 ready 主题页都恰好 import 一次 ripple（ES 模块缓存保证只装一次），
         // 且不再用 <script src> 插经典脚本；meadow / beach 还须经 legacyInstall 装配 legacy。
         foreach (var id in ReadyThemeIds())

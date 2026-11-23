@@ -160,6 +160,15 @@ export class MeadowEngine extends SceneEngine {
     return ok;
   }
 
+  override dispose(): void {
+    // 先释放 legacy 模块自己的 GL 句柄，再走引擎统一清理
+    this._boy?.dispose();
+    this._catScene?.dispose();
+    this._boy = null;
+    this._catScene = null;
+    super.dispose();
+  }
+
   constructor(canvas: HTMLCanvasElement, opts: EngineOpts = {}) {
     super(canvas, opts);
     this._actor = null; this._cat = null;
