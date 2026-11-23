@@ -1,3 +1,5 @@
+using System.Runtime.InteropServices;
+using System.Text;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Microsoft.Playwright;
@@ -55,6 +57,7 @@ public class DesklandE2ETests : IAsyncLifetime
                 ["theme"] = "beach",
                 ["lang"] = "auto",
                 ["themeMode"] = "auto",
+                ["clickThrough"] = true,
                 ["params"] = seedParams,
             };
             File.WriteAllText(Path.Combine(TestProfile, "settings.json"), json.ToJsonString());
@@ -1124,5 +1127,79 @@ public class DesklandE2ETests : IAsyncLifetime
         }
         catch { }
         return null;
+    }
+
+    // ---------- 鼠标穿透（WS_EX_TRANSPARENT）----------
+
+    const int GWL_EXSTYLE = -20;
+    const uint WS_EX_TRANSPARENT = 0x00000020;
+
+    [DllImport("user32.dll", SetLastError = true)]
+    static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+
+    delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+    static IntPtr FindWallpaperWindow(int pid, string profileDir)
+    {
+        // 测试事件文件里可能有多个 webview2_ready（多个窗口各自就绪时都会写）：
+        // 壁纸窗口应处于穿透状态、设置窗口不该穿透，所以返回第一个含 WS_EX_TRANSPARENT 的 HWND；
+        // 若都没有，返回最后一个 HWND，让断言报出真实的 GWL_EXSTYLE。
+        var events = Path.Combine(profileDir, "test-events-" + pid + ".jsonl");
+        IntPtr last = IntPtr.Zero;
+        if (File.Exists(events))
+            foreach (var line in File.ReadAllLines(events))
+            {
+                if (!line.Contains("webview2_ready")) continue;
+                var m = Regex.Match(line, "\"hwnd\":\\s*(\\d+)");
+                if (!m.Success) continue;
+                var h = new IntPtr(long.Parse(m.Groups[1].Value));
+                last = h;
+                if (((uint)GetWindowLong(h, GWL_EXSTYLE) & WS_EX_TRANSPARENT) != 0) return h;
+            }
+        if (last != IntPtr.Zero) return last;
+        // 回退：按标题枚举顶层窗口
+        IntPtr found = IntPtr.Zero;
+        EnumWindows(delegate (IntPtr h, IntPtr l)
+        {
+            var sb = new StringBuilder(256);
+            GetWindowText(h, sb, 256);
+            if (sb.ToString() == "DesklandWindow") { found = h; return false; }
+            return true;
+        }, IntPtr.Zero);
+        return found;
+    }
+
+    // fixture 的 settings.json 预设了 clickThrough=true：宿主启动后应把 WS_EX_TRANSPARENT 设到壁纸窗口
+    // （资源管理器重建窗口时也会走同一条恢复路径）
+    [Fact]
+    public void WallpaperWindow_ClickThroughRestoredFromSettings()
+    {
+        IntPtr hwnd = IntPtr.Zero;
+        for (int i = 0; i < 20 && hwnd == IntPtr.Zero; i++)
+        {
+            hwnd = FindWallpaperWindow(_appProcess!.Id, TestProfile);
+            if (hwnd == IntPtr.Zero) Thread.Sleep(200);
+        }
+        Assert.NotEqual(IntPtr.Zero, hwnd);
+        uint ex = (uint)GetWindowLong(hwnd, GWL_EXSTYLE);
+        Assert.True((ex & WS_EX_TRANSPARENT) != 0,
+            "壁纸窗口应处于穿透状态（settings.json 的 clickThrough=true），GWL_EXSTYLE=0x" + ex.ToString("X8"));
+    }
+
+    // 持久化的源码红线：默认关闭、Load 读 bool、Save 写入、StartForm 应用
+    [Fact]
+    public void HostSettings_ClickThroughPersisted()
+    {
+        var hostSrc = File.ReadAllText(Path.Combine(RepoRoot, "host", "DesktopHost.cs"));
+        Assert.Contains("public static bool ClickThrough = false;", hostSrc);
+        Assert.Contains("root.TryGetValue(\"clickThrough\", out v) && v is bool", hostSrc);
+        Assert.Contains("\"clickThrough\", ClickThrough", hostSrc);
+        Assert.Contains("form.SetClickThrough(Settings.ClickThrough);", hostSrc);
     }
 }

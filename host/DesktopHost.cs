@@ -282,6 +282,7 @@ static class Settings
     public static string Lang = "auto";                // 界面语言："auto"（跟随系统）或 I18n.Supported 里的一种
     public static string ThemeMode = "auto";            // 设置窗口主题模式：auto / light / dark
     public static Dictionary<string, Dictionary<string, object>> Params = new Dictionary<string, Dictionary<string, object>>();
+    public static bool ClickThrough = false;            // 鼠标穿透（托盘勾选状态，重启后恢复）
 
     public static void Load()
     {
@@ -294,6 +295,7 @@ static class Settings
             if (root.TryGetValue("theme", out v) && v is string) Theme = (string)v;
             if (root.TryGetValue("lang", out v) && v is string) Lang = (string)v;
             if (root.TryGetValue("themeMode", out v) && v is string) ThemeMode = (string)v;
+            if (root.TryGetValue("clickThrough", out v) && v is bool) ClickThrough = (bool)v;
             if (root.TryGetValue("params", out v) && v is Dictionary<string, object>)
                 foreach (var kv in (Dictionary<string, object>)v)
                 {
@@ -310,7 +312,7 @@ static class Settings
         try
         {
             Directory.CreateDirectory(Log.DataDir);
-            File.WriteAllText(FilePath, Json.Stringify(Json.Obj("version", 1, "theme", Theme, "lang", Lang, "themeMode", ThemeMode, "params", Params)), new UTF8Encoding(false));
+            File.WriteAllText(FilePath, Json.Stringify(Json.Obj("version", 1, "theme", Theme, "lang", Lang, "themeMode", ThemeMode, "clickThrough", ClickThrough, "params", Params)), new UTF8Encoding(false));
         }
         catch (Exception ex) { Log.Write("保存设置失败：" + ex.Message); }
     }
@@ -426,10 +428,13 @@ class HostContext : ApplicationContext
         autoStartItem.Checked = IsAutoStart();
         clickThroughItem = new MenuItem(I18n.T("trayClickThrough"), delegate
         {
-            if (form != null) form.SetClickThrough(!clickThroughItem.Checked);
-            clickThroughItem.Checked = !clickThroughItem.Checked;
+            bool on = !clickThroughItem.Checked;
+            if (form != null) form.SetClickThrough(on);
+            clickThroughItem.Checked = on;
+            Settings.ClickThrough = on;
+            SaveSoon();                                  // 走 watch 的延迟保存
         });
-        clickThroughItem.Checked = false;            // 默认不勾选：保持互动模式基线（WebView2 正常接收鼠标）
+        clickThroughItem.Checked = Settings.ClickThrough;   // 恢复上次勾选（默认关：保持互动模式基线）
         if (autoStartItem.Checked && AutoStartValue() != "")
         {
             try
@@ -784,6 +789,7 @@ class HostContext : ApplicationContext
         clickHook.Wallpaper = form;
         form.HandleDestroyed += OnFormGone;
         form.Show();
+        form.SetClickThrough(Settings.ClickThrough);   // 恢复上次的穿透开关（handle 已建；资源管理器重建窗口后也靠这里）
     }
 
     void OnFormGone(object sender, EventArgs e)
