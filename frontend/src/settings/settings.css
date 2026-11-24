@@ -257,6 +257,44 @@
   .modal[hidden] { display: none; }
   .modal .box { width: 560px; max-width: calc(100vw - 48px); background: var(--bg); border-radius: 24px; padding: 24px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, .2); }
+  /* 帮助（sheet）与购买（dialog）弹窗：TSX 的结构是 .modal > .sheet / .dialog，样式此前缺失 */
+  .sheet { width: 560px; max-width: calc(100vw - 48px); max-height: calc(100vh - 48px); display: flex; flex-direction: column;
+    background: var(--bg); border-radius: 24px; box-shadow: 0 20px 60px rgba(0, 0, 0, .2); overflow: hidden; }
+  .sheet-head { flex: none; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+    padding: 22px 24px 16px; border-bottom: 1px solid var(--line); }
+  .sheet-head h2 { font-size: 22px; font-weight: 650; letter-spacing: -.03em; }
+  .sheet-head p { margin-top: 4px; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+  .auth-close { flex: none; display: grid; place-items: center; width: 32px; height: 32px;
+    border: 1px solid var(--line); border-radius: 10px; background: transparent;
+    color: var(--text); cursor: pointer; transition: background .12s, border-color .12s; }
+  .auth-close svg { width: 14px; height: 14px; }
+  .auth-close:hover, .auth-close:focus-visible { border-color: var(--muted); background: var(--accent-soft); outline: none; }
+  .sheet-body { flex: 1; min-height: 0; overflow-y: auto; padding: 18px 24px; }
+  .sheet-body::-webkit-scrollbar { width: 8px; }
+  .sheet-body::-webkit-scrollbar-thumb { background: var(--track); border-radius: 4px; }
+  .help-item { padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
+  .help-item + .help-item { margin-top: 12px; }
+  .help-item h3 { font-size: 14px; font-weight: 650; line-height: 1.5; }
+  .help-item p { margin-top: 8px; color: var(--muted); font-size: 12px; line-height: 1.7; user-select: text; }
+  .help-item ol { margin: 12px 0 0; padding-left: 21px; color: var(--text); font-size: 12px; line-height: 1.7; user-select: text; }
+  .help-item li + li { margin-top: 6px; }
+  .sheet-foot { flex: none; display: flex; justify-content: flex-end; gap: 8px; padding: 14px 24px 20px; border-top: 1px solid var(--line); }
+  .dialog { width: 520px; max-width: calc(100vw - 48px); padding: 24px;
+    background: var(--bg); border-radius: 24px; box-shadow: 0 20px 60px rgba(0, 0, 0, .2); }
+  .dialog-symbol { display: grid; place-items: center; width: 42px; height: 42px; margin-bottom: 16px;
+    border-radius: 14px; background: var(--panel-2); color: var(--text); }
+  .dialog-symbol svg { width: 21px; height: 21px; }
+  .dialog h2 { font-size: 22px; font-weight: 650; letter-spacing: -.03em; }
+  .dialog p { margin-top: 8px; color: var(--muted); font-size: 12.5px; line-height: 1.7; }
+  .dialog .purchase-theme { color: var(--text); font-weight: 600; }
+  .modal-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; margin-top: 18px; }
+  .modal-actions button, .sheet-foot button { padding: 8px 13px; border: 1px solid var(--line); border-radius: 10px; background: transparent;
+    color: var(--text); font: inherit; font-size: 12.5px; cursor: pointer; transition: background .12s, border-color .12s; }
+  .modal-actions button:hover, .sheet-foot button:hover { border-color: var(--muted); background: var(--accent-soft); }
+  .modal-actions button.primary, .sheet-foot button.primary {
+    background: var(--accent); border-color: var(--accent); color: var(--accent-ink);
+  }
+  .modal-actions button.primary:hover, .sheet-foot button.primary:hover { opacity: .85; }
   .modal h3 { margin: 0 0 8px; font-size: 24px; font-weight: 650; letter-spacing: -.03em; }
   .modal .sub { margin: 0 0 12px; color: var(--muted); font-size: 12.5px; }
   .modal .actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; margin-top: 14px; }

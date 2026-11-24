@@ -159,7 +159,7 @@ export function PurchaseModal() {
           <button type="button" id="purchaseLater" onClick={closePurchase}>
             {t('purchaseLater')}
           </button>
-          <button type="button" id="purchaseWebsite" ref={siteRef} onClick={openWebsite}>
+          <button type="button" id="purchaseWebsite" className="primary" ref={siteRef} onClick={openWebsite}>
             {t('purchaseWebsite')}
           </button>
         </div>
@@ -211,10 +211,20 @@ export function HelpModal() {
             className="auth-close"
             id="helpCloseX"
             ref={closeRef}
-            aria-label="close"
+            aria-label={t('close')}
+            title={t('close')}
             onClick={closeHelp}
           >
-            {t('close')}
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              aria-hidden="true"
+            >
+              <path d="M4 4l8 8M12 4l-8 8" />
+            </svg>
           </button>
         </div>
         <div className="sheet-body">
@@ -231,7 +241,7 @@ export function HelpModal() {
           ))}
         </div>
         <div className="sheet-foot">
-          <button type="button" id="helpDone" onClick={closeHelp}>
+          <button type="button" id="helpDone" className="primary" onClick={closeHelp}>
             {t('gotIt')}
           </button>
         </div>

@@ -22,6 +22,7 @@
     "autostartWarnSw": "Deskland didn't start automatically this time — {sw} may have blocked it. Open {sw}, find Deskland in its startup manager and set it to Allow.",
     "autostartWarnGeneric": "Deskland didn't start automatically this time — your security software or the Windows Startup apps setting may have blocked it. Turn Deskland on in your security software's startup manager, or in Windows Settings → Apps → Startup.",
     "gotIt": "Got it",
+    "close": "Close",
     "updateAvailable": "Update available",
     "updateVersion": "Deskland {version} is ready. Your current theme and settings will be kept.",
     "updateProgram": "Update now",

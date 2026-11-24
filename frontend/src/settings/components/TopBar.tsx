@@ -21,7 +21,8 @@ const THEME_ICONS: Record<ThemeMode, ReactElement> = {
   auto: (
     <>
       <circle cx="8" cy="8" r="6.2" />
-      <path d="M1.8 8h12.4" />
+      <path d="M8 1.8v12.4" />
+      <path d="M8 1.8a6.2 6.2 0 0 1 0 12.4z" fill="currentColor" stroke="none" />
     </>
   ),
   light: (

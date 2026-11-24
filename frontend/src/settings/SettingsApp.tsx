@@ -57,7 +57,7 @@ export function SettingsApp() {
           type="button"
           className="ghost-btn help-button"
           id="helpOpen"
-          aria-label="Help"
+          aria-label={t('helpButtonTitle')}
           title={t('helpButtonTitle')}
           onClick={openHelp}
         >
@@ -73,7 +73,6 @@ export function SettingsApp() {
             <path d="M6.3 6.2A1.8 1.8 0 0 1 9.7 7c0 1.1-1.5 1.4-1.5 2.4" />
             <path d="M8 11.2v.1" />
           </svg>
-          <span className="q">?</span>
         </button>
       </footer>
       <PurchaseModal />
