@@ -61,51 +61,61 @@ void main() {
 }`;
 
 export class SkyEngine extends CloudSceneEngine {
-  static override FS = FS_HEADER + GLSL_COMMON + GLSL_CLOUD + FS_BODY;   // 片元着色器（SceneEngine 约定）
+  static override FS = FS_HEADER + GLSL_COMMON + GLSL_CLOUD + FS_BODY; // 片元着色器（SceneEngine 约定）
 
   constructor(canvas: HTMLCanvasElement, opts: EngineOpts = {}) {
     super(canvas, opts);
     // 面板配置：应用层 DeskApp 直接读取（主题只加配置，不改宿主代码）
     this.sliders = [
-      { key: 'sigma', label: '云团大小', min: 40, max: 200, step: 1,    fmt: v => v + ' px', act: 'field' },
-      { key: 'cover', label: '天上的云', min: 0, max: 1,   step: 0.01, fmt: v => Math.round(v * 100) + '%' },
-      { key: 'flow',  label: '流动速度', min: 0, max: 3,   step: 0.05, fmt: v => '×' + v.toFixed(2) },
+      { key: 'sigma', label: '云团大小', min: 40, max: 200, step: 1, fmt: (v) => v + ' px', act: 'field' },
+      { key: 'cover', label: '天上的云', min: 0, max: 1, step: 0.01, fmt: (v) => Math.round(v * 100) + '%' },
+      { key: 'flow', label: '流动速度', min: 0, max: 3, step: 0.05, fmt: (v) => '×' + v.toFixed(2) },
     ];
     this.displayKeys = [
       { key: 'adaptive', min: 0, max: 1 },
-      { key: 'scheme',   min: 0, max: 2 },   // 0 白天 / 1 傍晚 / 2 晚上
+      { key: 'scheme', min: 0, max: 2 }, // 0 白天 / 1 傍晚 / 2 晚上
     ];
   }
 
   override defaultParams(): EngineParams {
     // 默认值要和 themes/sky/theme.json 里天空主题的 default 保持一致；grain、quality 不开放调节
     return {
-      sigma: 72, warp: 40, edge: 10, cover: 0.3, flow: 1, grain: 1, quality: 2,   // quality 2：按屏幕的实际像素画（150% 缩放时不再放大发糊）
-      debug: false, snap: true, cap30: true,
-      adaptive: 1, scheme: 0,
+      sigma: 72,
+      warp: 40,
+      edge: 10,
+      cover: 0.3,
+      flow: 1,
+      grain: 1,
+      quality: 2, // quality 2：按屏幕的实际像素画（150% 缩放时不再放大发糊）
+      debug: false,
+      snap: true,
+      cap30: true,
+      adaptive: 1,
+      scheme: 0,
     };
   }
 
   override buildScenePalette(): ScenePalette {
     return {
-      cloudHi:     this.sceneToken('--scene-cloud-hi')       || [1.0, 1.0, 0.99],
-      cloudBody:   this.sceneToken('--scene-cloud-body')     || [0.90, 0.93, 0.96],
-      cloudSh:     this.sceneToken('--scene-cloud-shade')    || [0.80, 0.85, 0.90],
-      cloudShadow: this.sceneToken('--scene-cloud-shadow')   || [0.78, 0.84, 0.92],
-      lightDir:    this.sceneToken('--scene-light-dir')      || [-0.6, -0.8],
-      shadowOff:   this.sceneToken('--scene-shadow-offset')  || [115.0, 156.0],
-      skyDayTop:    this.sceneToken('--scene-sky-day-top')    || [0.27, 0.56, 0.88],
-      skyDayBot:    this.sceneToken('--scene-sky-day-bottom') || [0.62, 0.82, 0.96],
-      skyDuskTop:   this.sceneToken('--scene-sky-dusk-top')   || [0.28, 0.30, 0.58],
-      skyDuskBot:   this.sceneToken('--scene-sky-dusk-bottom')|| [0.98, 0.66, 0.42],
-      skyNightTop:  this.sceneToken('--scene-sky-night-top')  || [0.04, 0.06, 0.16],
-      skyNightBot:  this.sceneToken('--scene-sky-night-bottom')|| [0.20, 0.26, 0.44],
+      cloudHi: this.sceneToken('--scene-cloud-hi') || [1.0, 1.0, 0.99],
+      cloudBody: this.sceneToken('--scene-cloud-body') || [0.9, 0.93, 0.96],
+      cloudSh: this.sceneToken('--scene-cloud-shade') || [0.8, 0.85, 0.9],
+      cloudShadow: this.sceneToken('--scene-cloud-shadow') || [0.78, 0.84, 0.92],
+      lightDir: this.sceneToken('--scene-light-dir') || [-0.6, -0.8],
+      shadowOff: this.sceneToken('--scene-shadow-offset') || [115.0, 156.0],
+      skyDayTop: this.sceneToken('--scene-sky-day-top') || [0.27, 0.56, 0.88],
+      skyDayBot: this.sceneToken('--scene-sky-day-bottom') || [0.62, 0.82, 0.96],
+      skyDuskTop: this.sceneToken('--scene-sky-dusk-top') || [0.28, 0.3, 0.58],
+      skyDuskBot: this.sceneToken('--scene-sky-dusk-bottom') || [0.98, 0.66, 0.42],
+      skyNightTop: this.sceneToken('--scene-sky-night-top') || [0.04, 0.06, 0.16],
+      skyNightBot: this.sceneToken('--scene-sky-night-bottom') || [0.2, 0.26, 0.44],
     };
   }
 
   // 天空特有的 uniform：时段、云影色、三种时段的天空渐变
   override applyThemeUniforms(U: Uniforms): void {
-    const gl = this.gl, S = this.scene;
+    const gl = this.gl,
+      S = this.scene;
     if (!gl) return;
     if (U.uScheme) gl.uniform1i(U.uScheme, numParam(this.params, 'scheme') | 0);
     if (U.uCloudShadow && S.cloudShadow) gl.uniform3fv(U.uCloudShadow, S.cloudShadow);

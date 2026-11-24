@@ -14,8 +14,13 @@ interface BeachPalmStyle {
   size?: number;
 }
 interface BeachPalmPlacement {
-  x: number; y: number; scale: number; variant: number; mirror: number;
-  opacity: number; retiring: boolean;
+  x: number;
+  y: number;
+  scale: number;
+  variant: number;
+  mirror: number;
+  opacity: number;
+  retiring: boolean;
 }
 interface BeachPalmsSceneState {
   atlas: WebGLTexture;
@@ -36,11 +41,27 @@ export interface MaldivesPalmsScene {
 }
 
 const BEACH_PALM_STYLES: BeachPalmStyle[] = [
-  { file: 'beach-coconut-palm-v2.png', foot: [.454, .98], crown: [9, -84], radius: 80 },
-  { file: 'beach-coconut-palm-curved.png', foot: [.470, .98], crown: [18, -80], radius: 84, faceSea: true },
-  { file: 'beach-coconut-palm-airy.png', foot: [.415, .98], crown: [27, -82], radius: 84 },
-  { file: 'beach-coconut-palm-windswept.png', foot: [.25, .98], crown: [40, -78], radius: 78, width: 148, height: 138 },
-  { file: 'beach-coconut-palm-arch.png', foot: [.84, .98], crown: [-45, -65], radius: 70, width: 128, height: 119, size: 1.35, faceSea: true },
+  { file: 'beach-coconut-palm-v2.png', foot: [0.454, 0.98], crown: [9, -84], radius: 80 },
+  { file: 'beach-coconut-palm-curved.png', foot: [0.47, 0.98], crown: [18, -80], radius: 84, faceSea: true },
+  { file: 'beach-coconut-palm-airy.png', foot: [0.415, 0.98], crown: [27, -82], radius: 84 },
+  {
+    file: 'beach-coconut-palm-windswept.png',
+    foot: [0.25, 0.98],
+    crown: [40, -78],
+    radius: 78,
+    width: 148,
+    height: 138,
+  },
+  {
+    file: 'beach-coconut-palm-arch.png',
+    foot: [0.84, 0.98],
+    crown: [-45, -65],
+    radius: 70,
+    width: 128,
+    height: 119,
+    size: 1.35,
+    faceSea: true,
+  },
 ];
 
 export const BEACH_PALM_VS = `#version 300 es
@@ -80,48 +101,84 @@ void main() {
 }`;
 
 function makeMaldivesPalmAtlas(gl: WebGL2RenderingContext, images: HTMLImageElement[]): WebGLTexture {
-  const atlas = document.createElement('canvas'); atlas.width = 224 * BEACH_PALM_STYLES.length * 2; atlas.height = 256 * 2;
-  const ctx = atlas.getContext('2d')!; ctx.scale(2, 2);
+  const atlas = document.createElement('canvas');
+  atlas.width = 224 * BEACH_PALM_STYLES.length * 2;
+  atlas.height = 256 * 2;
+  const ctx = atlas.getContext('2d')!;
+  ctx.scale(2, 2);
   for (let variant = 0; variant < BEACH_PALM_STYLES.length; variant++) {
-    const image = images[variant]!, style = BEACH_PALM_STYLES[variant]!;
-    const width = style.width || 168, height = style.height || 156;
-    const footX = style.foot[0] * width, footY = style.foot[1] * height;
+    const image = images[variant]!,
+      style = BEACH_PALM_STYLES[variant]!;
+    const width = style.width || 168,
+      height = style.height || 156;
+    const footX = style.foot[0] * width,
+      footY = style.foot[1] * height;
     // 每种轮廓分别投影；树根位置不随素材的透明留白变化。
-    const shadow = document.createElement('canvas'); shadow.width = 448; shadow.height = 512;
-    const shadowCtx = shadow.getContext('2d')!; shadowCtx.scale(2, 2);
-    shadowCtx.translate(112, 162); shadowCtx.transform(.85, .08, 0, -.50, 0, 0);
+    const shadow = document.createElement('canvas');
+    shadow.width = 448;
+    shadow.height = 512;
+    const shadowCtx = shadow.getContext('2d')!;
+    shadowCtx.scale(2, 2);
+    shadowCtx.translate(112, 162);
+    shadowCtx.transform(0.85, 0.08, 0, -0.5, 0, 0);
     shadowCtx.drawImage(image, -footX, -footY, width, height);
-    shadowCtx.setTransform(1, 0, 0, 1, 0, 0); shadowCtx.globalCompositeOperation = 'source-in';
-    shadowCtx.fillStyle = '#3c6257'; shadowCtx.fillRect(0, 0, shadow.width, shadow.height);
-    ctx.save(); ctx.translate(variant * 224, 0);
-    ctx.save(); ctx.globalAlpha = .20; ctx.filter = 'blur(1.2px)'; ctx.drawImage(shadow, 0, 0, 224, 256); ctx.restore();
-    ctx.save(); ctx.globalAlpha = .17; ctx.fillStyle = '#516051';
-    ctx.beginPath(); ctx.ellipse(112, 162, 4.4, 1.6, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-    ctx.save(); ctx.translate(112, 162); ctx.filter = 'saturate(.94) brightness(.98)';
-    ctx.drawImage(image, -footX, -footY, width, height); ctx.restore(); ctx.restore();
+    shadowCtx.setTransform(1, 0, 0, 1, 0, 0);
+    shadowCtx.globalCompositeOperation = 'source-in';
+    shadowCtx.fillStyle = '#3c6257';
+    shadowCtx.fillRect(0, 0, shadow.width, shadow.height);
+    ctx.save();
+    ctx.translate(variant * 224, 0);
+    ctx.save();
+    ctx.globalAlpha = 0.2;
+    ctx.filter = 'blur(1.2px)';
+    ctx.drawImage(shadow, 0, 0, 224, 256);
+    ctx.restore();
+    ctx.save();
+    ctx.globalAlpha = 0.17;
+    ctx.fillStyle = '#516051';
+    ctx.beginPath();
+    ctx.ellipse(112, 162, 4.4, 1.6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    ctx.save();
+    ctx.translate(112, 162);
+    ctx.filter = 'saturate(.94) brightness(.98)';
+    ctx.drawImage(image, -footX, -footY, width, height);
+    ctx.restore();
+    ctx.restore();
   }
   // 一次性压低黄色与饱和度，保持偏灰的深绿色；不增加每帧的调色开销。
-  const pixels = ctx.getImageData(0, 0, atlas.width, atlas.height), rgba = pixels.data;
+  const pixels = ctx.getImageData(0, 0, atlas.width, atlas.height),
+    rgba = pixels.data;
   for (let i = 0; i < rgba.length; i += 4) {
     if (!rgba[i + 3]) continue;
-    let r = rgba[i]!, g = rgba[i + 1]!, b = rgba[i + 2]!;
-    const yellow = Math.max(0, Math.min(1, (r / Math.max(g, 1) - .60) / .35)) * Math.max(0, Math.min(1, (g - b) / 50));
-    r *= 1 - yellow * .22; g *= 1 - yellow * .06; b += yellow * 10;
-    const gray = r * .2126 + g * .7152 + b * .0722;
-    rgba[i] = (gray + (r - gray) * .70) * .97;
-    rgba[i + 1] = (gray + (g - gray) * .70) * .97;
-    rgba[i + 2] = (gray + (b - gray) * .70) * .97;
+    let r = rgba[i]!,
+      g = rgba[i + 1]!,
+      b = rgba[i + 2]!;
+    const yellow = Math.max(0, Math.min(1, (r / Math.max(g, 1) - 0.6) / 0.35)) * Math.max(0, Math.min(1, (g - b) / 50));
+    r *= 1 - yellow * 0.22;
+    g *= 1 - yellow * 0.06;
+    b += yellow * 10;
+    const gray = r * 0.2126 + g * 0.7152 + b * 0.0722;
+    rgba[i] = (gray + (r - gray) * 0.7) * 0.97;
+    rgba[i + 1] = (gray + (g - gray) * 0.7) * 0.97;
+    rgba[i + 2] = (gray + (b - gray) * 0.7) * 0.97;
   }
   ctx.putImageData(pixels, 0, 0);
-  const texture = gl.createTexture()!; gl.activeTexture(gl.TEXTURE6); gl.bindTexture(gl.TEXTURE_2D, texture);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, atlas); gl.generateMipmap(gl.TEXTURE_2D);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  const texture = gl.createTexture()!;
+  gl.activeTexture(gl.TEXTURE6);
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, atlas);
+  gl.generateMipmap(gl.TEXTURE_2D);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   return texture;
 }
 
 function beachPalmClear(icons: IconItem[], x: number, y: number, radius: number): boolean {
-  return icons.every(icon => {
+  return icons.every((icon) => {
     const dx = Math.max(icon.x - 7 - x, 0, x - icon.x - icon.w - 7);
     const dy = Math.max(icon.y - 7 - y, 0, y - icon.y - icon.h - 7);
     return Math.hypot(dx, dy) > radius;
@@ -130,33 +187,53 @@ function beachPalmClear(icons: IconItem[], x: number, y: number, radius: number)
 
 function chooseMaldivesPalms(host: LegacyHost, FB: Field): BeachPalmPlacement[] {
   const { W, H, TASKBAR, seed, icons } = host;
-  const random = host.mulberry32((seed ^ 0x41fc72) >>> 0), chosen: BeachPalmPlacement[] = [], order = BEACH_PALM_STYLES.map((_, i) => i);
+  const random = host.mulberry32((seed ^ 0x41fc72) >>> 0),
+    chosen: BeachPalmPlacement[] = [],
+    order = BEACH_PALM_STYLES.map((_, i) => i);
   for (let i = order.length - 1; i > 0; i--) {
-    const j = Math.floor(random() * (i + 1)), a = order[i]!, b = order[j]!;
-    order[i] = b; order[j] = a;
+    const j = Math.floor(random() * (i + 1)),
+      a = order[i]!,
+      b = order[j]!;
+    order[i] = b;
+    order[j] = a;
   }
   const styleRandom = host.mulberry32((seed ^ 0x6ac309) >>> 0);
   while (order.length < 10) order.push(Math.floor(styleRandom() * BEACH_PALM_STYLES.length));
   // 在整片合适的沙地中均匀抽选，不偏向同一条等距岸线；固定种子避免每帧跳动。
   for (const variant of order) {
-    const style = BEACH_PALM_STYLES[variant]!, spacing = 60 + random() * 35; let selected: BeachPalmPlacement | null = null;
+    const style = BEACH_PALM_STYLES[variant]!,
+      spacing = 60 + random() * 35;
+    let selected: BeachPalmPlacement | null = null;
     // 只尝试正常尺寸；沙地或图标间距不足时省略这棵树，不缩成迷你树。
-    for (const baseScale of [.62]) {
-      const scale = baseScale * .80 * (style.size || 1);
-      const radius = style.radius * scale, offsetX = random() * 13, offsetY = random() * 13; let best: BeachPalmPlacement | null = null, candidates = 0;
-      for (let y = 100 * scale + offsetY; y < H - TASKBAR - 55 * scale; y += 13) for (let x = radius + 5 + offsetX; x < W - radius - 5; x += 13) {
-        const shore = host.sampleArr(FB.s, x, y);
-        if (shore > -25 || shore < -58) continue;
-        if (chosen.some(q => Math.hypot(q.x - x, q.y - y) < spacing)) continue;
-        // 弯干款以根部为轴翻转，弯曲方向跟随岸线朝向海水；不旋转树的竖直视角。
-        const seaX = style.faceSea ? host.sampleArr(FB.s, x + 8, y) - host.sampleArr(FB.s, x - 8, y) : 0;
-        const mirror = style.faceSea && seaX * style.crown[0] < 0 ? -1 : 1;
-        const crown = { x: x + style.crown[0] * scale * mirror, y: y + style.crown[1] * scale };
-        if (crown.x < radius + 3 || crown.x > W - radius - 3) continue;
-        if (crown.y < radius + 3 || !beachPalmClear(icons, x, y - 16 * scale, 10 * scale) || !beachPalmClear(icons, crown.x, crown.y, radius)) continue;
-        if (random() < 1 / ++candidates) best = { x, y, scale, variant, mirror, opacity: 0, retiring: false };
+    for (const baseScale of [0.62]) {
+      const scale = baseScale * 0.8 * (style.size || 1);
+      const radius = style.radius * scale,
+        offsetX = random() * 13,
+        offsetY = random() * 13;
+      let best: BeachPalmPlacement | null = null,
+        candidates = 0;
+      for (let y = 100 * scale + offsetY; y < H - TASKBAR - 55 * scale; y += 13)
+        for (let x = radius + 5 + offsetX; x < W - radius - 5; x += 13) {
+          const shore = host.sampleArr(FB.s, x, y);
+          if (shore > -25 || shore < -58) continue;
+          if (chosen.some((q) => Math.hypot(q.x - x, q.y - y) < spacing)) continue;
+          // 弯干款以根部为轴翻转，弯曲方向跟随岸线朝向海水；不旋转树的竖直视角。
+          const seaX = style.faceSea ? host.sampleArr(FB.s, x + 8, y) - host.sampleArr(FB.s, x - 8, y) : 0;
+          const mirror = style.faceSea && seaX * style.crown[0] < 0 ? -1 : 1;
+          const crown = { x: x + style.crown[0] * scale * mirror, y: y + style.crown[1] * scale };
+          if (crown.x < radius + 3 || crown.x > W - radius - 3) continue;
+          if (
+            crown.y < radius + 3 ||
+            !beachPalmClear(icons, x, y - 16 * scale, 10 * scale) ||
+            !beachPalmClear(icons, crown.x, crown.y, radius)
+          )
+            continue;
+          if (random() < 1 / ++candidates) best = { x, y, scale, variant, mirror, opacity: 0, retiring: false };
+        }
+      if (best) {
+        selected = best;
+        break;
       }
-      if (best) { selected = best; break; }
     }
     if (selected) chosen.push(selected);
   }
@@ -165,56 +242,82 @@ function chooseMaldivesPalms(host: LegacyHost, FB: Field): BeachPalmPlacement[] 
 
 export function createMaldivesPalmsScene(host: LegacyHost): MaldivesPalmsScene {
   const gl = host.gl;
-  const images = BEACH_PALM_STYLES.map(style => {
-    const image = new Image(); image.src = host.themeBase + 'images/' + style.file; return image;
+  const images = BEACH_PALM_STYLES.map((style) => {
+    const image = new Image();
+    image.src = host.themeBase + 'images/' + style.file;
+    return image;
   });
   let scene: BeachPalmsSceneState | null = null;
   let disposed = false;
   return {
     dispose(): void {
       disposed = true;
-      if (scene) { gl.deleteTexture(scene.atlas); scene = null; }
+      if (scene) {
+        gl.deleteTexture(scene.atlas);
+        scene = null;
+      }
     },
     draw(now: number, pass: Program, configurePass: (now: number, pass: Program) => void): void {
       if (disposed) return;
       const FB = host.FB;
-      if (!FB || !images.every(image => image.complete && image.naturalWidth)) return;
+      if (!FB || !images.every((image) => image.complete && image.naturalWidth)) return;
       if (!scene) {
         scene = {
-          atlas: makeMaldivesPalmAtlas(gl, images), palms: [], placements: null,
-          previous: now, field: null, seed: 0, width: 0, height: 0, count: -1,
+          atlas: makeMaldivesPalmAtlas(gl, images),
+          palms: [],
+          placements: null,
+          previous: now,
+          field: null,
+          seed: 0,
+          width: 0,
+          height: 0,
+          count: -1,
         };
       }
-      const dt = Math.max(0, Math.min(.1, (now - scene.previous) / 1000)); scene.previous = now;
+      const dt = Math.max(0, Math.min(0.1, (now - scene.previous) / 1000));
+      scene.previous = now;
       const raw = host.P['palms'];
       const count = Math.max(0, Math.min(10, Math.round(typeof raw === 'number' && Number.isFinite(raw) ? raw : 4)));
-      const layoutChanged = scene.field !== FB || scene.seed !== host.seed || scene.width !== host.W || scene.height !== host.H;
+      const layoutChanged =
+        scene.field !== FB || scene.seed !== host.seed || scene.width !== host.W || scene.height !== host.H;
       if (layoutChanged || scene.count !== count) {
         if (layoutChanged || !scene.placements) scene.placements = count ? chooseMaldivesPalms(host, FB) : null;
         if (count && !scene.placements) scene.placements = chooseMaldivesPalms(host, FB);
         const next = (scene.placements || []).slice(0, count);
         for (const old of scene.palms) old.retiring = true;
         for (const p of next) {
-          const old = scene.palms.find(q => Math.hypot(q.x - p.x, q.y - p.y) < 26 && Math.abs(q.scale - p.scale) < .02);
-          if (old && old.mirror === p.mirror) { old.retiring = false; old.variant = p.variant; } else scene.palms.push({ ...p, opacity: 0, retiring: false });
+          const old = scene.palms.find(
+            (q) => Math.hypot(q.x - p.x, q.y - p.y) < 26 && Math.abs(q.scale - p.scale) < 0.02,
+          );
+          if (old && old.mirror === p.mirror) {
+            old.retiring = false;
+            old.variant = p.variant;
+          } else scene.palms.push({ ...p, opacity: 0, retiring: false });
         }
-        scene.field = FB; scene.seed = host.seed; scene.width = host.W; scene.height = host.H;
+        scene.field = FB;
+        scene.seed = host.seed;
+        scene.width = host.W;
+        scene.height = host.H;
         scene.count = count;
       }
       configurePass(now, pass);
       const U = pass.U;
-      gl.activeTexture(gl.TEXTURE6); gl.bindTexture(gl.TEXTURE_2D, scene.atlas); gl.uniform1i(U.uPalmAtlas!, 6);
-      gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+      gl.activeTexture(gl.TEXTURE6);
+      gl.bindTexture(gl.TEXTURE_2D, scene.atlas);
+      gl.uniform1i(U.uPalmAtlas!, 6);
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
       for (const palm of scene.palms) {
         const onSand = Math.max(0, Math.min(1, -host.curS(palm.x, palm.y) / 4));
         const target = palm.retiring ? 0 : onSand;
         palm.opacity += (target - palm.opacity) * (1 - Math.exp(-dt * 4));
-        if (palm.opacity < .003) continue;
-        gl.uniform4f(U.uPalm!, palm.x, palm.y, palm.scale, palm.variant); gl.uniform1f(U.uPalmOpacity!, palm.opacity);
+        if (palm.opacity < 0.003) continue;
+        gl.uniform4f(U.uPalm!, palm.x, palm.y, palm.scale, palm.variant);
+        gl.uniform1f(U.uPalmOpacity!, palm.opacity);
         gl.uniform1f(U.uPalmMirror!, palm.mirror);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       }
-      scene.palms = scene.palms.filter(p => !p.retiring || p.opacity > .003);
+      scene.palms = scene.palms.filter((p) => !p.retiring || p.opacity > 0.003);
       gl.disable(gl.BLEND);
     },
   };

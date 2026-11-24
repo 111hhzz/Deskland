@@ -8,16 +8,21 @@ import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 
 const dir = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'src', 'thumbs');
-const files = (await readdir(dir)).filter(f => f.toLowerCase().endsWith('.webp'));
-if (!files.length) { console.log('没有找到 .webp 缩略图'); process.exit(0); }
+const files = (await readdir(dir)).filter((f) => f.toLowerCase().endsWith('.webp'));
+if (!files.length) {
+  console.log('没有找到 .webp 缩略图');
+  process.exit(0);
+}
 
-let totalBefore = 0, totalAfter = 0;
+let totalBefore = 0,
+  totalAfter = 0;
 for (const f of files) {
   const p = path.join(dir, f);
   const before = await readFile(p);
   const after = await sharp(before).webp({ quality: 78, effort: 6 }).toBuffer();
   await writeFile(p, after);
-  totalBefore += before.length; totalAfter += after.length;
+  totalBefore += before.length;
+  totalAfter += after.length;
   console.log(`${f}: ${(before.length / 1024).toFixed(1)} KB → ${(after.length / 1024).toFixed(1)} KB`);
 }
 console.log(`合计: ${(totalBefore / 1024).toFixed(1)} KB → ${(totalAfter / 1024).toFixed(1)} KB`);

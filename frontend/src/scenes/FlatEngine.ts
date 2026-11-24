@@ -14,11 +14,35 @@ import type { MaldivesPalmsScene } from '../themes/beach/legacy/palms.js';
 const TASKBAR = 48;
 
 // 皮划艇：在深水里慢慢划，互相避让
-interface Kayak { x: number; y: number; h: number; v: number; ph: number; wander: number; fade: number; }
+interface Kayak {
+  x: number;
+  y: number;
+  h: number;
+  v: number;
+  ph: number;
+  wander: number;
+  fade: number;
+}
 // 海鸟：画面上空滑翔，时而盘旋、时而扇翅膀
-interface Bird { x: number; y: number; h: number; v: number; mode: number; modeT: number; ph: number; flap: boolean; flapT: number; wander: number; }
+interface Bird {
+  x: number;
+  y: number;
+  h: number;
+  v: number;
+  mode: number;
+  modeT: number;
+  ph: number;
+  flap: boolean;
+  flapT: number;
+  wander: number;
+}
 // 涟漪：点击水面留下的一圈圈细白圈
-interface Ripple { x: number; y: number; t0: number; str: number; }
+interface Ripple {
+  x: number;
+  y: number;
+  t0: number;
+  str: number;
+}
 
 // 头部：本主题自己的 uniform 声明、常量与海滩函数；公共的 hash2 / ss / N / fieldS / segD 在 common.js。
 // FS_PRE 是「main 之前」的部分：棕榈树着色器（beach palms 模块）复用同一批声明与函数。
@@ -351,7 +375,7 @@ const FS_PRE = FS_HEADER + GLSL_COMMON + GLSL_SEG + FS_FUNCS;
 const FS = FS_PRE + FS_MAIN;
 
 export class FlatEngine extends SceneEngine {
-  static override FS = FS;                             // 片元着色器（SceneEngine 约定）
+  static override FS = FS; // 片元着色器（SceneEngine 约定）
 
   kayaks: Kayak[] = [];
   birds: Bird[] = [];
@@ -370,7 +394,10 @@ export class FlatEngine extends SceneEngine {
 
   // 由页面装配（installLegacyFor）在 init 之前调用：FS/VS 给 buildShaders 编译 palmPR，
   // create 在 init 末尾（gl 就绪后）创建实例。
-  installLegacy(host: LegacyHost, def: { FS: string; VS: string; create: (host: LegacyHost) => MaldivesPalmsScene }): void {
+  installLegacy(
+    host: LegacyHost,
+    def: { FS: string; VS: string; create: (host: LegacyHost) => MaldivesPalmsScene },
+  ): void {
     this._legacyHost = host;
     this._legacyDef = def;
   }
@@ -386,13 +413,13 @@ export class FlatEngine extends SceneEngine {
     super(canvas, opts);
     // 面板配置：应用层 DeskApp 直接读取（主题只加配置，不改宿主代码）
     this.sliders = [
-      { key: 'palms', label: '椰子树数量', min: 0, max: 10, step: 1, fmt: v => v + ' 棵' },
-      { key: 'sigma', label: '离岸距离', min: 40, max: 200, step: 1, fmt: v => v + ' px', act: 'field' },
-      { key: 'warp', label: '海岸曲折', min: 0, max: 80, step: 1, fmt: v => String(v), act: 'field' },
-      { key: 'shoal', label: '透明浅滩', min: 0, max: 300, step: 1, fmt: v => v + ' px' },
-      { key: 'shallow', label: '浅海宽度', min: 120, max: 700, step: 1, fmt: v => v + ' px' },
-      { key: 'kayaks', label: '皮划艇', min: 0, max: 4, step: 1, fmt: v => v + ' 艘', act: 'kayaks' },
-      { key: 'birds', label: '海鸟', min: 0, max: 8, step: 1, fmt: v => v + ' 只', act: 'birds' },
+      { key: 'palms', label: '椰子树数量', min: 0, max: 10, step: 1, fmt: (v) => v + ' 棵' },
+      { key: 'sigma', label: '离岸距离', min: 40, max: 200, step: 1, fmt: (v) => v + ' px', act: 'field' },
+      { key: 'warp', label: '海岸曲折', min: 0, max: 80, step: 1, fmt: (v) => String(v), act: 'field' },
+      { key: 'shoal', label: '透明浅滩', min: 0, max: 300, step: 1, fmt: (v) => v + ' px' },
+      { key: 'shallow', label: '浅海宽度', min: 120, max: 700, step: 1, fmt: (v) => v + ' px' },
+      { key: 'kayaks', label: '皮划艇', min: 0, max: 4, step: 1, fmt: (v) => v + ' 艘', act: 'kayaks' },
+      { key: 'birds', label: '海鸟', min: 0, max: 8, step: 1, fmt: (v) => v + ' 只', act: 'birds' },
     ];
     this.displayKeys = [];
     // 皮划艇 / 海鸟 / 涟漪
@@ -409,10 +436,23 @@ export class FlatEngine extends SceneEngine {
     // 默认值要和 themes/beach/theme.json 里海边主题的 default 保持一致
     // 海浪（speed、runup、wave、spacing）和 grain、quality 不再开放调节，固定为这里的值
     return {
-      sigma: 85, warp: 34, shallow: 260, shoal: 110,
-      speed: 22, runup: 120, wave: 1.6, spacing: 70, grain: 1, quality: 2,   // quality 2：按屏幕的实际像素画（150% 缩放时不再放大发糊）
-      kayaks: 2, birds: 3, palms: 4, debug: false, snap: true, cap30: true,
-      adaptive: 1,   // 基类 commit/refresh 用它判断是否把图标矩形计入陆地场（海滩始终要计）
+      sigma: 85,
+      warp: 34,
+      shallow: 260,
+      shoal: 110,
+      speed: 22,
+      runup: 120,
+      wave: 1.6,
+      spacing: 70,
+      grain: 1,
+      quality: 2, // quality 2：按屏幕的实际像素画（150% 缩放时不再放大发糊）
+      kayaks: 2,
+      birds: 3,
+      palms: 4,
+      debug: false,
+      snap: true,
+      cap30: true,
+      adaptive: 1, // 基类 commit/refresh 用它判断是否把图标矩形计入陆地场（海滩始终要计）
     };
   }
 
@@ -422,7 +462,7 @@ export class FlatEngine extends SceneEngine {
       sea1: this.sceneToken('--scene-sea-1') || [0.47, 0.87, 0.84],
       sea2: this.sceneToken('--scene-sea-2') || [0.17, 0.76, 0.81],
       sea3: this.sceneToken('--scene-sea-3') || [0.03, 0.66, 0.79],
-      sea4: this.sceneToken('--scene-sea-4') || [0.00, 0.56, 0.73],
+      sea4: this.sceneToken('--scene-sea-4') || [0.0, 0.56, 0.73],
       sand0: this.sceneToken('--scene-sand-0') || [0.97, 0.93, 0.88],
       sand1: this.sceneToken('--scene-sand-1') || [0.91, 0.85, 0.84],
       sand2: this.sceneToken('--scene-sand-2') || [0.82, 0.76, 0.79],
@@ -434,7 +474,8 @@ export class FlatEngine extends SceneEngine {
 
   // 海滩特有的 uniform：海 / 沙 / 浪花 / 湿沙
   override applyThemeUniforms(U: Uniforms): void {
-    const gl = this.gl, S = this.scene;
+    const gl = this.gl,
+      S = this.scene;
     if (!gl) return;
     if (U.uSea0 && S.sea0) gl.uniform3fv(U.uSea0, S.sea0);
     if (U.uSea1 && S.sea1) gl.uniform3fv(U.uSea1, S.sea1);
@@ -480,10 +521,14 @@ export class FlatEngine extends SceneEngine {
   }
 
   override render(now: number): void {
-    const gl = this.gl, pass = this.PR;
+    const gl = this.gl,
+      pass = this.PR;
     if (!gl || !pass) return;
     this.ripBuf.fill(0);
-    this.ripples.forEach((r, i) => { const age = (now - r.t0) / 1000; if (age < 3) this.ripBuf.set([r.x, r.y, age, r.str], i * 4); });
+    this.ripples.forEach((r, i) => {
+      const age = (now - r.t0) / 1000;
+      if (age < 3) this.ripBuf.set([r.x, r.y, age, r.str], i * 4);
+    });
     this.kayBuf.fill(0);
     this.kayaks.forEach((k, i) => this.kayBuf.set([k.x, k.y, k.h, k.ph], i * 4));
     this.birdBuf.fill(0);
@@ -496,30 +541,43 @@ export class FlatEngine extends SceneEngine {
   }
 
   configureBeachPass = (now: number, pass: Program): void => {
-    const gl = this.gl, cv = this.cv, P = this.params, U = pass.U;
+    const gl = this.gl,
+      cv = this.cv,
+      P = this.params,
+      U = pass.U;
     if (!gl) return;
     gl.useProgram(pass.p);
     gl.viewport(0, 0, cv.width, cv.height);
-    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, this.noiseTex);
-    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, this.ftex[this.fromI] ?? null);
-    gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, this.ftex[this.toI] ?? null);
-    gl.uniform1i(U.uNoise ?? null, 0); gl.uniform1i(U.uFA ?? null, 1); gl.uniform1i(U.uFB ?? null, 2);
-    gl.uniform2f(U.uRes ?? null, cv.width / cv._scale, cv.height / cv._scale);   // 和画布的实际像素对齐（innerWidth、innerHeight 是取整过的）
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.noiseTex);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, this.ftex[this.fromI] ?? null);
+    gl.activeTexture(gl.TEXTURE2);
+    gl.bindTexture(gl.TEXTURE_2D, this.ftex[this.toI] ?? null);
+    gl.uniform1i(U.uNoise ?? null, 0);
+    gl.uniform1i(U.uFA ?? null, 1);
+    gl.uniform1i(U.uFB ?? null, 2);
+    gl.uniform2f(U.uRes ?? null, cv.width / cv._scale, cv.height / cv._scale); // 和画布的实际像素对齐（innerWidth、innerHeight 是取整过的）
     gl.uniform2f(U.uGrid ?? null, this.Gw, this.Gh);
     gl.uniform1f(U.uScale ?? null, cv._scale);
     gl.uniform1f(U.uSeed ?? null, (this._seed % 997) * 0.37);
     gl.uniform1f(U.uStep ?? null, 5);
     gl.uniform1f(U.uMix ?? null, this.curMix);
     gl.uniform1f(U.uTime ?? null, this.sceneTime(now));
-    gl.uniform1f(U.uSpeed ?? null, numParam(P, 'speed')); gl.uniform1f(U.uRunup ?? null, numParam(P, 'runup'));
-    gl.uniform1f(U.uShallow ?? null, numParam(P, 'shallow')); gl.uniform1f(U.uShoal ?? null, numParam(P, 'shoal')); gl.uniform1f(U.uGrain ?? null, numParam(P, 'grain'));
-    gl.uniform1f(U.uWave ?? null, numParam(P, 'wave')); gl.uniform1f(U.uSigma ?? null, numParam(P, 'sigma'));
+    gl.uniform1f(U.uSpeed ?? null, numParam(P, 'speed'));
+    gl.uniform1f(U.uRunup ?? null, numParam(P, 'runup'));
+    gl.uniform1f(U.uShallow ?? null, numParam(P, 'shallow'));
+    gl.uniform1f(U.uShoal ?? null, numParam(P, 'shoal'));
+    gl.uniform1f(U.uGrain ?? null, numParam(P, 'grain'));
+    gl.uniform1f(U.uWave ?? null, numParam(P, 'wave'));
+    gl.uniform1f(U.uSigma ?? null, numParam(P, 'sigma'));
     gl.uniform1f(U.uSpacing ?? null, numParam(P, 'spacing'));
     gl.uniform1f(U.uDebug ?? null, P.debug ? 1 : 0);
     gl.uniform1f(U.uKayN ?? null, this.kayaks.length);
     gl.uniform4fv(U.uKay ?? null, this.kayBuf);
     gl.uniform4fv(U.uRip ?? null, this.ripBuf);
-    gl.uniform1f(U.uBirdN ?? null, this.birds.length); gl.uniform4fv(U.uBird ?? null, this.birdBuf);
+    gl.uniform1f(U.uBirdN ?? null, this.birds.length);
+    gl.uniform4fv(U.uBird ?? null, this.birdBuf);
     this.applyThemeUniforms(U);
   };
 
@@ -528,16 +586,29 @@ export class FlatEngine extends SceneEngine {
      ====================================================================== */
   spawnKayak(): Kayak | null {
     for (let t = 0; t < 400; t++) {
-      const x = 60 + Math.random() * (this.W - 120), y = 60 + Math.random() * (this.H - TASKBAR - 120);
-      if (this.curS(x, y) > 170 && this.kayaks.every(k => Math.hypot(k.x - x, k.y - y) > 160))
-        return { x, y, h: Math.random() * Math.PI * 2, v: 7 + Math.random() * 4, ph: Math.random() * 6, wander: Math.random() * 100, fade: 0 };
+      const x = 60 + Math.random() * (this.W - 120),
+        y = 60 + Math.random() * (this.H - TASKBAR - 120);
+      if (this.curS(x, y) > 170 && this.kayaks.every((k) => Math.hypot(k.x - x, k.y - y) > 160))
+        return {
+          x,
+          y,
+          h: Math.random() * Math.PI * 2,
+          v: 7 + Math.random() * 4,
+          ph: Math.random() * 6,
+          wander: Math.random() * 100,
+          fade: 0,
+        };
     }
     return null;
   }
   syncKayaks(): void {
     const want = Math.max(0, Math.min(4, Math.round(numParam(this.params, 'kayaks'))));
     while (this.kayaks.length > want) this.kayaks.pop();
-    while (this.kayaks.length < want) { const k = this.spawnKayak(); if (!k) break; this.kayaks.push(k); }
+    while (this.kayaks.length < want) {
+      const k = this.spawnKayak();
+      if (!k) break;
+      this.kayaks.push(k);
+    }
   }
   stepKayaks(dt: number): void {
     const clearance = 64; // 船身长 44px，连同划桨留出安全间距。
@@ -546,12 +617,17 @@ export class FlatEngine extends SceneEngine {
       const k = this.kayaks[i];
       if (!k) continue;
       let heading = k.h;
-      const ax = k.x + Math.cos(k.h) * 70, ay = k.y + Math.sin(k.h) * 70;
+      const ax = k.x + Math.cos(k.h) * 70,
+        ay = k.y + Math.sin(k.h) * 70;
       const margin = ax < 40 || ay < 40 || ax > this.W - 40 || ay > this.H - TASKBAR - 40;
       if (this.curS(ax, ay) < 150 || margin) {
         // 转向更深的水 / 画面中间
-        let gx = this.curS(k.x + 10, k.y) - this.curS(k.x - 10, k.y), gy = this.curS(k.x, k.y + 10) - this.curS(k.x, k.y - 10);
-        if (margin) { gx += (this.W / 2 - k.x) * 0.02; gy += ((this.H - TASKBAR) / 2 - k.y) * 0.02; }
+        let gx = this.curS(k.x + 10, k.y) - this.curS(k.x - 10, k.y),
+          gy = this.curS(k.x, k.y + 10) - this.curS(k.x, k.y - 10);
+        if (margin) {
+          gx += (this.W / 2 - k.x) * 0.02;
+          gy += ((this.H - TASKBAR) / 2 - k.y) * 0.02;
+        }
         let d = Math.atan2(gy, gx) - k.h;
         d = Math.atan2(Math.sin(d), Math.cos(d));
         heading += Math.sign(d) * Math.min(Math.abs(d), 0.7 * dt);
@@ -559,31 +635,39 @@ export class FlatEngine extends SceneEngine {
         k.wander += dt * 0.3;
         heading += (this._vnoise(k.wander, i * 10) - 0.5) * 0.25 * dt;
       }
-      const fx = Math.cos(k.h), fy = Math.sin(k.h);
-      let steerX = Math.cos(heading), steerY = Math.sin(heading), speed = 1, avoiding = false;
+      const fx = Math.cos(k.h),
+        fy = Math.sin(k.h);
+      let steerX = Math.cos(heading),
+        steerY = Math.sin(heading),
+        speed = 1,
+        avoiding = false;
       for (let j = 0; j < this.kayaks.length; j++) {
         if (i === j) continue;
         const other = this.kayaks[j];
         if (!other) continue;
-        const dx = other.x - k.x, dy = other.y - k.y;
+        const dx = other.x - k.x,
+          dy = other.y - k.y;
         const distance = Math.hypot(dx, dy);
         if (distance > 210) continue;
         const rvx = Math.cos(other.h) * other.v - fx * k.v;
         const rvy = Math.sin(other.h) * other.v - fy * k.v;
         const closing = dx * rvx + dy * rvy;
-        const ahead = Math.max(0, Math.min(7, -closing / Math.max(.01, rvx * rvx + rvy * rvy)));
+        const ahead = Math.max(0, Math.min(7, -closing / Math.max(0.01, rvx * rvx + rvy * rvy)));
         const closest = Math.hypot(dx + rvx * ahead, dy + rvy * ahead);
-        const risk = Math.max(0, Math.min(1, (110 - distance) / 46),
-          closing < 0 ? (1 - Math.min(1, closest / 90)) * (1 - ahead / 8) : 0);
+        const risk = Math.max(
+          0,
+          Math.min(1, (110 - distance) / 46),
+          closing < 0 ? (1 - Math.min(1, closest / 90)) * (1 - ahead / 8) : 0,
+        );
         if (risk <= 0) continue;
         avoiding = true;
         // 相向时都向自己的右侧绕行；交叉或追尾时同时远离另一艘船。
-        const awayX = distance > .001 ? -dx / distance : -fy;
-        const awayY = distance > .001 ? -dy / distance : fx;
+        const awayX = distance > 0.001 ? -dx / distance : -fy;
+        const awayY = distance > 0.001 ? -dy / distance : fx;
         steerX += (awayX * 2 - fy * 1.6) * risk;
         steerY += (awayY * 2 + fx * 1.6) * risk;
         if (dx * fx + dy * fy > 0 && closing < 0)
-          speed = Math.min(speed, .25 + .75 * Math.max(0, Math.min(1, (distance - clearance) / 50)));
+          speed = Math.min(speed, 0.25 + 0.75 * Math.max(0, Math.min(1, (distance - clearance) / 50)));
       }
       if (avoiding) {
         const d = Math.atan2(Math.sin(Math.atan2(steerY, steerX) - k.h), Math.cos(Math.atan2(steerY, steerX) - k.h));
@@ -595,25 +679,43 @@ export class FlatEngine extends SceneEngine {
     }
     // 根据同一帧的路线检查最近间距。极端相遇时减速，继续转向，不推开或瞬移船只。
     for (let pass = 0; pass < this.kayaks.length; pass++) {
-      for (let i = 0; i < this.kayaks.length; i++) for (let j = i + 1; j < this.kayaks.length; j++) {
-        const a = plans[i], b = plans[j];
-        if (!a || !b) continue;
-        const dx = this.kayaks[j]!.x - this.kayaks[i]!.x, dy = this.kayaks[j]!.y - this.kayaks[i]!.y;
-        const vx = b.dx - a.dx, vy = b.dy - a.dy, vv = vx * vx + vy * vy;
-        const dot = dx * vx + dy * vy;
-        if (dot >= 0 || vv < 1e-12) continue;
-        const closestAt = Math.max(0, Math.min(1, -dot / vv));
-        if (Math.hypot(dx + vx * closestAt, dy + vy * closestAt) >= clearance) continue;
-        const gap = dx * dx + dy * dy - clearance * clearance;
-        const fraction = gap <= 0 ? 0 : Math.max(0, Math.min(1, gap / (-dot + Math.sqrt(Math.max(0, dot * dot - vv * gap))) - .001));
-        a.dx *= fraction; a.dy *= fraction; b.dx *= fraction; b.dy *= fraction;
-      }
+      for (let i = 0; i < this.kayaks.length; i++)
+        for (let j = i + 1; j < this.kayaks.length; j++) {
+          const a = plans[i],
+            b = plans[j];
+          if (!a || !b) continue;
+          const dx = this.kayaks[j]!.x - this.kayaks[i]!.x,
+            dy = this.kayaks[j]!.y - this.kayaks[i]!.y;
+          const vx = b.dx - a.dx,
+            vy = b.dy - a.dy,
+            vv = vx * vx + vy * vy;
+          const dot = dx * vx + dy * vy;
+          if (dot >= 0 || vv < 1e-12) continue;
+          const closestAt = Math.max(0, Math.min(1, -dot / vv));
+          if (Math.hypot(dx + vx * closestAt, dy + vy * closestAt) >= clearance) continue;
+          const gap = dx * dx + dy * dy - clearance * clearance;
+          const fraction =
+            gap <= 0
+              ? 0
+              : Math.max(0, Math.min(1, gap / (-dot + Math.sqrt(Math.max(0, dot * dot - vv * gap))) - 0.001));
+          a.dx *= fraction;
+          a.dy *= fraction;
+          b.dx *= fraction;
+          b.dy *= fraction;
+        }
     }
     for (let i = this.kayaks.length - 1; i >= 0; i--) {
-      const k = this.kayaks[i], plan = plans[i];
+      const k = this.kayaks[i],
+        plan = plans[i];
       if (!k || !plan) continue;
-      k.h = plan.h; k.x += plan.dx; k.y += plan.dy;
-      if (this.curS(k.x, k.y) < 40) { const n = this.spawnKayak(); if (n) this.kayaks[i] = n; else this.kayaks.splice(i, 1); }   // 被陆地"吞掉"就换个地方出现
+      k.h = plan.h;
+      k.x += plan.dx;
+      k.y += plan.dy;
+      if (this.curS(k.x, k.y) < 40) {
+        const n = this.spawnKayak();
+        if (n) this.kayaks[i] = n;
+        else this.kayaks.splice(i, 1);
+      } // 被陆地"吞掉"就换个地方出现
     }
   }
 
@@ -622,13 +724,29 @@ export class FlatEngine extends SceneEngine {
      ====================================================================== */
   spawnBird(fromEdge: boolean): Bird {
     const H2 = this.H - TASKBAR;
-    let x = Math.random() * this.W, y = Math.random() * H2;
-    if (fromEdge) {                                    // 从画面外飞进来
+    let x = Math.random() * this.W,
+      y = Math.random() * H2;
+    if (fromEdge) {
+      // 从画面外飞进来
       const side = Math.floor(Math.random() * 4);
-      if (side === 0) x = -40; else if (side === 1) x = this.W + 40; else if (side === 2) y = -40; else y = H2 + 40;
+      if (side === 0) x = -40;
+      else if (side === 1) x = this.W + 40;
+      else if (side === 2) y = -40;
+      else y = H2 + 40;
     }
     const h = Math.atan2(H2 / 2 - y, this.W / 2 - x) + (Math.random() - 0.5) * 1.2;
-    return { x, y, h, v: 36 + Math.random() * 16, mode: 0, modeT: 2 + Math.random() * 4, ph: 0, flap: false, flapT: Math.random() * 3, wander: Math.random() * 100 };
+    return {
+      x,
+      y,
+      h,
+      v: 36 + Math.random() * 16,
+      mode: 0,
+      modeT: 2 + Math.random() * 4,
+      ph: 0,
+      flap: false,
+      flapT: Math.random() * 3,
+      wander: Math.random() * 100,
+    };
   }
   syncBirds(fromEdge = true): void {
     const want = Math.max(0, Math.min(8, Math.round(numParam(this.params, 'birds'))));
@@ -636,10 +754,16 @@ export class FlatEngine extends SceneEngine {
     while (this.birds.length < want) this.birds.push(this.spawnBird(fromEdge));
   }
   stepBirds(dt: number): void {
-    const H2 = this.H - TASKBAR, m = 90;
-    const turnToward = (h: number, target: number, rate: number): number => { let d = target - h; d = Math.atan2(Math.sin(d), Math.cos(d)); return h + Math.sign(d) * Math.min(Math.abs(d), rate); };
+    const H2 = this.H - TASKBAR,
+      m = 90;
+    const turnToward = (h: number, target: number, rate: number): number => {
+      let d = target - h;
+      d = Math.atan2(Math.sin(d), Math.cos(d));
+      return h + Math.sign(d) * Math.min(Math.abs(d), rate);
+    };
     this.birds.forEach((b, i) => {
-      if ((b.modeT -= dt) <= 0) {                       // 换一种飞法：直飞 / 向左或向右盘旋
+      if ((b.modeT -= dt) <= 0) {
+        // 换一种飞法：直飞 / 向左或向右盘旋
         b.mode = Math.random() < 0.4 ? (Math.random() < 0.5 ? -1 : 1) : 0;
         b.modeT = b.mode ? 4 + Math.random() * 6 : 3 + Math.random() * 5;
       }
@@ -647,10 +771,14 @@ export class FlatEngine extends SceneEngine {
       if (b.x < -m || b.x > this.W + m || b.y < -m || b.y > H2 + m)
         b.h = turnToward(b.h, Math.atan2(H2 / 2 - b.y, this.W / 2 - b.x), 1.3 * dt);
       else b.h += (b.mode * 0.55 + (this._vnoise(b.wander, i * 7.3) - 0.5) * 0.8) * dt;
-      if ((b.flapT -= dt) <= 0) { b.flap = !b.flap; b.flapT = b.flap ? 0.8 + Math.random() * 1.2 : 2.5 + Math.random() * 4; }
-      if (b.flap || Math.cos(b.ph) < 0.97) b.ph = (b.ph + dt * 9) % (Math.PI * 2);   // 停下时把这一下扇完
+      if ((b.flapT -= dt) <= 0) {
+        b.flap = !b.flap;
+        b.flapT = b.flap ? 0.8 + Math.random() * 1.2 : 2.5 + Math.random() * 4;
+      }
+      if (b.flap || Math.cos(b.ph) < 0.97) b.ph = (b.ph + dt * 9) % (Math.PI * 2); // 停下时把这一下扇完
       const v = b.v * (b.flap ? 1.15 : 1);
-      b.x += Math.cos(b.h) * v * dt; b.y += Math.sin(b.h) * v * dt;
+      b.x += Math.cos(b.h) * v * dt;
+      b.y += Math.sin(b.h) * v * dt;
     });
   }
 
@@ -664,10 +792,22 @@ export class FlatEngine extends SceneEngine {
 
   // DeskApp 在布局 / 换种子 / 宿主首帧之后回调，主题自己决定要重排哪些动态元素
   onSceneChanged(kind: string): void {
-    if (kind === 'hostInit') { this.syncBirds(false); return; }
-    if (kind === 'reseed') { this.curMix = 1; this.kayaks.length = 0; this.syncKayaks(); this.curMix = 0; return; }
+    if (kind === 'hostInit') {
+      this.syncBirds(false);
+      return;
+    }
+    if (kind === 'reseed') {
+      this.curMix = 1;
+      this.kayaks.length = 0;
+      this.syncKayaks();
+      this.curMix = 0;
+      return;
+    }
     if (kind === 'layout' || kind === 'firstIcons') {
-      this.curMix = 1; this.kayaks.length = 0; this.syncKayaks(); this.curMix = 0;   // 按最终海岸线挑皮划艇的出生点
+      this.curMix = 1;
+      this.kayaks.length = 0;
+      this.syncKayaks();
+      this.curMix = 0; // 按最终海岸线挑皮划艇的出生点
       if (!this.birds.length) this.syncBirds(false);
     }
   }

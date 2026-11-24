@@ -1,0 +1,73 @@
+{
+  "color": {
+    "bg": { "$value": "#1aa3c4", "$type": "color", "$description": "海滩主题底色" }
+  },
+  "scene": {
+    "sea-0": {
+      "$value": [0.74, 0.93, 0.87],
+      "$type": "vec3",
+      "$description": "最近岸海浪",
+      "$extensions": { "deskland.v1": { "uniform": "uSea0" } }
+    },
+    "sea-1": {
+      "$value": [0.47, 0.87, 0.84],
+      "$type": "vec3",
+      "$description": "海浪 2",
+      "$extensions": { "deskland.v1": { "uniform": "uSea1" } }
+    },
+    "sea-2": {
+      "$value": [0.17, 0.76, 0.81],
+      "$type": "vec3",
+      "$description": "海浪 3",
+      "$extensions": { "deskland.v1": { "uniform": "uSea2" } }
+    },
+    "sea-3": {
+      "$value": [0.03, 0.66, 0.79],
+      "$type": "vec3",
+      "$description": "海浪 4",
+      "$extensions": { "deskland.v1": { "uniform": "uSea3" } }
+    },
+    "sea-4": {
+      "$value": [0.0, 0.56, 0.73],
+      "$type": "vec3",
+      "$description": "最远海",
+      "$extensions": { "deskland.v1": { "uniform": "uSea4" } }
+    },
+    "sand-0": {
+      "$value": [0.97, 0.93, 0.88],
+      "$type": "vec3",
+      "$description": "干沙高亮",
+      "$extensions": { "deskland.v1": { "uniform": "uSand0" } }
+    },
+    "sand-1": {
+      "$value": [0.91, 0.85, 0.84],
+      "$type": "vec3",
+      "$description": "干沙 2",
+      "$extensions": { "deskland.v1": { "uniform": "uSand1" } }
+    },
+    "sand-2": {
+      "$value": [0.82, 0.76, 0.79],
+      "$type": "vec3",
+      "$description": "湿沙过渡",
+      "$extensions": { "deskland.v1": { "uniform": "uSand2" } }
+    },
+    "sand-3": {
+      "$value": [0.71, 0.67, 0.75],
+      "$type": "vec3",
+      "$description": "湿沙阴影",
+      "$extensions": { "deskland.v1": { "uniform": "uSand3" } }
+    },
+    "foam": {
+      "$value": [0.98, 0.99, 0.98],
+      "$type": "vec3",
+      "$description": "浪花",
+      "$extensions": { "deskland.v1": { "uniform": "uFoam" } }
+    },
+    "wetsand": {
+      "$value": [0.93, 0.86, 0.72],
+      "$type": "vec3",
+      "$description": "湿沙带",
+      "$extensions": { "deskland.v1": { "uniform": "uWetSand" } }
+    }
+  }
+}

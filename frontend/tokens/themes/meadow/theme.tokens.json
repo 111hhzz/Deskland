@@ -1,0 +1,41 @@
+{
+  "color": {
+    "bg": {
+      "$value": "#a6c46e",
+      "$type": "color",
+      "$description": "草地主题底色 / 首帧背景色"
+    }
+  },
+  "scene": {
+    "ground-light": {
+      "$value": [0.76, 0.83, 0.52],
+      "$type": "vec3",
+      "$description": "近景草地带",
+      "$extensions": { "deskland.v1": { "uniform": "uGroundLight" } }
+    },
+    "ground-mid": {
+      "$value": [0.62, 0.75, 0.42],
+      "$type": "vec3",
+      "$description": "中景草地带",
+      "$extensions": { "deskland.v1": { "uniform": "uGroundMid" } }
+    },
+    "ground-deep": {
+      "$value": [0.52, 0.68, 0.36],
+      "$type": "vec3",
+      "$description": "远景草地带",
+      "$extensions": { "deskland.v1": { "uniform": "uGroundDeep" } }
+    },
+    "ink": {
+      "$value": [0.24, 0.38, 0.18],
+      "$type": "vec3",
+      "$description": "男孩剪影 / 猫身墨色",
+      "$extensions": { "deskland.v1": { "uniform": "uInk" } }
+    },
+    "shadow": {
+      "$value": [0.56, 0.66, 0.52],
+      "$type": "vec3",
+      "$description": "云影 / 人物投影叠加色",
+      "$extensions": { "deskland.v1": { "uniform": "uShadow" } }
+    }
+  }
+}

@@ -19,5 +19,5 @@ export interface LegacyHost {
   readonly sampleArr: (a: Float32Array, x: number, y: number) => number;
   readonly curS: (x: number, y: number) => number;
   readonly mulberry32: (a: number) => () => number;
-  readonly themeBase: string;   // '/themes/<id>/'：素材按主题根相对引用
+  readonly themeBase: string; // '/themes/<id>/'：素材按主题根相对引用
 }

@@ -126,9 +126,9 @@ const FS_CAT = withDefines(FS, ['MEADOW_CAT']);
 const FS_ACTOR_CAT = withDefines(FS, ['MEADOW_ACTOR', 'MEADOW_CAT']);
 
 export class MeadowEngine extends ActorSceneEngine {
-  static override FS = FS;                     // 片元着色器（SceneEngine 约定）
-  static FS_ACTOR = FS_ACTOR;         // 带人物的变体
-  static FS_CAT = FS_CAT;             // 带小猫的变体
+  static override FS = FS; // 片元着色器（SceneEngine 约定）
+  static FS_ACTOR = FS_ACTOR; // 带人物的变体
+  static FS_CAT = FS_CAT; // 带小猫的变体
   static FS_ACTOR_CAT = FS_ACTOR_CAT; // 人物 + 小猫
 
   _actor: MeadowActor | null;
@@ -142,10 +142,13 @@ export class MeadowEngine extends ActorSceneEngine {
   } | null = null;
 
   // 由页面在 init() 之前调用：把人物 / 小猫模块注入引擎（P4）
-  installLegacy(host: LegacyHost, def: {
-    createBoy: (host: LegacyHost) => MeadowBoyScene;
-    createCat: (host: LegacyHost) => MeadowCatScene;
-  }): void {
+  installLegacy(
+    host: LegacyHost,
+    def: {
+      createBoy: (host: LegacyHost) => MeadowBoyScene;
+      createCat: (host: LegacyHost) => MeadowCatScene;
+    },
+  ): void {
     this._legacyHost = host;
     this._legacyDef = def;
   }
@@ -171,47 +174,59 @@ export class MeadowEngine extends ActorSceneEngine {
 
   constructor(canvas: HTMLCanvasElement, opts: EngineOpts = {}) {
     super(canvas, opts);
-    this._actor = null; this._cat = null;
+    this._actor = null;
+    this._cat = null;
     // 面板配置：应用层 DeskApp 直接读取（主题只加配置，不改宿主代码）
     this.sliders = [
-      { key: 'sigma', label: '云团大小', min: 40, max: 200, step: 1,    fmt: v => v + ' px', act: 'field' },
-      { key: 'cover', label: '草地上的云', min: 0, max: 1,   step: 0.01, fmt: v => Math.round(v * 100) + '%' },
-      { key: 'flow',  label: '流动速度', min: 0, max: 3,   step: 0.05, fmt: v => '×' + v.toFixed(2) },
+      { key: 'sigma', label: '云团大小', min: 40, max: 200, step: 1, fmt: (v) => v + ' px', act: 'field' },
+      { key: 'cover', label: '草地上的云', min: 0, max: 1, step: 0.01, fmt: (v) => Math.round(v * 100) + '%' },
+      { key: 'flow', label: '流动速度', min: 0, max: 3, step: 0.05, fmt: (v) => '×' + v.toFixed(2) },
     ];
     this.displayKeys = [
       { key: 'adaptive', min: 0, max: 1 },
-      { key: 'showBoy',  min: 0, max: 1 },
-      { key: 'showCat',  min: 0, max: 1 },
+      { key: 'showBoy', min: 0, max: 1 },
+      { key: 'showCat', min: 0, max: 1 },
     ];
   }
 
   override defaultParams(): EngineParams {
     // 默认值要和 themes/meadow/theme.json 里草地主题的 default 保持一致；grain、quality 不开放调节
     return {
-      sigma: 72, warp: 40, edge: 10, cover: 0.3, flow: 1, grain: 1, quality: 2,   // quality 2：按屏幕的实际像素画（150% 缩放时不再放大发糊）
-      debug: false, snap: true, cap30: true,
-      showBoy: 1, showCat: 1, adaptive: 1,
+      sigma: 72,
+      warp: 40,
+      edge: 10,
+      cover: 0.3,
+      flow: 1,
+      grain: 1,
+      quality: 2, // quality 2：按屏幕的实际像素画（150% 缩放时不再放大发糊）
+      debug: false,
+      snap: true,
+      cap30: true,
+      showBoy: 1,
+      showCat: 1,
+      adaptive: 1,
     };
   }
 
   override buildScenePalette(): ScenePalette {
     return {
-      groundLight: this.sceneToken('--scene-ground-light')  || [0.76, 0.83, 0.52],
-      groundMid:   this.sceneToken('--scene-ground-mid')    || [0.62, 0.75, 0.42],
-      groundDeep:  this.sceneToken('--scene-ground-deep')   || [0.52, 0.68, 0.36],
-      ink:         this.sceneToken('--scene-ink')           || [0.24, 0.38, 0.18],
-      shadow:      this.sceneToken('--scene-shadow')        || [0.56, 0.66, 0.52],
-      cloudHi:     this.sceneToken('--scene-cloud-hi')      || [1.0, 1.0, 0.99],
-      cloudBody:   this.sceneToken('--scene-cloud-body')    || [0.90, 0.93, 0.96],
-      cloudSh:     this.sceneToken('--scene-cloud-shade')   || [0.80, 0.85, 0.90],
-      lightDir:    this.sceneToken('--scene-light-dir')     || [-0.6, -0.8],
-      shadowOff:   this.sceneToken('--scene-shadow-offset') || [115.0, 156.0],
+      groundLight: this.sceneToken('--scene-ground-light') || [0.76, 0.83, 0.52],
+      groundMid: this.sceneToken('--scene-ground-mid') || [0.62, 0.75, 0.42],
+      groundDeep: this.sceneToken('--scene-ground-deep') || [0.52, 0.68, 0.36],
+      ink: this.sceneToken('--scene-ink') || [0.24, 0.38, 0.18],
+      shadow: this.sceneToken('--scene-shadow') || [0.56, 0.66, 0.52],
+      cloudHi: this.sceneToken('--scene-cloud-hi') || [1.0, 1.0, 0.99],
+      cloudBody: this.sceneToken('--scene-cloud-body') || [0.9, 0.93, 0.96],
+      cloudSh: this.sceneToken('--scene-cloud-shade') || [0.8, 0.85, 0.9],
+      lightDir: this.sceneToken('--scene-light-dir') || [-0.6, -0.8],
+      shadowOff: this.sceneToken('--scene-shadow-offset') || [115.0, 156.0],
     };
   }
 
   // 草地特有的 uniform：地面三色 + 草的墨绿
   override applyThemeUniforms(U: Uniforms): void {
-    const gl = this.gl, S = this.scene;
+    const gl = this.gl,
+      S = this.scene;
     if (!gl) return;
     if (U.uGroundLight && S.groundLight) gl.uniform3fv(U.uGroundLight, S.groundLight);
     if (U.uGroundMid && S.groundMid) gl.uniform3fv(U.uGroundMid, S.groundMid);
@@ -223,7 +238,8 @@ export class MeadowEngine extends ActorSceneEngine {
      人物 / 小猫（meadow 特有）：每帧先准备，再按基类的编排绘制
      ====================================================================== */
   override prepareScene(): void {
-    const P = this.params, now = this._now;
+    const P = this.params,
+      now = this._now;
     // 隐藏男孩时只保留路线状态，小猫仍能独立显示并避开男孩再次出现的路线。
     const boy = this._boy ? this._boy.draw(now, P.showBoy === 1) : null;
     // visible=false 时 boy 只有 state，用类型守卫区分完整帧
@@ -231,28 +247,44 @@ export class MeadowEngine extends ActorSceneEngine {
     const cat = P.showCat === 1 && this._catScene ? this._catScene.prepare(boy, now) : null;
     // 官网不加载人物脚本，沿用原来的草地着色器和开销。
     if (actor && !this.actorPR) this.actorPR = this.program((this.constructor as typeof MeadowEngine).FS_ACTOR);
-    this._actor = actor; this._cat = cat;
+    this._actor = actor;
+    this._cat = cat;
     this.actorTex = actor ? actor.actor : null;
     this.actorShadowTex = actor ? actor.shadow : null;
     this.actorRect = actor ? actor.rect : null;
   }
 
   override drawScene(draw: SceneDraw): void {
-    const gl = this.gl, cv = this.cv, actor = this._actor, cat = this._cat;
+    const gl = this.gl,
+      cv = this.cv,
+      actor = this._actor,
+      cat = this._cat;
     if (!gl) return;
     const mainPR = actor ? this.actorPR : this.PR;
     if (!mainPR) return;
     draw(mainPR, false);
     if (!cat) return;
     // 人物 / 猫共用一份片的变体，按需懒编译（保持既有开销）
-    if (actor && !this.catActorPR) this.catActorPR = this.program((this.constructor as typeof MeadowEngine).FS_ACTOR_CAT);
+    if (actor && !this.catActorPR)
+      this.catActorPR = this.program((this.constructor as typeof MeadowEngine).FS_ACTOR_CAT);
     if (!actor && !this.catPR) this.catPR = this.program((this.constructor as typeof MeadowEngine).FS_CAT);
-    this.catTex = cat.texture; this.catRect = cat.rect; this.catShadow = cat.shadow; this.catTail = cat.tail;
-    const k = cv._scale, [x, y, w, h] = cat.bounds;
-    const left = Math.max(0, Math.floor(x * k)), top = Math.max(0, Math.floor(y * k));
-    const right = Math.min(cv.width, Math.ceil((x + w) * k)), bottom = Math.min(cv.height, Math.ceil((y + h) * k));
+    this.catTex = cat.texture;
+    this.catRect = cat.rect;
+    this.catShadow = cat.shadow;
+    this.catTail = cat.tail;
+    const k = cv._scale,
+      [x, y, w, h] = cat.bounds;
+    const left = Math.max(0, Math.floor(x * k)),
+      top = Math.max(0, Math.floor(y * k));
+    const right = Math.min(cv.width, Math.ceil((x + w) * k)),
+      bottom = Math.min(cv.height, Math.ceil((y + h) * k));
     const catPR = actor ? this.catActorPR : this.catPR;
-    gl.enable(gl.SCISSOR_TEST); gl.scissor(left, cv.height - bottom, Math.max(0, right - left), Math.max(0, bottom - top));
-    try { if (catPR) draw(catPR, true); } finally { gl.disable(gl.SCISSOR_TEST); }
+    gl.enable(gl.SCISSOR_TEST);
+    gl.scissor(left, cv.height - bottom, Math.max(0, right - left), Math.max(0, bottom - top));
+    try {
+      if (catPR) draw(catPR, true);
+    } finally {
+      gl.disable(gl.SCISSOR_TEST);
+    }
   }
 }

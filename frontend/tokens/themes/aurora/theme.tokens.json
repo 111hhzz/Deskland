@@ -1,0 +1,61 @@
+{
+  "color": {
+    "bg": { "$value": "#071026", "$type": "color", "$description": "极光主题底色（夜空）" }
+  },
+  "scene": {
+    "sky-top": {
+      "$value": [0.03, 0.05, 0.14],
+      "$type": "vec3",
+      "$description": "夜空天顶",
+      "$extensions": { "deskland.v1": { "uniform": "uSkyTop" } }
+    },
+    "sky-bottom": {
+      "$value": [0.08, 0.12, 0.26],
+      "$type": "vec3",
+      "$description": "地平线",
+      "$extensions": { "deskland.v1": { "uniform": "uSkyBot" } }
+    },
+    "aurora-a": {
+      "$value": [0.24, 0.86, 0.59],
+      "$type": "vec3",
+      "$description": "极光主色（绿）",
+      "$extensions": { "deskland.v1": { "uniform": "uAurA" } }
+    },
+    "aurora-b": {
+      "$value": [0.48, 0.38, 1.0],
+      "$type": "vec3",
+      "$description": "极光副色（紫）",
+      "$extensions": { "deskland.v1": { "uniform": "uAurB" } }
+    },
+    "cloud-hi": {
+      "$value": [0.75, 0.92, 0.86],
+      "$type": "vec3",
+      "$description": "云亮部（反射极光，覆盖 core）",
+      "$extensions": { "deskland.v1": { "uniform": "uCloudHi" } }
+    },
+    "cloud-body": {
+      "$value": [0.3, 0.42, 0.62],
+      "$type": "vec3",
+      "$description": "云主体（覆盖 core）",
+      "$extensions": { "deskland.v1": { "uniform": "uCloudBody" } }
+    },
+    "cloud-shade": {
+      "$value": [0.2, 0.28, 0.46],
+      "$type": "vec3",
+      "$description": "云暗部（覆盖 core）",
+      "$extensions": { "deskland.v1": { "uniform": "uCloudSh" } }
+    },
+    "cloud-shadow": {
+      "$value": [0.16, 0.22, 0.4],
+      "$type": "vec3",
+      "$description": "云影",
+      "$extensions": { "deskland.v1": { "uniform": "uCloudShadow" } }
+    },
+    "moon": {
+      "$value": [0.91, 0.89, 0.82],
+      "$type": "vec3",
+      "$description": "月亮颜色",
+      "$extensions": { "deskland.v1": { "uniform": "uMoonCol" } }
+    }
+  }
+}

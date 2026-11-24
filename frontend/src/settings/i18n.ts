@@ -31,11 +31,16 @@ const cache = new Map<LangCode, I18nFile>();
 export function loadLang(code: LangCode): Promise<I18nFile> {
   const hit = cache.get(code);
   if (hit) return Promise.resolve(hit);
-  return fetch(`/i18n/${code}.json`)
-    .then(r => r.json() as Promise<I18nFile>)
-    .then(data => { cache.set(code, data); return data; })
-    // 加载失败不写缓存：否则一次网络抖动会让该语言永久退到 key 原文，重试也没用
-    .catch(() => ({ name: code, ui: {}, themes: {}, host: {} }));
+  return (
+    fetch(`/i18n/${code}.json`)
+      .then((r) => r.json() as Promise<I18nFile>)
+      .then((data) => {
+        cache.set(code, data);
+        return data;
+      })
+      // 加载失败不写缓存：否则一次网络抖动会让该语言永久退到 key 原文，重试也没用
+      .catch(() => ({ name: code, ui: {}, themes: {}, host: {} }))
+  );
 }
 
 // 没有宿主时（浏览器里调界面）"跟随系统"按浏览器的语言
@@ -57,50 +62,51 @@ export function translate(lang: LangCode, key: string, vars?: Record<string, str
   return str;
 }
 
+// 译文值可能缺失或类型异常：仅在 string / number 时 stringify，对象等脏数据回退主题原文
+const text = (v: unknown): string | null => (typeof v === 'string' || typeof v === 'number' ? String(v) : null);
+
 // 主题名、说明、分组、参数按界面语言换：当前语言 → 英文 → 主题清单原文（简体中文）
 export function localizeRegistry(reg: ThemeRegistry, lang: LangCode): ThemeDef[] {
   if (lang === 'zh-CN') return reg.themes;
   const srcs = ([lang, 'en'] as LangCode[])
-    .map(c => cache.get(c)?.themes)
+    .map((c) => cache.get(c)?.themes)
     .filter((x): x is Record<string, I18nTheme> => !!x);
-  return reg.themes.map(th => {
-    const trs = srcs.map(x => x[th.id]).filter((x): x is I18nTheme => !!x);
+  return reg.themes.map((th) => {
+    const trs = srcs.map((x) => x[th.id]).filter((x): x is I18nTheme => !!x);
     const get = (f: (x: I18nTheme) => unknown): unknown => {
-      for (const x of trs) { const v = f(x); if (v != null) return v; }
+      for (const x of trs) {
+        const v = f(x);
+        if (v != null) return v;
+      }
       return null;
     };
-    const name = get(x => x.name);
-    const desc = get(x => x.desc);
+    const name = text(get((x) => x.name)) ?? th.name;
+    const desc = text(get((x) => x.desc)) ?? th.desc;
     // 分组只能按索引对齐：译文分组数与主题不一致时整体不替换，否则会串名
-    const trGroups = get(x => x.groups);
+    const trGroups = get((x) => x.groups);
     const groupsAligned = Array.isArray(trGroups) && trGroups.length === (th.groups ?? []).length;
     const groups = (th.groups ?? []).map((g, gi) => {
-      const gName = groupsAligned ? get(x => x.groups?.[gi]) : null;
+      const gName = groupsAligned ? text(get((x) => x.groups?.[gi])) : null;
       return {
         ...g,
-        name: gName != null ? String(gName) : g.name,
-        params: g.params.map(p => {
-          const q = (f: (y: I18nParam | undefined) => unknown): unknown => get(x => f(x.params?.[p.key]));
-          const label = q(y => y?.label);
-          const hint = q(y => y?.hint);
-          const options = q(y => y?.options);
-          const unit = q(y => y?.unit);
+        name: gName ?? g.name,
+        params: g.params.map((p) => {
+          const q = (f: (y: I18nParam | undefined) => unknown): unknown => get((x) => f(x.params?.[p.key]));
+          const label = text(q((y) => y?.label)) ?? p.label;
+          const hint = text(q((y) => y?.hint));
+          const options = q((y) => y?.options);
+          const unit = text(q((y) => y?.unit));
           // exactOptionalPropertyTypes：缺译时不要写 undefined 键，整键省略以保留主题原文
           return {
             ...p,
-            label: label != null ? String(label) : p.label,
-            ...(hint != null ? { hint: String(hint) } : {}),
+            label,
+            ...(hint != null ? { hint } : {}),
             ...(options != null ? { options: options as string[] } : {}),
-            ...(unit != null ? { unit: String(unit) } : {}),
+            ...(unit != null ? { unit } : {}),
           };
         }),
       };
     });
-    return {
-      ...th,
-      name: name != null ? String(name) : th.name,
-      desc: desc != null ? String(desc) : th.desc,
-      groups,
-    };
+    return { ...th, name, desc, groups };
   });
 }

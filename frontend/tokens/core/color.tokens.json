@@ -1,0 +1,24 @@
+{
+  "color": {
+    "bg": {
+      "$value": "#1aa3c4",
+      "$type": "color",
+      "$description": "页面 / 场景底色（主题必须覆盖）"
+    },
+    "surface": {
+      "$value": "rgba(20, 52, 64, .74)",
+      "$type": "color",
+      "$description": "面板底"
+    },
+    "text": {
+      "$value": "#eef6f5",
+      "$type": "color",
+      "$description": "主文字色"
+    },
+    "accent": {
+      "$value": "#7fe3d6",
+      "$type": "color",
+      "$description": "强调色（滑块、选中态、时钟）"
+    }
+  }
+}

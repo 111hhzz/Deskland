@@ -1,0 +1,49 @@
+{
+  "color": {
+    "bg": { "$value": "#6fb3ea", "$type": "color", "$description": "天空主题底色" }
+  },
+  "scene": {
+    "cloud-shadow": {
+      "$value": [0.78, 0.84, 0.92],
+      "$type": "vec3",
+      "$description": "云影叠加色",
+      "$extensions": { "deskland.v1": { "uniform": "uCloudShadow" } }
+    },
+    "sky-day-top": {
+      "$value": [0.27, 0.56, 0.88],
+      "$type": "vec3",
+      "$description": "白昼天顶",
+      "$extensions": { "deskland.v1": { "uniform": "uSkyDayTop" } }
+    },
+    "sky-day-bottom": {
+      "$value": [0.62, 0.82, 0.96],
+      "$type": "vec3",
+      "$description": "白昼地平线",
+      "$extensions": { "deskland.v1": { "uniform": "uSkyDayBot" } }
+    },
+    "sky-dusk-top": {
+      "$value": [0.28, 0.3, 0.58],
+      "$type": "vec3",
+      "$description": "黄昏天顶",
+      "$extensions": { "deskland.v1": { "uniform": "uSkyDuskTop" } }
+    },
+    "sky-dusk-bottom": {
+      "$value": [0.98, 0.66, 0.42],
+      "$type": "vec3",
+      "$description": "黄昏地平线",
+      "$extensions": { "deskland.v1": { "uniform": "uSkyDuskBot" } }
+    },
+    "sky-night-top": {
+      "$value": [0.04, 0.06, 0.16],
+      "$type": "vec3",
+      "$description": "夜晚天顶",
+      "$extensions": { "deskland.v1": { "uniform": "uSkyNightTop" } }
+    },
+    "sky-night-bottom": {
+      "$value": [0.2, 0.26, 0.44],
+      "$type": "vec3",
+      "$description": "夜晚地平线",
+      "$extensions": { "deskland.v1": { "uniform": "uSkyNightBot" } }
+    }
+  }
+}

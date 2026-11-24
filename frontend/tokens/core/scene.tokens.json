@@ -1,0 +1,34 @@
+{
+  "scene": {
+    "cloud-hi": {
+      "$value": [1.0, 1.0, 0.99],
+      "$type": "vec3",
+      "$description": "云受光面色",
+      "$extensions": { "deskland.v1": { "uniform": "uCloudHi" } }
+    },
+    "cloud-body": {
+      "$value": [0.9, 0.93, 0.96],
+      "$type": "vec3",
+      "$description": "云主体色",
+      "$extensions": { "deskland.v1": { "uniform": "uCloudBody" } }
+    },
+    "cloud-shade": {
+      "$value": [0.8, 0.85, 0.9],
+      "$type": "vec3",
+      "$description": "云背光面补间色",
+      "$extensions": { "deskland.v1": { "uniform": "uCloudSh" } }
+    },
+    "light-dir": {
+      "$value": [-0.6, -0.8],
+      "$type": "vec2",
+      "$description": "平行光方向（代码直接使用，无变换）",
+      "$extensions": { "deskland.v1": { "uniform": "uLightDir" } }
+    },
+    "shadow-offset": {
+      "$value": [115.0, 156.0],
+      "$type": "vec2",
+      "$description": "人物落点位移系数（非 0-1，故 vec2 不强制分量范围）",
+      "$extensions": { "deskland.v1": { "uniform": "uShadowOff" } }
+    }
+  }
+}

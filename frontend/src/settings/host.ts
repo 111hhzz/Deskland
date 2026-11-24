@@ -13,7 +13,9 @@ export function createWebViewHost(): HostBridge | null {
   const host = window.chrome?.webview;
   if (!host) return null;
   return {
-    send(msg) { host.postMessage(JSON.stringify(msg)); },
+    send(msg) {
+      host.postMessage(JSON.stringify(msg));
+    },
     onMessage(cb) {
       const fn = (e: { data: unknown }) => {
         // WebView2 只会给字符串；非字符串直接忽略，避免 JSON.parse 抛错打断整条消息通道

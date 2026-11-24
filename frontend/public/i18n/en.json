@@ -123,10 +123,7 @@
     "lotus": {
       "name": "Lotus Pond",
       "desc": "Lotus leaves and blossoms fill the pond, with koi swimming between the leaves and icons and leaving ripples",
-      "groups": [
-        "Around icons",
-        "Details"
-      ],
+      "groups": ["Around icons", "Details"],
       "params": {
         "density": {
           "label": "Lotus leaf density",
@@ -150,11 +147,7 @@
     "lake": {
       "name": "Lake",
       "desc": "Watercolor grass surrounds a clear lake, with painted stones beneath the shallows and crisp reflections of puffy clouds",
-      "groups": [
-        "Shore",
-        "Water",
-        "Clouds"
-      ],
+      "groups": ["Shore", "Water", "Clouds"],
       "params": {
         "sigma": {
           "label": "Grassy shore",
@@ -186,11 +179,7 @@
     "beach-turquoise": {
       "name": "Maldives",
       "desc": "Turquoise water and pale beige sand, with schools of little fish swimming between dark coral reefs",
-      "groups": [
-        "Shoreline",
-        "Water",
-        "Details"
-      ],
+      "groups": ["Shoreline", "Water", "Details"],
       "params": {
         "fishSchools": {
           "label": "Fish schools",
@@ -237,11 +226,7 @@
     "beach": {
       "name": "Beach",
       "desc": "The shoreline curves around your files as waves roll up the sand",
-      "groups": [
-        "Shoreline",
-        "Water",
-        "Details"
-      ],
+      "groups": ["Shoreline", "Water", "Details"],
       "params": {
         "palms": {
           "label": "Coconut palms",
@@ -278,22 +263,12 @@
     "sky": {
       "name": "Sky",
       "desc": "A cartoon blue sky where your icons sit on puffy round clouds — day, dusk or night",
-      "groups": [
-        "Time of day",
-        "Around icons",
-        "Clouds",
-        "Details"
-      ],
+      "groups": ["Time of day", "Around icons", "Clouds", "Details"],
       "params": {
         "time": {
           "label": "Time of day",
           "hint": "Follow the clock: dawn at 6:00, day at 7:00, dusk at 17:30, night at 19:00",
-          "options": [
-            "Auto",
-            "Day",
-            "Dusk",
-            "Night"
-          ]
+          "options": ["Auto", "Day", "Dusk", "Night"]
         },
         "sigma": {
           "label": "Cloud size",
@@ -315,19 +290,12 @@
         "plane": {
           "label": "Plane",
           "hint": "A little plane trails across the top of the screen",
-          "options": [
-            "Never",
-            "Now and then",
-            "Often"
-          ]
+          "options": ["Never", "Now and then", "Often"]
         },
         "moon": {
           "label": "Moon",
           "hint": "The moon and moonlight at night",
-          "options": [
-            "Off",
-            "On"
-          ]
+          "options": ["Off", "On"]
         },
         "stars": {
           "label": "Star size",
@@ -338,11 +306,7 @@
     "ocean": {
       "name": "Ocean",
       "desc": "Looking down on a blue ocean — your icons hide in white clouds whose shadows fall on the sea",
-      "groups": [
-        "Around icons",
-        "Clouds",
-        "Details"
-      ],
+      "groups": ["Around icons", "Clouds", "Details"],
       "params": {
         "sigma": {
           "label": "Cloud size",
@@ -376,11 +340,7 @@
     "meadow": {
       "name": "Meadow",
       "desc": "A pen-and-wash meadow where your icons hide in white clouds that cast dark green shadows",
-      "groups": [
-        "Around icons",
-        "Clouds",
-        "Characters"
-      ],
+      "groups": ["Around icons", "Clouds", "Characters"],
       "params": {
         "sigma": {
           "label": "Cloud size",
@@ -397,29 +357,19 @@
         "showBoy": {
           "label": "Show boy",
           "hint": "Show or hide the boy together with his kite",
-          "options": [
-            "Hide",
-            "Show"
-          ]
+          "options": ["Hide", "Show"]
         },
         "showCat": {
           "label": "Show kitten",
           "hint": "The little black kitten resting on the grass",
-          "options": [
-            "Hide",
-            "Show"
-          ]
+          "options": ["Hide", "Show"]
         }
       }
     },
     "forest": {
       "name": "Forest",
       "desc": "Your icons sit in a clearing ringed by gouache cartoon trees swaying in the breeze",
-      "groups": [
-        "Around icons",
-        "Trees",
-        "Details"
-      ],
+      "groups": ["Around icons", "Trees", "Details"],
       "params": {
         "sigma": {
           "label": "Clearing size",
@@ -439,11 +389,7 @@
     "pinkforest": {
       "name": "Pink Forest",
       "desc": "A watercolor forest: translucent pink treetops on fine ink trunks",
-      "groups": [
-        "Around icons",
-        "Trees",
-        "Details"
-      ],
+      "groups": ["Around icons", "Trees", "Details"],
       "params": {
         "sigma": {
           "label": "Clearing size",
@@ -463,10 +409,7 @@
     "map": {
       "name": "Hand-drawn City",
       "desc": "A bird's-eye map of an old town: rows of ink-drawn houses line the streets, and your icons sit in the squares",
-      "groups": [
-        "Around icons",
-        "Town"
-      ],
+      "groups": ["Around icons", "Town"],
       "params": {
         "sigma": {
           "label": "Square size",
@@ -482,9 +425,7 @@
     "citymap": {
       "name": "Colorful City",
       "desc": "An illustrated city map with red roofs and yellow, pink and blue walls; your icons sit in the squares",
-      "groups": [
-        "Around icons"
-      ],
+      "groups": ["Around icons"],
       "params": {
         "sigma": {
           "label": "Square size",
@@ -495,10 +436,7 @@
     "worldmap": {
       "name": "Old Map",
       "desc": "A parchment continent: icons become seas, dotted roads link towns, and horse-drawn wagons carry supplies between them",
-      "groups": [
-        "Around icons",
-        "Details"
-      ],
+      "groups": ["Around icons", "Details"],
       "params": {
         "sigma": {
           "label": "Sea size",
@@ -519,10 +457,7 @@
     "nauticalmap": {
       "name": "Nautical Chart",
       "desc": "A parchment sea chart with coastal ports and lighthouses, winding sea routes, sailing ships and hand-drawn sea monsters",
-      "groups": [
-        "Around icons",
-        "Details"
-      ],
+      "groups": ["Around icons", "Details"],
       "params": {
         "sigma": {
           "label": "Land size",

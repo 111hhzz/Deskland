@@ -1,0 +1,4 @@
+# 供 Oxfmt / Oxlint 使用的忽略清单（vp fmt 默认读 .gitignore / .prettierignore）
+dist
+node_modules
+.local

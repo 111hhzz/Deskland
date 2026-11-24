@@ -98,42 +98,52 @@ export class AuroraEngine extends CloudSceneEngine {
   constructor(canvas: HTMLCanvasElement, opts: EngineOpts = {}) {
     super(canvas, opts);
     this.sliders = [
-      { key: 'sigma',  label: '云团大小', min: 40, max: 200, step: 1,    fmt: v => v + ' px', act: 'field' },
-      { key: 'cover',  label: '云量',     min: 0,  max: 1,   step: 0.01, fmt: v => Math.round(v * 100) + '%' },
-      { key: 'flow',   label: '流动速度', min: 0,  max: 3,   step: 0.05, fmt: v => '×' + v.toFixed(2) },
-      { key: 'aurora', label: '极光强度', min: 0,  max: 1.5, step: 0.01, fmt: v => Math.round(v * 100) + '%' },
-      { key: 'stars',  label: '星星密度', min: 0,  max: 1,   step: 0.01, fmt: v => Math.round(v * 100) + '%' },
+      { key: 'sigma', label: '云团大小', min: 40, max: 200, step: 1, fmt: (v) => v + ' px', act: 'field' },
+      { key: 'cover', label: '云量', min: 0, max: 1, step: 0.01, fmt: (v) => Math.round(v * 100) + '%' },
+      { key: 'flow', label: '流动速度', min: 0, max: 3, step: 0.05, fmt: (v) => '×' + v.toFixed(2) },
+      { key: 'aurora', label: '极光强度', min: 0, max: 1.5, step: 0.01, fmt: (v) => Math.round(v * 100) + '%' },
+      { key: 'stars', label: '星星密度', min: 0, max: 1, step: 0.01, fmt: (v) => Math.round(v * 100) + '%' },
     ];
-    this.displayKeys = [
-      { key: 'adaptive', min: 0, max: 1 },
-    ];
+    this.displayKeys = [{ key: 'adaptive', min: 0, max: 1 }];
   }
 
   override defaultParams(): EngineParams {
     return {
-      sigma: 72, warp: 40, edge: 10, cover: 0.3, flow: 1, aurora: 0.9, stars: 0.55,
-      grain: 1, quality: 2, debug: false, snap: true, cap30: true, adaptive: 1,
+      sigma: 72,
+      warp: 40,
+      edge: 10,
+      cover: 0.3,
+      flow: 1,
+      aurora: 0.9,
+      stars: 0.55,
+      grain: 1,
+      quality: 2,
+      debug: false,
+      snap: true,
+      cap30: true,
+      adaptive: 1,
     };
   }
 
   override buildScenePalette(): ScenePalette {
     return {
-      skyTop:      this.sceneToken('--scene-sky-top')       || [0.03, 0.05, 0.14],
-      skyBot:      this.sceneToken('--scene-sky-bottom')    || [0.08, 0.12, 0.26],
-      aurA:        this.sceneToken('--scene-aurora-a')      || [0.24, 0.86, 0.59],
-      aurB:        this.sceneToken('--scene-aurora-b')      || [0.48, 0.38, 1.00],
-      cloudHi:     this.sceneToken('--scene-cloud-hi')      || [0.75, 0.92, 0.86],
-      cloudBody:   this.sceneToken('--scene-cloud-body')    || [0.30, 0.42, 0.62],
-      cloudSh:     this.sceneToken('--scene-cloud-shade')   || [0.20, 0.28, 0.46],
-      cloudShadow: this.sceneToken('--scene-cloud-shadow')  || [0.16, 0.22, 0.40],
-      lightDir:    this.sceneToken('--scene-light-dir')     || [-0.6, -0.8],
-      shadowOff:   this.sceneToken('--scene-shadow-offset') || [115.0, 156.0],
-      moonCol:     this.sceneToken('--scene-moon')          || [0.91, 0.89, 0.82],
+      skyTop: this.sceneToken('--scene-sky-top') || [0.03, 0.05, 0.14],
+      skyBot: this.sceneToken('--scene-sky-bottom') || [0.08, 0.12, 0.26],
+      aurA: this.sceneToken('--scene-aurora-a') || [0.24, 0.86, 0.59],
+      aurB: this.sceneToken('--scene-aurora-b') || [0.48, 0.38, 1.0],
+      cloudHi: this.sceneToken('--scene-cloud-hi') || [0.75, 0.92, 0.86],
+      cloudBody: this.sceneToken('--scene-cloud-body') || [0.3, 0.42, 0.62],
+      cloudSh: this.sceneToken('--scene-cloud-shade') || [0.2, 0.28, 0.46],
+      cloudShadow: this.sceneToken('--scene-cloud-shadow') || [0.16, 0.22, 0.4],
+      lightDir: this.sceneToken('--scene-light-dir') || [-0.6, -0.8],
+      shadowOff: this.sceneToken('--scene-shadow-offset') || [115.0, 156.0],
+      moonCol: this.sceneToken('--scene-moon') || [0.91, 0.89, 0.82],
     };
   }
 
   override applyThemeUniforms(U: Uniforms): void {
-    const gl = this.gl, S = this.scene;
+    const gl = this.gl,
+      S = this.scene;
     if (!gl) return;
     if (U.uSkyTop && S.skyTop) gl.uniform3fv(U.uSkyTop, S.skyTop);
     if (U.uSkyBot && S.skyBot) gl.uniform3fv(U.uSkyBot, S.skyBot);

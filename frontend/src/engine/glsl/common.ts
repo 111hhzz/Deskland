@@ -27,8 +27,8 @@ float fieldS(sampler2D t, vec2 p) { return texture(t, (p / uStep + 0.5) / uGrid)
 
 // 云的布局常量：**JS 与 GLSL 的唯一事实来源**。
 // 改这里，CloudSceneEngine 的格子分配与 cloudDist 的采样会一起变；不要在任何一边单独写魔数。
-export const CIRC_K = 36 as const;      // 每格最多存多少个圆（云纹理的宽度 = 格数 × CIRC_K）
-export const GRID_PAD = 4 as const;     // 云格子比屏幕左、上多出的格数（右、下只多 GRID_PAD - 1 格）
+export const CIRC_K = 36 as const; // 每格最多存多少个圆（云纹理的宽度 = 格数 × CIRC_K）
+export const GRID_PAD = 4 as const; // 云格子比屏幕左、上多出的格数（右、下只多 GRID_PAD - 1 格）
 
 // 云的圆：meadow / sky / aurora 共用（beach 没有云，不用）
 // 依赖头部声明的 uFA / uFB / uMix / uEdge / uCirc / uCGrid / uCellG
@@ -62,7 +62,9 @@ float segD(vec2 p, vec2 a, vec2 b) { vec2 pa = p - a, ba = b - a; return length(
 `;
 
 // 小猫：meadow 专用（sky / aurora / beach 都不用，各自 FS 里没有这一段）
-export const GLSL_MEADOW_EXTRA = GLSL_SEG + `
+export const GLSL_MEADOW_EXTRA =
+  GLSL_SEG +
+  `
 #ifdef MEADOW_CAT
 float catTailMask(vec2 uv) {
   return smoothstep(.635,.665,uv.x)*smoothstep(.715,.75,uv.y);
@@ -89,5 +91,5 @@ export function withDefines(src: string, defines: string[] = []): string {
   const first = nl < 0 ? src : src.slice(0, nl);
   if (first.trim() !== '#version 300 es') throw new Error('着色器必须以 #version 300 es 开头');
   const rest = nl < 0 ? '' : src.slice(nl + 1);
-  return first + '\n' + defines.map(d => '#define ' + d).join('\n') + '\n' + rest;
+  return first + '\n' + defines.map((d) => '#define ' + d).join('\n') + '\n' + rest;
 }

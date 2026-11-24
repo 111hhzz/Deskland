@@ -54,20 +54,14 @@
           "key": "showBoy",
           "label": "显示男孩",
           "hint": "男孩和他手中的风筝一起显示或隐藏",
-          "options": [
-            "隐藏",
-            "显示"
-          ],
+          "options": ["隐藏", "显示"],
           "default": 1
         },
         {
           "key": "showCat",
           "label": "显示小猫",
           "hint": "躺在草地上的小黑猫",
-          "options": [
-            "隐藏",
-            "显示"
-          ],
+          "options": ["隐藏", "显示"],
           "default": 1
         }
       ]

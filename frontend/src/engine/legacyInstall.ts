@@ -13,14 +13,14 @@ export function installLegacyFor(id: string, app: DeskApp, engine: SceneEngine):
   const host = app.legacyHost('/themes/' + id + '/');
   if (id === 'meadow' && engine instanceof MeadowEngine) {
     engine.installLegacy(host, {
-      createBoy: h => createMeadowBoyScene(h),
-      createCat: h => createMeadowCatScene(h),
+      createBoy: (h) => createMeadowBoyScene(h),
+      createCat: (h) => createMeadowCatScene(h),
     });
   } else if (id === 'beach' && engine instanceof FlatEngine) {
     engine.installLegacy(host, {
       FS: BEACH_PALM_FS,
       VS: BEACH_PALM_VS,
-      create: h => createMaldivesPalmsScene(h),
+      create: (h) => createMaldivesPalmsScene(h),
     });
   }
 }

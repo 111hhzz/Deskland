@@ -34,23 +34,42 @@ export function UpdateNotice() {
   const noteKey = ERROR_NOTES[u.error];
   let detail = u.version ? t('updateVersion', { version: u.version }) : '';
   if (checking) detail = t('updateChecking');
-  else if (busy) detail = t(u.status === 'installing' ? 'updateInstalling' : 'updateDownloading', { progress: percent });
+  else if (busy)
+    detail = t(u.status === 'installing' ? 'updateInstalling' : 'updateDownloading', { progress: percent });
   else if (u.status === 'completed') detail = t('updateCompleted');
   else if (u.status === 'error') {
     const key = noteKey || CONNECTION_KEYS[u.error];
     detail = key ? translate(state.lang, key) : t('updateFailed');
   }
-  const titleKey = u.status === 'completed'
-    ? 'updateCompletedTitle'
-    : checking
-      ? 'updateCheckingTitle'
-      : u.status === 'error' ? (u.version ? 'updateFailedTitle' : 'updateCheckFailedTitle')
-        : 'updateAvailable';
-  const btnKey = u.status === 'completed' ? 'updateDone' : busy || checking ? 'updateWorking' : u.status === 'error' ? 'updateRetry' : 'updateProgram';
+  const titleKey =
+    u.status === 'completed'
+      ? 'updateCompletedTitle'
+      : checking
+        ? 'updateCheckingTitle'
+        : u.status === 'error'
+          ? u.version
+            ? 'updateFailedTitle'
+            : 'updateCheckFailedTitle'
+          : 'updateAvailable';
+  const btnKey =
+    u.status === 'completed'
+      ? 'updateDone'
+      : busy || checking
+        ? 'updateWorking'
+        : u.status === 'error'
+          ? 'updateRetry'
+          : 'updateProgram';
   return (
     <div className="update-notice" id="updateNotice" role="status" aria-live="polite">
       <span className="update-symbol" aria-hidden="true">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <path d="M8 2.2v8.2M8 13.6v.2" />
           <path d="M8 10.4 5 7.6M8 10.4l3-2.8" />
         </svg>
@@ -59,9 +78,15 @@ export function UpdateNotice() {
         <b>{t(titleKey)}</b>
         <p>{detail}</p>
       </div>
-      <button type="button" className="ghost-btn update-action" id="updateProgram"
+      <button
+        type="button"
+        className="ghost-btn update-action"
+        id="updateProgram"
         disabled={busy || checking || u.status === 'completed'}
-        onClick={runUpdate}>{t(btnKey)}</button>
+        onClick={runUpdate}
+      >
+        {t(btnKey)}
+      </button>
     </div>
   );
 }
@@ -73,11 +98,11 @@ export function AutostartWarn() {
     <div className="warn" id="autostartWarn" role="alert">
       <b>{t('autostartBlocked')}</b>
       <p id="autostartWarnText">
-        {state.autostartSw
-          ? t('autostartWarnSw', { sw: state.autostartSw })
-          : t('autostartWarnGeneric')}
+        {state.autostartSw ? t('autostartWarnSw', { sw: state.autostartSw }) : t('autostartWarnGeneric')}
       </p>
-      <button type="button" id="autostartWarnOk" onClick={dismissAutostartWarn}>{t('gotIt')}</button>
+      <button type="button" id="autostartWarnOk" onClick={dismissAutostartWarn}>
+        {t('gotIt')}
+      </button>
     </div>
   );
 }
@@ -101,22 +126,42 @@ export function PurchaseModal() {
 
   if (!open) return null;
   return (
-    <div className="modal" id="purchaseModal" role="dialog" aria-modal="true" aria-labelledby="purchaseTitle"
-      onClick={e => { if (e.target === e.currentTarget) closePurchase(); }}>
+    <div
+      className="modal"
+      id="purchaseModal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="purchaseTitle"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) closePurchase();
+      }}
+    >
       <div className="dialog">
         <div className="dialog-symbol" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="4.5" y="10" width="15" height="10" rx="2.4" /><path d="M8 10V7.6A4 4 0 0 1 16 7.6V10" />
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.7"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <rect x="4.5" y="10" width="15" height="10" rx="2.4" />
+            <path d="M8 10V7.6A4 4 0 0 1 16 7.6V10" />
           </svg>
         </div>
         <h2 id="purchaseTitle">{t('purchaseTitle')}</h2>
         <p className="purchase-theme" id="purchaseTheme">
-          {t('purchaseLocalTheme', { name: (th?.name || '') })}
+          {t('purchaseLocalTheme', { name: th?.name || '' })}
         </p>
         <p>{t('purchaseLocalMessage')}</p>
         <div className="modal-actions">
-          <button type="button" id="purchaseLater" onClick={closePurchase}>{t('purchaseLater')}</button>
-          <button type="button" id="purchaseWebsite" ref={siteRef} onClick={openWebsite}>{t('purchaseWebsite')}</button>
+          <button type="button" id="purchaseLater" onClick={closePurchase}>
+            {t('purchaseLater')}
+          </button>
+          <button type="button" id="purchaseWebsite" ref={siteRef} onClick={openWebsite}>
+            {t('purchaseWebsite')}
+          </button>
         </div>
       </div>
     </div>
@@ -145,15 +190,30 @@ export function HelpModal() {
 
   if (!open) return null;
   return (
-    <div className="modal" id="helpModal" role="dialog" aria-modal="true" aria-labelledby="helpTitle"
-      onClick={e => { if (e.target === e.currentTarget) closeHelp(); }}>
+    <div
+      className="modal"
+      id="helpModal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="helpTitle"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) closeHelp();
+      }}
+    >
       <div className="sheet">
         <div className="sheet-head">
           <div>
             <h2 id="helpTitle">{t('helpTitle')}</h2>
             <p>{t('helpSubtitle')}</p>
           </div>
-          <button type="button" className="auth-close" id="helpCloseX" ref={closeRef} aria-label="close" onClick={closeHelp}>
+          <button
+            type="button"
+            className="auth-close"
+            id="helpCloseX"
+            ref={closeRef}
+            aria-label="close"
+            onClick={closeHelp}
+          >
             {t('close')}
           </button>
         </div>
@@ -162,12 +222,18 @@ export function HelpModal() {
             <article className="help-item" key={q}>
               <h3>{t(q)}</h3>
               <p>{t(a)}</p>
-              <ol>{steps.split(',').map(k => <li key={k}>{t(k)}</li>)}</ol>
+              <ol>
+                {steps.split(',').map((k) => (
+                  <li key={k}>{t(k)}</li>
+                ))}
+              </ol>
             </article>
           ))}
         </div>
         <div className="sheet-foot">
-          <button type="button" id="helpDone" onClick={closeHelp}>{t('gotIt')}</button>
+          <button type="button" id="helpDone" onClick={closeHelp}>
+            {t('gotIt')}
+          </button>
         </div>
       </div>
     </div>

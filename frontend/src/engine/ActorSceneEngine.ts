@@ -8,8 +8,11 @@ import type { EngineOpts } from './BaseEngine.js';
 import type { Program, Uniforms } from './SceneEngine.js';
 
 export class ActorSceneEngine extends CloudSceneEngine {
-  actorPR: Program | null; catPR: Program | null; catActorPR: Program | null;
-  actorTex: WebGLTexture | null; actorShadowTex: WebGLTexture | null;
+  actorPR: Program | null;
+  catPR: Program | null;
+  catActorPR: Program | null;
+  actorTex: WebGLTexture | null;
+  actorShadowTex: WebGLTexture | null;
   actorRect: [number, number, number, number] | null;
   catTex: WebGLTexture | null;
   catRect: [number, number, number, number] | null;
@@ -19,8 +22,12 @@ export class ActorSceneEngine extends CloudSceneEngine {
   constructor(canvas: HTMLCanvasElement, opts: EngineOpts = {}) {
     super(canvas, opts);
     this.actorPR = this.catPR = this.catActorPR = null;
-    this.actorTex = this.actorShadowTex = null; this.actorRect = null;
-    this.catTex = null; this.catRect = null; this.catShadow = null; this.catTail = 0;
+    this.actorTex = this.actorShadowTex = null;
+    this.actorRect = null;
+    this.catTex = null;
+    this.catRect = null;
+    this.catShadow = null;
+    this.catTail = 0;
   }
 
   /* ---- SceneEngine 的人物钩子 ---- */
@@ -30,14 +37,21 @@ export class ActorSceneEngine extends CloudSceneEngine {
     if (!gl) return;
     if (this.actorTex && U.uActor) {
       // actorRect 与 actorTex 总是由 meadow 的 legacy boy 同源赋值（MeadowActor），故此处非空
-      gl.activeTexture(gl.TEXTURE5); gl.bindTexture(gl.TEXTURE_2D, this.actorTex); gl.uniform1i(U.uActor, 5);
-      gl.activeTexture(gl.TEXTURE6); gl.bindTexture(gl.TEXTURE_2D, this.actorShadowTex); gl.uniform1i(U.uActorShadow ?? null, 6);
+      gl.activeTexture(gl.TEXTURE5);
+      gl.bindTexture(gl.TEXTURE_2D, this.actorTex);
+      gl.uniform1i(U.uActor, 5);
+      gl.activeTexture(gl.TEXTURE6);
+      gl.bindTexture(gl.TEXTURE_2D, this.actorShadowTex);
+      gl.uniform1i(U.uActorShadow ?? null, 6);
       gl.uniform4f(U.uActorRect ?? null, ...this.actorRect!);
     }
     if (withCat && U.uCat) {
       // catRect / catShadow / catTail 同理：cat 模块 draw 成功时一并写入
-      gl.activeTexture(gl.TEXTURE8); gl.bindTexture(gl.TEXTURE_2D, this.catTex); gl.uniform1i(U.uCat, 8);
-      gl.uniform4f(U.uCatRect ?? null, ...this.catRect!); gl.uniform2f(U.uCatShadow ?? null, ...this.catShadow!);
+      gl.activeTexture(gl.TEXTURE8);
+      gl.bindTexture(gl.TEXTURE_2D, this.catTex);
+      gl.uniform1i(U.uCat, 8);
+      gl.uniform4f(U.uCatRect ?? null, ...this.catRect!);
+      gl.uniform2f(U.uCatShadow ?? null, ...this.catShadow!);
       gl.uniform1f(U.uCatTail ?? null, this.catTail);
     }
   }
@@ -45,7 +59,11 @@ export class ActorSceneEngine extends CloudSceneEngine {
   // 纹理本体由 legacy 模块自己释放（boy.dispose / cat.dispose），引擎侧只置空引用
   override disposeActor(): void {
     this.actorPR = this.catPR = this.catActorPR = null;
-    this.actorTex = this.actorShadowTex = null; this.actorRect = null;
-    this.catTex = null; this.catRect = null; this.catShadow = null; this.catTail = 0;
+    this.actorTex = this.actorShadowTex = null;
+    this.actorRect = null;
+    this.catTex = null;
+    this.catRect = null;
+    this.catShadow = null;
+    this.catTail = 0;
   }
 }

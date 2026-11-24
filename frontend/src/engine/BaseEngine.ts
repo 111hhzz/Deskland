@@ -33,8 +33,8 @@ export class BaseEngine {
 
   _raf: number;
   _running: boolean;
-  _lastT: number;        // 上一帧的 rAF 时间戳（0 表示还没有上一帧）
-  _t0: number;           // init 时的 performance.now()：场景时间原点（对应迁移前的 T0）
+  _lastT: number; // 上一帧的 rAF 时间戳（0 表示还没有上一帧）
+  _t0: number; // init 时的 performance.now()：场景时间原点（对应迁移前的 T0）
   _fpsEMA: number;
   _frameN: number;
   _frameMs: number;
@@ -59,7 +59,9 @@ export class BaseEngine {
     this._resizeT = 0;
   }
 
-  defaultParams(): EngineParams { return {}; }
+  defaultParams(): EngineParams {
+    return {};
+  }
 
   async init(): Promise<boolean> {
     this._t0 = performance.now();
@@ -107,7 +109,11 @@ export class BaseEngine {
   // 主循环：pause / cap30 / dt / fps 统计都在基类；子类只做 update + render
   _loop = (now: number): void => {
     if (!this._running) return;
-    if (this.paused) { this._lastT = 0; this._raf = 0; return; }   // 暂停：彻底停掉主循环，不再空转
+    if (this.paused) {
+      this._lastT = 0;
+      this._raf = 0;
+      return;
+    } // 暂停：彻底停掉主循环，不再空转
     this._raf = requestAnimationFrame(this._loop);
     if (this.params.cap30 && now - this._lastT < 31) return;
     const dt = this._lastT ? Math.min((now - this._lastT) / 1000, 0.1) : 0.03;
@@ -131,20 +137,34 @@ export class BaseEngine {
   afterResize(): void {}
 
   // 每 10 帧发给应用外壳的统计（子类可覆盖以补充主题特有的字段）
-  getStats(): EngineStats { return { fps: this._fpsEMA, frame: this._frameMs }; }
+  getStats(): EngineStats {
+    return { fps: this._fpsEMA, frame: this._frameMs };
+  }
 
   // ---- resize ----
-  _installResize(): void { window.addEventListener('resize', this._onResize); }
-  _removeResize(): void { window.removeEventListener('resize', this._onResize); }
+  _installResize(): void {
+    window.addEventListener('resize', this._onResize);
+  }
+  _removeResize(): void {
+    window.removeEventListener('resize', this._onResize);
+  }
   _onResize = (): void => {
     clearTimeout(this._resizeT);
-    this._resizeT = setTimeout(() => { this.resize(); this.afterResize(); this.emit('resize'); }, 100);
+    // window.setTimeout：DOM 返回 number，与 _resizeT 类型一致（Node 类型的 Timeout 不兼容）
+    this._resizeT = window.setTimeout(() => {
+      this.resize();
+      this.afterResize();
+      this.emit('resize');
+    }, 100);
   };
 
   // ---- 事件 ----
   on(name: string, fn: EngineListener): this {
     let s = this._listeners.get(name);
-    if (!s) { s = new Set(); this._listeners.set(name, s); }
+    if (!s) {
+      s = new Set();
+      this._listeners.set(name, s);
+    }
     s.add(fn);
     return this;
   }
@@ -168,5 +188,7 @@ export class BaseEngine {
   }
 
   // 场景时间（秒），语义同迁移前的 (now - T0) / 1000
-  sceneTime(now: number): number { return (now - this._t0) / 1000; }
+  sceneTime(now: number): number {
+    return (now - this._t0) / 1000;
+  }
 }

@@ -33,13 +33,13 @@ frontend/public/                # 配置型静态（原样拷贝到 dist 根）
 
 ## 2. 各文件的职责
 
-| 文件 | 职责 | 谁读 |
-|---|---|---|
-| `themes/_products.json` | 授权表：id / status / product + 展示顺序（**主题不能自己声明授权**） | 宿主 `Themes.cs`、打包脚本 |
-| `themes/<id>/theme.json` | 主题自描述：名字/说明/页面/缩略图/参数 groups + Token schema | 宿主 `Themes.cs`、设置页、约定测试、打包脚本 |
-| `themes/<id>/theme.css` | 主题 Token **值**（只含 `:root` 自定义属性） | 浏览器（CSS）+ 引擎（JS 读 computed style） |
-| `themes/base.css` | 公共样式 + 跨主题 Token 默认值 | 浏览器 |
-| `themes/<id>/<id>.html` | 主题页面（引擎 + DOM） | 宿主加载 |
+| 文件                     | 职责                                                                 | 谁读                                         |
+| ------------------------ | -------------------------------------------------------------------- | -------------------------------------------- |
+| `themes/_products.json`  | 授权表：id / status / product + 展示顺序（**主题不能自己声明授权**） | 宿主 `Themes.cs`、打包脚本                   |
+| `themes/<id>/theme.json` | 主题自描述：名字/说明/页面/缩略图/参数 groups + Token schema         | 宿主 `Themes.cs`、设置页、约定测试、打包脚本 |
+| `themes/<id>/theme.css`  | 主题 Token **值**（只含 `:root` 自定义属性）                         | 浏览器（CSS）+ 引擎（JS 读 computed style）  |
+| `themes/base.css`        | 公共样式 + 跨主题 Token 默认值                                       | 浏览器                                       |
+| `themes/<id>/<id>.html`  | 主题页面（引擎 + DOM）                                               | 宿主加载                                     |
 
 `theme.json` 的 `tokens` 是 **schema**（声明本主题用了哪些 Token），值在 `theme.css`；
 约定测试会交叉校验“schema 里的每个名字都存在于 theme.css”。
@@ -57,17 +57,17 @@ frontend/public/                # 配置型静态（原样拷贝到 dist 根）
 
 **category 白名单：**
 
-| category | 含义 | 示例 |
-|---|---|---|
-| `color` | 颜色 | `--color-bg`、`--color-surface`、`--color-accent` |
-| `font` | 字体 / 字号 / 字重 | `--font-main`、`--font-mono`、`--font-size-sm` |
-| `motion` | 时长与缓动 | `--motion-fade`、`--motion-settle`、`--motion-ease-out` |
-| `radius` | 圆角 | `--radius-sm` / `--radius-md` / `--radius-lg` |
-| `size` | 尺寸 | `--taskbar-size`、`--icon-cell-width`、`--panel-width` |
-| `blur` | 模糊 / 饱和 | `--blur-panel`、`--saturate-panel` |
-| `z` | 层叠 | `--z-taskbar`、`--z-ripple`、`--z-panel` |
-| `shadow` | 阴影 | `--shadow-panel`、`--shadow-glyph` |
-| `scene` | **WebGL 场景调色板** | `--scene-ground-mid`、`--scene-cloud-hi` |
+| category | 含义                 | 示例                                                    |
+| -------- | -------------------- | ------------------------------------------------------- |
+| `color`  | 颜色                 | `--color-bg`、`--color-surface`、`--color-accent`       |
+| `font`   | 字体 / 字号 / 字重   | `--font-main`、`--font-mono`、`--font-size-sm`          |
+| `motion` | 时长与缓动           | `--motion-fade`、`--motion-settle`、`--motion-ease-out` |
+| `radius` | 圆角                 | `--radius-sm` / `--radius-md` / `--radius-lg`           |
+| `size`   | 尺寸                 | `--taskbar-size`、`--icon-cell-width`、`--panel-width`  |
+| `blur`   | 模糊 / 饱和          | `--blur-panel`、`--saturate-panel`                      |
+| `z`      | 层叠                 | `--z-taskbar`、`--z-ripple`、`--z-panel`                |
+| `shadow` | 阴影                 | `--shadow-panel`、`--shadow-glyph`                      |
+| `scene`  | **WebGL 场景调色板** | `--scene-ground-mid`、`--scene-cloud-hi`                |
 
 **scene token 格式：** `--scene-*` 的颜色值写成 **0-1 的 `r g b` 三元组**（如 `0.62 0.75 0.42`），
 由引擎用 `getComputedStyle(document.documentElement).getPropertyValue(...)` 读出后解析；
@@ -76,28 +76,28 @@ frontend/public/                # 配置型静态（原样拷贝到 dist 根）
 
 **公共 Token 默认值**（在 `base.css :root`，主题可覆盖）：
 
-| 分类 | Token | 默认值 |
-|---|---|---|
-| color | `--color-surface` | `rgba(20,52,64,.74)` |
-| color | `--color-surface-2` / `--color-surface-active` | `rgba(255,255,255,.06)` / `rgba(255,255,255,.17)` |
-| color | `--color-border` / `--color-text` / `--color-text-muted` | `rgba(255,255,255,.14)` / `#eef6f5` / `#d4e4e2` |
-| color | `--color-accent` | `#7fe3d6` |
-| color | `--color-taskbar-bg` / `--color-taskbar-border` | `rgba(28,32,38,.6)` / `rgba(255,255,255,.08)` |
-| color | `--color-icon-hover-bg` / `--color-icon-hover-border` | `rgba(255,255,255,.16)` / `rgba(255,255,255,.24)` |
-| color | `--color-icon-sel-bg` / `--color-icon-sel-border` | `rgba(0,120,215,.34)` / `rgba(140,200,255,.7)` |
-| color | `--color-label` / `--color-nogl` | `#fff` |
-| color | `--color-ripple` / `--color-ripple-glow` / `--color-ripple-inset` | `rgba(255,255,255,.8)` / `.55` / `.35` |
-| font | `--font-main` / `--font-mono` | Segoe UI 系列 / Consolas 系列 |
-| font | `--font-size-xs` / `-sm` / `-md` / `-lg` | `11px` / `12px` / `14px` / `16px` |
-| motion | `--motion-fade` / `--motion-settle` / `--motion-born` / `--motion-ripple` | `250ms` / `.22s` / `.45s` / `.65s` |
-| motion | `--motion-ease-out` / `-settle` / `-spring` | `ease-out` / `cubic-bezier(.2,.8,.3,1)` / `cubic-bezier(.2,.9,.3,1.2)` |
-| radius | `--radius-sm` / `--radius-button` / `--radius-md` / `--radius-lg` / `--radius-icon` | `4px` / `5px` / `7px` / `12px` / `9px` |
-| size | `--taskbar-size` / `--icon-cell-width` / `--icon-glyph-size` / `--panel-width` / `--panel-offset` | `48px` / `76px` / `48px` / `284px` / `14px` |
-| blur | `--blur-taskbar` / `--saturate-taskbar` / `--blur-panel` / `--saturate-panel` | `28px` / `1.6` / `18px` / `1.3` |
-| z | `--z-taskbar` / `--z-ripple` / `--z-panel` | `40` / `45` / `50` |
-| shadow | `--shadow-panel` / `--shadow-glyph` / `--shadow-ghost` / `--text-shadow-label` | 见 `base.css` |
-| scene | `--scene-cloud-hi` / `--scene-cloud-body` / `--scene-cloud-shade` | 云的亮部 / 主体 / 暗部 |
-| scene | `--scene-light-dir` / `--scene-shadow-offset` | 阳光方向 / 云影偏移 |
+| 分类   | Token                                                                                             | 默认值                                                                 |
+| ------ | ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| color  | `--color-surface`                                                                                 | `rgba(20,52,64,.74)`                                                   |
+| color  | `--color-surface-2` / `--color-surface-active`                                                    | `rgba(255,255,255,.06)` / `rgba(255,255,255,.17)`                      |
+| color  | `--color-border` / `--color-text` / `--color-text-muted`                                          | `rgba(255,255,255,.14)` / `#eef6f5` / `#d4e4e2`                        |
+| color  | `--color-accent`                                                                                  | `#7fe3d6`                                                              |
+| color  | `--color-taskbar-bg` / `--color-taskbar-border`                                                   | `rgba(28,32,38,.6)` / `rgba(255,255,255,.08)`                          |
+| color  | `--color-icon-hover-bg` / `--color-icon-hover-border`                                             | `rgba(255,255,255,.16)` / `rgba(255,255,255,.24)`                      |
+| color  | `--color-icon-sel-bg` / `--color-icon-sel-border`                                                 | `rgba(0,120,215,.34)` / `rgba(140,200,255,.7)`                         |
+| color  | `--color-label` / `--color-nogl`                                                                  | `#fff`                                                                 |
+| color  | `--color-ripple` / `--color-ripple-glow` / `--color-ripple-inset`                                 | `rgba(255,255,255,.8)` / `.55` / `.35`                                 |
+| font   | `--font-main` / `--font-mono`                                                                     | Segoe UI 系列 / Consolas 系列                                          |
+| font   | `--font-size-xs` / `-sm` / `-md` / `-lg`                                                          | `11px` / `12px` / `14px` / `16px`                                      |
+| motion | `--motion-fade` / `--motion-settle` / `--motion-born` / `--motion-ripple`                         | `250ms` / `.22s` / `.45s` / `.65s`                                     |
+| motion | `--motion-ease-out` / `-settle` / `-spring`                                                       | `ease-out` / `cubic-bezier(.2,.8,.3,1)` / `cubic-bezier(.2,.9,.3,1.2)` |
+| radius | `--radius-sm` / `--radius-button` / `--radius-md` / `--radius-lg` / `--radius-icon`               | `4px` / `5px` / `7px` / `12px` / `9px`                                 |
+| size   | `--taskbar-size` / `--icon-cell-width` / `--icon-glyph-size` / `--panel-width` / `--panel-offset` | `48px` / `76px` / `48px` / `284px` / `14px`                            |
+| blur   | `--blur-taskbar` / `--saturate-taskbar` / `--blur-panel` / `--saturate-panel`                     | `28px` / `1.6` / `18px` / `1.3`                                        |
+| z      | `--z-taskbar` / `--z-ripple` / `--z-panel`                                                        | `40` / `45` / `50`                                                     |
+| shadow | `--shadow-panel` / `--shadow-glyph` / `--shadow-ghost` / `--text-shadow-label`                    | 见 `base.css`                                                          |
+| scene  | `--scene-cloud-hi` / `--scene-cloud-body` / `--scene-cloud-shade`                                 | 云的亮部 / 主体 / 暗部                                                 |
+| scene  | `--scene-light-dir` / `--scene-shadow-offset`                                                     | 阳光方向 / 云影偏移                                                    |
 
 每个主题的 `theme.css` 至少覆盖 `--color-bg` 与自己的 `--scene-*` 调色板；其余继承 `base.css` 默认值。
 
@@ -106,8 +106,7 @@ frontend/public/                # 配置型静态（原样拷贝到 dist 根）
 页面按 **先 base、后 theme** 的顺序引入（同为主题 `:root`，后加载的覆盖前者）：
 
 ```html
-<link rel="stylesheet" href="/themes/base.css">
-<link rel="stylesheet" href="/themes/<id>/theme.css">
+<link rel="stylesheet" href="/themes/base.css" /> <link rel="stylesheet" href="/themes/<id>/theme.css" />
 ```
 
 - 样式在 `public/`，HTML 里用**绝对路径**（`/themes/...`），Vite 不会打包它们，运行时按站点根解析。

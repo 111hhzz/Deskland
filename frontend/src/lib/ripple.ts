@@ -44,8 +44,8 @@ export function installRipples(): void {
     const k = window.devicePixelRatio || 1;
     const el = document.createElement('div');
     el.className = 'deskland-ripple';
-    el.style.left = (x / k) + 'px';
-    el.style.top = (y / k) + 'px';
+    el.style.left = x / k + 'px';
+    el.style.top = y / k + 'px';
     el.addEventListener('animationend', () => el.remove(), { once: true });
     layer.appendChild(el);
     while (layer.children.length > 6) layer.firstElementChild?.remove();
@@ -54,13 +54,23 @@ export function installRipples(): void {
   // 页面预览和浏览器打开时没有宿主消息；只响应 WebView2 的 ripple 消息。
   const host = window.chrome && window.chrome.webview;
   if (!host) return;
-  host.addEventListener('message', ev => {
+  host.addEventListener('message', (ev) => {
     let m: unknown;
-    try { m = JSON.parse(ev.data as string); } catch { return; }
+    try {
+      m = JSON.parse(ev.data as string);
+    } catch {
+      return;
+    }
     if (typeof m !== 'object' || m === null) return;
     const msg = m as { t?: unknown; x?: unknown; y?: unknown };
-    if (msg.t === 'ripple' && typeof msg.x === 'number' && Number.isFinite(msg.x)
-      && typeof msg.y === 'number' && Number.isFinite(msg.y)) ripple(msg.x, msg.y);
+    if (
+      msg.t === 'ripple' &&
+      typeof msg.x === 'number' &&
+      Number.isFinite(msg.x) &&
+      typeof msg.y === 'number' &&
+      Number.isFinite(msg.y)
+    )
+      ripple(msg.x, msg.y);
   });
 }
 
@@ -78,10 +88,18 @@ export function desklandFadeIn(): void {
   document.head.appendChild(style);
   // 双 rAF：等第一帧真正画完（着色器已输出首帧）再开始淡入。
   // 结束后移除注入的 <style>（body 回到默认 opacity:1）与 class，不会反向淡出。
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    document.body.classList.add('deskland-ready');
-    setTimeout(() => { style.remove(); document.body.classList.remove('deskland-ready'); }, durationMs(fadeDuration, 250) + 50);
-  }));
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => {
+      document.body.classList.add('deskland-ready');
+      setTimeout(
+        () => {
+          style.remove();
+          document.body.classList.remove('deskland-ready');
+        },
+        durationMs(fadeDuration, 250) + 50,
+      );
+    }),
+  );
 }
 
 // 顶层副作用：import 即装。ES 模块缓存保证热切换（engine.html 同上下文换主题）不会重复安装。

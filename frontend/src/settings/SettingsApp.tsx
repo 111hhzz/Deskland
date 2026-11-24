@@ -53,9 +53,22 @@ export function SettingsApp() {
         <span className={`saved${state.savedFlash ? ' flash' : ''}`} id="saved">
           {t(state.savedFlash ? 'saved' : 'autosave')}
         </span>
-        <button type="button" className="ghost-btn help-button" id="helpOpen"
-          aria-label="Help" title={t('helpButtonTitle')} onClick={openHelp}>
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+        <button
+          type="button"
+          className="ghost-btn help-button"
+          id="helpOpen"
+          aria-label="Help"
+          title={t('helpButtonTitle')}
+          onClick={openHelp}
+        >
+          <svg
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            aria-hidden="true"
+          >
             <circle cx="8" cy="8" r="6.4" />
             <path d="M6.3 6.2A1.8 1.8 0 0 1 9.7 7c0 1.1-1.5 1.4-1.5 2.4" />
             <path d="M8 11.2v.1" />

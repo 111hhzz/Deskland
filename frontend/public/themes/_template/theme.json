@@ -7,9 +7,7 @@
   "groups": [
     {
       "name": "画面",
-      "params": [
-        { "key": "sigma", "label": "云团大小", "min": 20, "max": 140, "step": 1, "default": 72 }
-      ]
+      "params": [{ "key": "sigma", "label": "云团大小", "min": 20, "max": 140, "step": 1, "default": 72 }]
     }
   ],
   "tokens": {

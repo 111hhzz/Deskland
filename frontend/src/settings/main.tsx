@@ -9,5 +9,5 @@ import { createWebViewHost } from './host.js';
 createRoot(document.body).render(
   <SettingsProvider host={createWebViewHost()}>
     <SettingsApp />
-  </SettingsProvider>
+  </SettingsProvider>,
 );

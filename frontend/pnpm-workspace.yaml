@@ -1,0 +1,4 @@
+# pnpm 12：覆盖配置放在工作区文件（package.json 的 pnpm.overrides 已不再读取）。
+# 让 @vitejs/plugin-react 等依赖使用 Vite+ 捆绑的 Vite 内核，避免装入第二份不一致的 Vite。
+overrides:
+  vite: npm:@voidzero-dev/vite-plus-core@8.3.8000
