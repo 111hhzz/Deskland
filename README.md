@@ -88,7 +88,7 @@ Tests are organised in four layers: **unit** (theme conventions, no browser), **
 
 ```powershell
 cd frontend
-npm run dev      # Vite dev server（默认 5173 端口）
+pnpm dev        # Vite dev server（默认 5173 端口）
 ```
 
 Open **http://localhost:5173/pages/settings.html**. The browser uses sample icons; adaptation to real desktop icons requires the Windows host.
@@ -224,7 +224,7 @@ powershell -ExecutionPolicy Bypass -File tools\build\ci.ps1
 
 ```powershell
 cd frontend
-npm run dev      # Vite dev server（默认 5173 端口）
+pnpm dev        # Vite dev server（默认 5173 端口）
 ```
 
 打开 **http://localhost:5173/pages/settings.html**。浏览器使用示例图标，真实桌面图标适配需要 Windows 宿主。

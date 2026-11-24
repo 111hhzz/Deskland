@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 # pre-commit hook：提交前编译 + 运行测试
 # 安装：cp .githooks/pre-commit.ps1 .git/hooks/pre-commit.ps1
 

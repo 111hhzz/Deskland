@@ -1,4 +1,4 @@
-param([string]$Tag = 'v0.1.3', [string]$Name = 'Deskland+ 0.1.3')
+﻿param([string]$Tag = 'v0.1.3', [string]$Name = 'Deskland+ 0.1.3')
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 . (Join-Path $PSScriptRoot '..\local.ps1')

@@ -14,14 +14,12 @@ echo ""
 
 # ─── 1. Lint: dotnet format ───────────────────────────────────
 echo "▶ [1/4] Lint: dotnet format --verify-no-changes"
-cd test/Deskland.Tests
-if ! dotnet format --verify-no-changes --verbosity quiet 2>&1; then
+if ! dotnet format Deskland.sln --verify-no-changes --verbosity quiet 2>&1; then
     echo ""
     echo "❌ Lint 失败：代码格式不符合规范"
-    echo "   修复命令: dotnet format"
+    echo "   修复命令: dotnet format Deskland.sln"
     exit 1
 fi
-cd ../..
 echo "   ✅ 格式检查通过"
 echo ""
 
@@ -103,7 +101,8 @@ fi
 
 # 检查 PowerShell 脚本编码：无 UTF-8 BOM 时 PowerShell 5.1 会按系统 ANSI 解析，中文导致 ParserError
 echo "   检查 PowerShell 脚本编码..."
-BOM_MISSING=$(for f in $(find host tools test -name '*.ps1' 2>/dev/null); do
+# 只检查 git 跟踪的脚本（避免扫到 bin/obj 下的构建产物）
+BOM_MISSING=$(git ls-files -z -- '*.ps1' | while IFS= read -r -d '' f; do
   if [ "$(head -c 3 "$f" | od -An -tx1 | tr -d ' \n')" != "efbbbf" ]; then echo "$f"; fi
 done)
 if [ -n "$BOM_MISSING" ]; then
