@@ -67,8 +67,8 @@ static class Program
         Application.SetCompatibleTextRenderingDefault(false);
         // 任何意外都写进日志，不弹框也不静默退出
         Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
-        Application.ThreadException += delegate(object s, ThreadExceptionEventArgs e) { Log.Write("未处理的异常：" + e.Exception); };
-        AppDomain.CurrentDomain.UnhandledException += delegate(object s, UnhandledExceptionEventArgs e) { Log.Write("致命异常：" + e.ExceptionObject); };
+        Application.ThreadException += delegate (object s, ThreadExceptionEventArgs e) { Log.Write("未处理的异常：" + e.Exception); };
+        AppDomain.CurrentDomain.UnhandledException += delegate (object s, UnhandledExceptionEventArgs e) { Log.Write("致命异常：" + e.ExceptionObject); };
         string exeDir = AppDomain.CurrentDomain.BaseDirectory;
         string pageDir = Path.GetFullPath(Path.Combine(exeDir, "prototype"));
         // 24H2+ 的挂法：默认做 Progman 的分层子窗口（换系统壁纸时会闪一下）；
@@ -465,7 +465,7 @@ class HostContext : ApplicationContext
             new MenuItem("-"),
             exitItem = new MenuItem(I18n.T("trayExit"), delegate { Exit(); }),
         });
-        tray.MouseUp += delegate(object s, MouseEventArgs e) { if (e.Button == MouseButtons.Left) ShowMenu(); };
+        tray.MouseUp += delegate (object s, MouseEventArgs e) { if (e.Button == MouseButtons.Left) ShowMenu(); };
         tray.DoubleClick += delegate { OpenSettings(); };   // 双击托盘图标：直接打开设置
         tray.Visible = true;
         ShowWelcomeOnce(hotkeyOk);
@@ -544,7 +544,7 @@ class HostContext : ApplicationContext
 
     bool ThemeAllowed(string id)
     {
-        return Themes.Allowed(pageDir, id, delegate(string product) { return false; });
+        return Themes.Allowed(pageDir, id, delegate (string product) { return false; });
     }
 
     // 设置页发来的消息：hello / set / reset / theme / autostart / lang / updateProgram / refreshThemes
@@ -571,65 +571,65 @@ class HostContext : ApplicationContext
                 Log.Write("已重新扫描主题文件夹");
                 break;
             case "set":
-            {
-                string theme = m["theme"] as string, key = m["key"] as string;
-                if (theme == null || key == null) return;
-                Settings.For(theme)[key] = m["value"];
-                if (theme == Settings.Theme && form != null)
-                    form.Post(Json.Stringify(Json.Obj("t", "settings", "v", Json.Obj(key, m["value"]))));
-                SaveSoon();
-                break;
-            }
-            case "reset":
-            {
-                string theme = m["theme"] as string;
-                if (theme == null) return;
-                Settings.Params.Remove(theme);
-                if (theme == Settings.Theme && form != null) form.Post("{\"t\":\"reset\"}");
-                SaveSoon();
-                Log.Write("恢复默认设置：" + theme);
-                break;
-            }
-            case "theme":
-            {
-                string id = m["id"] as string;
-                if (id == null || !ThemeAllowed(id))
                 {
-                    settingsWin.Post(Json.Stringify(Json.Obj("t", "themeChanged", "id", Settings.Theme)));
-                    Log.Write("拒绝未授权或未知主题切换：" + (id ?? "null"));
-                    return;
+                    string theme = m["theme"] as string, key = m["key"] as string;
+                    if (theme == null || key == null) return;
+                    Settings.For(theme)[key] = m["value"];
+                    if (theme == Settings.Theme && form != null)
+                        form.Post(Json.Stringify(Json.Obj("t", "settings", "v", Json.Obj(key, m["value"]))));
+                    SaveSoon();
+                    break;
                 }
-                string page = Themes.PageFor(pageDir, id);
-                if (page == null || id == Settings.Theme) return;
-                Settings.Theme = id;
-                SaveSoon();
-                if (form != null) form.SwitchTheme(id);
-                Log.Write("切换主题：" + id);
-                break;
-            }
+            case "reset":
+                {
+                    string theme = m["theme"] as string;
+                    if (theme == null) return;
+                    Settings.Params.Remove(theme);
+                    if (theme == Settings.Theme && form != null) form.Post("{\"t\":\"reset\"}");
+                    SaveSoon();
+                    Log.Write("恢复默认设置：" + theme);
+                    break;
+                }
+            case "theme":
+                {
+                    string id = m["id"] as string;
+                    if (id == null || !ThemeAllowed(id))
+                    {
+                        settingsWin.Post(Json.Stringify(Json.Obj("t", "themeChanged", "id", Settings.Theme)));
+                        Log.Write("拒绝未授权或未知主题切换：" + (id ?? "null"));
+                        return;
+                    }
+                    string page = Themes.PageFor(pageDir, id);
+                    if (page == null || id == Settings.Theme) return;
+                    Settings.Theme = id;
+                    SaveSoon();
+                    if (form != null) form.SwitchTheme(id);
+                    Log.Write("切换主题：" + id);
+                    break;
+                }
             case "autostartWarnSeen":
                 autoStartSw = null;
                 break;
             case "lang":                                    // 换界面语言：存下来，托盘菜单跟着换，告诉设置页实际用哪种
-            {
-                object v;
-                if (!m.TryGetValue("v", out v) || !(v is string)) return;
-                Settings.Lang = (string)v;
-                SaveSoon();
-                I18n.Load(pageDir, Settings.Lang);
-                ApplyTrayTexts();
-                settingsWin.Post(Json.Stringify(Json.Obj("t", "lang", "v", Settings.Lang, "eff", I18n.Code, "sys", I18n.Sys)));
-                break;
-            }
+                {
+                    object v;
+                    if (!m.TryGetValue("v", out v) || !(v is string)) return;
+                    Settings.Lang = (string)v;
+                    SaveSoon();
+                    I18n.Load(pageDir, Settings.Lang);
+                    ApplyTrayTexts();
+                    settingsWin.Post(Json.Stringify(Json.Obj("t", "lang", "v", Settings.Lang, "eff", I18n.Code, "sys", I18n.Sys)));
+                    break;
+                }
             case "themeMode":                               // 设置窗口主题模式
-            {
-                object v;
-                if (!m.TryGetValue("v", out v) || !(v is string)) return;
-                Settings.ThemeMode = (string)v;
-                SaveSoon();
-                settingsWin.Post(Json.Stringify(Json.Obj("t", "themeMode", "v", Settings.ThemeMode)));
-                break;
-            }
+                {
+                    object v;
+                    if (!m.TryGetValue("v", out v) || !(v is string)) return;
+                    Settings.ThemeMode = (string)v;
+                    SaveSoon();
+                    settingsWin.Post(Json.Stringify(Json.Obj("t", "themeMode", "v", Settings.ThemeMode)));
+                    break;
+                }
             case "openWebsite":
                 Process.Start("https://deskland.app/");
                 break;
@@ -1036,7 +1036,7 @@ class SettingsForm : Form
             core.Settings.AreDefaultContextMenusEnabled = false;
             core.Settings.IsStatusBarEnabled = false;
             core.Settings.IsZoomControlEnabled = false;
-            core.WebMessageReceived += delegate(object s, CoreWebView2WebMessageReceivedEventArgs a)
+            core.WebMessageReceived += delegate (object s, CoreWebView2WebMessageReceivedEventArgs a)
             {
                 string msg = null;
                 try { msg = a.TryGetWebMessageAsString(); } catch { }
@@ -1231,7 +1231,7 @@ class WallpaperForm : Form
             core.Settings.AreDevToolsEnabled = true;
             core.Settings.IsStatusBarEnabled = false;
             // 页面就绪（发来 "ready" 或 {t:"firstframe"}）：先发设置，再发图标和暂停状态（岸线要按设置里的离岸距离来算）
-            core.WebMessageReceived += delegate(object s, CoreWebView2WebMessageReceivedEventArgs a)
+            core.WebMessageReceived += delegate (object s, CoreWebView2WebMessageReceivedEventArgs a)
             {
                 string msg = null;
                 try { msg = a.TryGetWebMessageAsString(); } catch { }
@@ -1306,7 +1306,7 @@ class WallpaperForm : Form
     void Fail(string msg)
     {
         Log.Write(msg);
-            MessageBox.Show(msg + "\n\n" + I18n.T("errSeeLog", "path", Log.FilePath), "Deskland+");
+        MessageBox.Show(msg + "\n\n" + I18n.T("errSeeLog", "path", Log.FilePath), "Deskland+");
         Fatal = true;
         Shutdown();
     }
@@ -1327,7 +1327,7 @@ class WallpaperForm : Form
     static IntPtr FindClassicWorker()
     {
         IntPtr host = IntPtr.Zero;
-        Native.EnumWindows(delegate(IntPtr h, IntPtr l)
+        Native.EnumWindows(delegate (IntPtr h, IntPtr l)
         {
             if (Native.FindWindowEx(h, IntPtr.Zero, "SHELLDLL_DefView", null) != IntPtr.Zero) { host = h; return false; }
             return true;
@@ -1409,7 +1409,7 @@ class WallpaperForm : Form
             // 资源管理器新建 / 重排壁纸层时立刻修正顺序（换壁纸时它会把新的 WorkerW 插到我们上面）
             uint pid;
             Native.GetWindowThreadProcessId(progman, out pid);
-            winEventProc = delegate(IntPtr hook, uint ev, IntPtr hwnd, int idObject, int idChild, uint thread, uint time)
+            winEventProc = delegate (IntPtr hook, uint ev, IntPtr hwnd, int idObject, int idChild, uint thread, uint time)
             {
                 if (idObject == 0 && !shuttingDown && IsHandleCreated) EnsureZOrder();
             };
@@ -1522,7 +1522,7 @@ class WallpaperForm : Form
             Native.SetWindowPos(Handle, IntPtr.Zero, 0, 0, 0, 0,
                 Native.SWP_NOMOVE | Native.SWP_NOSIZE | Native.SWP_NOACTIVATE | Native.SWP_FRAMECHANGED);
             // 只枚举、只打印直接子窗口（含 WebView2 的承载窗口），不修改任何子窗口样式
-            Native.EnumChildWindows(Handle, delegate(IntPtr h, IntPtr l)
+            Native.EnumChildWindows(Handle, delegate (IntPtr h, IntPtr l)
             {
                 var sb = new StringBuilder(64);
                 Native.GetClassName(h, sb, 64);
@@ -1589,7 +1589,7 @@ class IconReader : IDisposable
         if (progman != IntPtr.Zero) defView = Native.FindWindowEx(progman, IntPtr.Zero, "SHELLDLL_DefView", null);
         if (defView == IntPtr.Zero)
         {
-            Native.EnumWindows(delegate(IntPtr h, IntPtr l)
+            Native.EnumWindows(delegate (IntPtr h, IntPtr l)
             {
                 IntPtr d = Native.FindWindowEx(h, IntPtr.Zero, "SHELLDLL_DefView", null);
                 if (d != IntPtr.Zero) { defView = d; return false; }

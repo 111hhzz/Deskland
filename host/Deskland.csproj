@@ -1,0 +1,57 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Deskland+ 宿主工程（SDK-style，net48 / Roslyn / C# 12）。
+    替代原 csc.exe 直编：官方 SDK 构建，支持 dotnet format 与 dotnet build（警告即错误）。
+    版本号唯一来源是 tools/build/version.json，由 build.ps1 读取后以 -p:AppVersion 传入；
+    直接 `dotnet build` 未传时回退 0.0.0.0（仅用于本地快速编译验证）。
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <AssemblyName>Deskland</AssemblyName>
+    <RootNamespace>Deskland</RootNamespace>
+    <LangVersion>12</LangVersion>
+    <!-- 宿主必须 64 位：WebView2 运行时与图标坐标钩子均按 x64 工作；
+         同时让 WebView2 NuGet 包复制对应架构的原生 WebView2Loader.dll（否则默认拿 x86，运行时报 BadImageFormat） -->
+    <PlatformTarget>x64</PlatformTarget>
+    <!-- 源码尚未做可空注解，保持关闭；implicit usings 会与现有显式 using 冲突，同样关闭 -->
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>DesklandPlus.ico</ApplicationIcon>
+
+    <!-- 产物仍落在 host\bin\（宿主 exe 直接在 bin 根，prototype\ 由 build.ps1 复制），保持测试 / 打包脚本路径不变 -->
+    <BaseOutputPath>bin\</BaseOutputPath>
+    <BaseIntermediateOutputPath>obj\</BaseIntermediateOutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <OutputPath>bin\</OutputPath>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+  </PropertyGroup>
+
+  <!-- 版本：唯一来源 tools/build/version.json，由 host/build.ps1 读取后以 -p:AppVersion 传入。
+       未传时回退 0.0.0（仅用于不对版本敏感的本地快速编译）。 -->
+  <PropertyGroup>
+    <AppVersion Condition="'$(AppVersion)' == ''">0.0.0</AppVersion>
+    <Version>$(AppVersion)</Version>
+    <AssemblyVersion>$(AppVersion).0</AssemblyVersion>
+    <FileVersion>$(AppVersion).0</FileVersion>
+  </PropertyGroup>
+
+  <!-- .NET Framework 参考程序集（WinForms / Drawing / Web.Extensions 等）-->
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Web.Extensions" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4191.47" />
+  </ItemGroup>
+
+</Project>

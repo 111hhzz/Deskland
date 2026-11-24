@@ -59,8 +59,8 @@ static class Themes
         }
 
         var list = ThemeScan.Build(products, manifests,
-            delegate(string page) { return File.Exists(Path.Combine(pageDir, page)); },
-            delegate(string msg) { Log.Write(msg); });
+            delegate (string page) { return File.Exists(Path.Combine(pageDir, page)); },
+            delegate (string msg) { Log.Write(msg); });
 
         // 授权表是唯一入口：未登记的目录只提示，不进清单（否则主题可自我授权）。
         try
