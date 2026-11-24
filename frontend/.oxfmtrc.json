@@ -1,9 +1,0 @@
-{
-  "singleQuote": true,
-  "semi": true,
-  "printWidth": 120,
-  "tabWidth": 2,
-  "trailingComma": "all",
-  "endOfLine": "lf",
-  "ignorePatterns": ["dist", "node_modules", ".local", "*.css"]
-}

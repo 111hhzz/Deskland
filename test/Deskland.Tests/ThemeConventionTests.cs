@@ -253,6 +253,66 @@ public class ThemeConventionTests
         Assert.True(missing.Length == 0, "引擎读取的 scene token 未在 SCENE_UNIFORMS 登记：\n" + string.Join("\n", missing));
     }
 
+    /// <summary>
+    /// theme.json 的 tokens 是编译器回写的「生效视图」，必须与 token 源（core + 本主题覆盖）一致：
+    /// 键集合、$type、$description 逐项相等。值的一致性由 theme.css 生成物 + tokens.ts 同步门禁覆盖。
+    /// </summary>
+    [Fact]
+    public void Tokens_ThemeJsonViewMatchesSources()
+    {
+        // name → (路径段, $type, $description)；路径段第 0 项即编译器用的分类
+        void Collect(JsonElement node, List<string> path, Dictionary<string, (string[] Path, string Type, string Desc)> acc)
+        {
+            foreach (var p in node.EnumerateObject())
+            {
+                if (p.Name.StartsWith("$")) continue;
+                var next = new List<string>(path) { p.Name };
+                if (p.Value.ValueKind == JsonValueKind.Object && p.Value.TryGetProperty("$value", out _))
+                {
+                    acc["--" + string.Join('-', next)] = (
+                        next.ToArray(),
+                        p.Value.GetProperty("$type").GetString() ?? "",
+                        p.Value.GetProperty("$description").GetString() ?? "");
+                }
+                else if (p.Value.ValueKind == JsonValueKind.Object)
+                {
+                    Collect(p.Value, next, acc);
+                }
+            }
+        }
+
+        var core = new Dictionary<string, (string[] Path, string Type, string Desc)>();
+        var coreDir = Path.Combine(RepoRoot, "frontend", "tokens", "core");
+        foreach (var f in Directory.GetFiles(coreDir, "*.tokens.json"))
+            Collect(JsonDocument.Parse(File.ReadAllText(f)).RootElement, [], core);
+
+        foreach (var id in ThemeFolderIds)
+        {
+            var merged = new Dictionary<string, (string[] Path, string Type, string Desc)>(core);
+            var themeDir = Path.Combine(RepoRoot, "frontend", "tokens", "themes", id);
+            foreach (var f in Directory.GetFiles(themeDir, "*.tokens.json", SearchOption.AllDirectories))
+                Collect(JsonDocument.Parse(File.ReadAllText(f)).RootElement, [], merged);
+
+            var view = JsonDocument.Parse(File.ReadAllText(Path.Combine(ThemesDir, id, "theme.json"))).RootElement.GetProperty("tokens");
+
+            // 与 renderTokensJson 对齐：分组 = 路径第 0 段，键 = 其余段用 '-' 连接
+            var expected = merged.Values.ToDictionary(
+                v => v.Path[0] + "-" + string.Join('-', v.Path.Skip(1)),
+                v => (v.Type, v.Desc));
+            var actual = view.EnumerateObject()
+                .SelectMany(g => g.Value.EnumerateObject().Select(e => (Key: g.Name + "-" + e.Name, e.Value)))
+                .ToDictionary(x => x.Key, x => (Type: x.Value.GetProperty("type").GetString() ?? "", Desc: x.Value.GetProperty("description").GetString() ?? ""));
+
+            Assert.Equal(expected.Keys.OrderBy(k => k), actual.Keys.OrderBy(k => k));
+            foreach (var key in expected.Keys)
+            {
+                Assert.True(actual.ContainsKey(key), $"{id}: theme.json.tokens 缺少 {key}");
+                Assert.Equal(expected[key].Type, actual[key].Type);
+                Assert.Equal(expected[key].Desc, actual[key].Desc);
+            }
+        }
+    }
+
     private static string StripComments(string css) =>
         Regex.Replace(css, @"/\*.*?\*/", string.Empty, RegexOptions.Singleline);
 }

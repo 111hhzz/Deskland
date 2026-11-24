@@ -13,7 +13,7 @@
     "lint": "vp lint",
     "fmt": "vp fmt",
     "typecheck": "tsc --noEmit",
-    "lint:css": "stylelint --config scripts/stylelint.config.mjs \"src/**/*.css\"",
+    "lint:css": "stylelint --config scripts/stylelint.config.mjs \"src/**/*.css\" \"public/themes/**/*.css\"",
     "thumbs": "node scripts/thumbs.mjs"
   },
   "dependencies": {

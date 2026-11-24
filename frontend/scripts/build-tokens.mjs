@@ -11,11 +11,9 @@
  * 别名："$value": "{color.surface}"，跨文件解析，循环检测。
  *
  * 用法：
- *   node scripts/build-tokens.mjs                 # 输出到 .local/token-out
- *   node scripts/build-tokens.mjs --out <dir>
- *   node scripts/build-tokens.mjs --check <themeId> <base.css> <theme.css> [--strict]
- *       把生成结果与参考 CSS（base.css + 手写 theme.css）做“计算值等价”比对；
- *       默认只报差异；--strict 时 missing/extra 也视为失败（全量迁移后应开）。
+ *   node scripts/build-tokens.mjs                 # 预览输出到 .local/token-out（不写仓库）
+ *   node scripts/build-tokens.mjs --emit         # 写 public/themes/各主题/theme.css、theme.json.tokens、src/engine/tokens.ts
+ *   node scripts/build-tokens.mjs --check-all    # 同步门禁：已提交产物必须等于 token 源重新编译的结果
  */
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -128,16 +126,16 @@ function validateValue(entry, value) {
 
 // ---------- 别名 ----------
 
-const index = new Map(); // "group.role" → entry
-
-function lookup(ref) {
-  const e = index.get(ref);
-  if (!e) fail(e?.file ?? '(未知)', ref.split('.'), `别名指向不存在的 token：{${ref}}`);
+// 索引："group.role" → entry。解析必须按作用域传递：core 用 coreIndex，主题用「core + 本主题覆盖」，
+// 否则跨主题同名引用会串值（红队发现的先到先得缺陷）。
+function lookup(ref, idx) {
+  const e = idx.get(ref);
+  if (!e) fail('(token 源)', ref.split('.'), `别名指向不存在的 token：{${ref}}`);
   return e;
 }
 
 // 返回 { value, type }：type 沿别名链追溯到最终来源，用于类型一致性检查
-function resolveValue(entry, stack) {
+function resolveValue(entry, stack, idx) {
   const v = entry.def.$value;
   if (typeof v !== 'string') return { value: v, type: entry.type };
   const m = v.match(/^\{([a-z0-9-]+(?:\.[a-z0-9-]+)+)\}$/);
@@ -146,10 +144,10 @@ function resolveValue(entry, stack) {
     fail(entry.file, entry.path, `别名循环：${[...stack, entry.name].join(' → ')}`);
     return { value: v, type: entry.type };
   }
-  const target = lookup(m[1]);
+  const target = lookup(m[1], idx);
   if (!target) return { value: v, type: entry.type };
   stack.add(entry.name);
-  const r = resolveValue(target, stack);
+  const r = resolveValue(target, stack, idx);
   stack.delete(entry.name);
   if (r.type !== entry.type) {
     fail(entry.file, entry.path, `别名 {${m[1]}} 的类型为 ${r.type}，与本 token 的 ${entry.type} 不一致`);
@@ -220,7 +218,6 @@ ${uni}
 
 /** 解析全部 token，返回 { coreResolved, themeResolved, uniforms }；出错时返回 null 并 report()。 */
 function generate() {
-  index.clear();
   const coreFiles = [];
   scanDir(join(TOKENS_DIR, 'core'), coreFiles);
   const themeDirs = readdirSync(join(TOKENS_DIR, 'themes'), { withFileTypes: true })
@@ -239,31 +236,32 @@ function generate() {
     themeMap.set(id, list);
   }
 
-  // 索引（core 在前，主题覆盖同路径时以主题为准——别名查找应优先当前主题）
   const all = [...coreEntries];
   for (const list of themeMap.values()) all.push(...list);
-  for (const e of all) {
-    const key = e.path.join('.');
-    if (!index.has(key)) index.set(key, e); // 同路径多个主题文件时先到先得，见下方覆盖处理
-  }
-
-  // 校验 + 解析别名（先解析出最终值，再按值校验）
   for (const e of all) validate(e);
   if (errors.length) return report();
-  const resolveEntry = (e) => {
-    const r = resolveValue(e, new Set());
+
+  const keyOf = (e) => e.path.join('.');
+  const coreIndex = new Map();
+  for (const e of coreEntries) if (!coreIndex.has(keyOf(e))) coreIndex.set(keyOf(e), e);
+
+  const resolveEntry = (e, idx) => {
+    const r = resolveValue(e, new Set(), idx);
     e.value = r.value;
     validateValue(e, r.value);
     return e;
   };
 
   const coreResolved = new Map();
-  for (const e of coreEntries) coreResolved.set(e.name, resolveEntry(e));
+  for (const e of coreEntries) coreResolved.set(e.name, resolveEntry(e, coreIndex));
 
   const themeResolved = new Map();
   for (const [id, list] of themeMap) {
+    // 每个主题独立索引：core + 本主题覆盖；跨主题引用视为缺失并报错
+    const idx = new Map(coreIndex);
+    for (const e of list) idx.set(keyOf(e), e);
     const merged = new Map(coreResolved);
-    for (const e of list) merged.set(e.name, resolveEntry(e)); // 主题覆盖 core 同名 token
+    for (const e of list) merged.set(e.name, resolveEntry(e, idx)); // 主题覆盖 core 同名 token
     themeResolved.set(id, merged);
   }
   if (errors.length) return report(); // 解析阶段发现的错误（别名循环 / 类型不符等）在此拦截
@@ -355,7 +353,7 @@ function checkAll() {
     if (existsSync(jsonPath)) {
       const manifest = JSON.parse(readFileSync(jsonPath, 'utf8'));
       if (JSON.stringify(manifest.tokens) !== JSON.stringify(renderTokensJson(merged))) {
-        if (actual !== renderThemeCss(id, merged)) bad.push('public/themes/' + id + '/theme.css');
+        bad.push('public/themes/' + id + '/theme.json(tokens)');
       }
     }
   }
@@ -384,81 +382,12 @@ function report() {
   }
 }
 
-// ---------- check 模式：计算值等价比对 ----------
-
-function normalizeCssValue(v) {
-  let s = v.trim().toLowerCase();
-  s = s.replace(/\s+/g, ' ');
-  // 数值归一：0.90 → 0.9；115.0 → 115
-  s = s.replace(/(?<![\w.])-?\d+\.\d+/g, (m) => String(Number(m)));
-  s = s.replace(/\s*,\s*/g, ',');
-  return s;
-}
-
-function extractRootVars(css) {
-  // 先剥注释，否则“上一行行尾注释”会混进下一段导致漏提（PoC 实测踩过）
-  const clean = css.replace(/\/\*[\s\S]*?\*\//g, '');
-  const vars = new Map();
-  const re = /:root\s*\{([^}]*)\}/g;
-  let m;
-  while ((m = re.exec(clean)) !== null) {
-    for (const line of m[1].split('\n')) {
-      const mm = line.match(/^\s*(--[\w-]+)\s*:\s*(.+?)\s*;?\s*$/);
-      if (mm) vars.set(mm[1], mm[2]);
-    }
-  }
-  return vars;
-}
-
-function check(themeId, baseCssPath, themeCssPath, strict) {
-  const baseVars = extractRootVars(readFileSync(baseCssPath, 'utf8'));
-  const themeVars = extractRootVars(readFileSync(themeCssPath, 'utf8'));
-  // 参考 = base ∪ theme（后者覆盖）
-  const ref = new Map(baseVars);
-  for (const [k, v] of themeVars) ref.set(k, v);
-
-  const outDir = join(FRONTEND, '.local', 'token-out');
-  const genVars = extractRootVars(readFileSync(join(outDir, 'themes', themeId, 'theme.css'), 'utf8'));
-
-  const diffs = [];
-  for (const [name, rv] of ref) {
-    if (!genVars.has(name)) {
-      diffs.push(['missing', name, rv, null]);
-      continue;
-    }
-    const gv = genVars.get(name);
-    if (normalizeCssValue(rv) !== normalizeCssValue(gv)) diffs.push(['diff', name, rv, gv]);
-  }
-  for (const [name, gv] of genVars) if (!ref.has(name)) diffs.push(['extra', name, null, gv]);
-
-  const same = diffs.filter((d) => d[0] === 'diff');
-  const missing = diffs.filter((d) => d[0] === 'missing');
-  const extra = diffs.filter((d) => d[0] === 'extra');
-  console.log(`比对：参考 ${ref.size} 个属性 / 生成 ${genVars.size} 个`);
-  console.log(`  值不同 ${same.length}；缺失 ${missing.length}；多余 ${extra.length}`);
-  // 优先展示真正的问题（值不同 / 多余），缺失多为“未录入”，折叠显示
-  for (const [kind, name, rv, gv] of [...same, ...extra].slice(0, 30)) {
-    console.log(`  ${kind.padEnd(7)} ${name}  参考=${rv ?? '-'}  生成=${gv ?? '-'}`);
-  }
-  for (const [kind, name, rv] of missing.slice(0, 5)) {
-    console.log(`  ${kind.padEnd(7)} ${name}  参考=${rv}`);
-  }
-  const hardFail = same.length > 0 || (strict && (missing.length > 0 || extra.length > 0));
-  if (hardFail) process.exit(1);
-}
-
 // ---------- CLI ----------
+// 同步门禁统一用 --check-all（产物↔源）；旧的逐主题手写 CSS 比对已废弃：
+// base.css 不再携带 :root，旧命令会退化为拿生成物和它自己比，恒绿无意义。
 
 const args = process.argv.slice(2);
-if (args[0] === '--check') {
-  const strict = args.includes('--strict');
-  const pos = args.filter((a) => !a.startsWith('--'));
-  if (pos.length !== 3) {
-    console.error('用法：--check <themeId> <base.css> <theme.css> [--strict]');
-    process.exit(2);
-  }
-  check(pos[0], pos[1], pos[2], strict);
-} else if (args[0] === '--check-all') {
+if (args[0] === '--check-all') {
   checkAll();
 } else if (args[0] === '--emit') {
   const g = generate();

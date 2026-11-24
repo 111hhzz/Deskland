@@ -62,7 +62,8 @@ export default defineConfig({
     printWidth: 120,
     tabWidth: 2,
     trailingComma: 'all',
-    ignorePatterns: ['dist', 'node_modules', '.local', '*.css', 'src/engine/tokens.ts'],
+    // public/themes/*/theme.json 由 token 编译器整体回写（JSON.stringify 风格），不参与 Oxfmt
+    ignorePatterns: ['dist', 'node_modules', '.local', '*.css', 'src/engine/tokens.ts', 'public/themes/*/theme.json'],
   },
   // Oxlint：类型感知规则 + 类型检查（tsrs，即 TypeScript 7 native）。
   lint: {

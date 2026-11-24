@@ -13,12 +13,21 @@ $root = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent   # tools/build �
 
 function Write-Step($text) { Write-Host "`n==== $text ====" -ForegroundColor Cyan }
 
-# 1) 前端打包（Vite：src + public → frontend/dist）
+# 1) 前端门禁与打包（token 同步 → Vite+：src + public → frontend/dist）
+Write-Step '前端 token 同步门禁'
+$pnpm = Get-Command pnpm -ErrorAction SilentlyContinue
+if ($pnpm) {
+    & $pnpm.Source --dir (Join-Path $root 'frontend') run tokens:check
+    if ($LASTEXITCODE -ne 0) { throw 'token 产物与源不一致（先跑 pnpm tokens）' }
+} else {
+    Write-Host '未找到 pnpm，跳过 token 同步门禁' -ForegroundColor Yellow
+}
+
 Write-Step '前端打包'
 & (Join-Path $root 'frontend\scripts\build.ps1')
 if (-not $?) { throw '前端打包失败' }
 
-# 2) 构建宿主（.NET Framework C# 编译器）
+# 2) 构建宿主（SDK-style csproj / net48 / C# 12）
 Write-Step '构建宿主'
 & (Join-Path $root 'host\build.ps1')
 if (-not $?) { throw '宿主构建失败' }

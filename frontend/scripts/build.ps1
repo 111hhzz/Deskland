@@ -16,7 +16,7 @@ if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
 Push-Location $front
 try {
     # 依赖缺失时按 pnpm-lock.yaml 装一次；平时直接构建（Vite 构建本身很快）
-    if (-not (Test-Path (Join-Path $front 'node_modules\vite'))) {
+    if (-not (Test-Path (Join-Path $front 'node_modules\vite-plus'))) {
         & pnpm install --frozen-lockfile
         if ($LASTEXITCODE -ne 0) { throw "pnpm install 失败（exit $LASTEXITCODE）" }
     }

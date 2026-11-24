@@ -12,8 +12,21 @@ echo "  pre-commit: 代码质量门禁"
 echo "════════════════════════════════════════════════════════════"
 echo ""
 
-# ─── 1. Lint: dotnet format ───────────────────────────────────
-echo "▶ [1/4] Lint: dotnet format --verify-no-changes"
+# ─── 1. 前端门禁：token 同步 + Oxfmt + Oxlint(类型感知) ──────────
+echo "▶ [1/5] Frontend: pnpm run check"
+cd frontend
+if ! pnpm run check 2>&1; then
+    echo ""
+    echo "❌ 前端门禁失败（token 产物同步 / 格式 / lint / 类型）"
+    echo "   修复命令: cd frontend && pnpm tokens && pnpm exec vp check --fix"
+    exit 1
+fi
+cd ..
+echo "   ✅ 前端门禁通过"
+echo ""
+
+# ─── 2. Lint: dotnet format ───────────────────────────────────
+echo "▶ [2/5] Lint: dotnet format --verify-no-changes"
 if ! dotnet format Deskland.sln --verify-no-changes --verbosity quiet 2>&1; then
     echo ""
     echo "❌ Lint 失败：代码格式不符合规范"
@@ -23,8 +36,8 @@ fi
 echo "   ✅ 格式检查通过"
 echo ""
 
-# ─── 2. Typecheck: dotnet build --warnaserror ─────────────────
-echo "▶ [2/4] Typecheck: dotnet build --warnaserror"
+# ─── 3. Typecheck: dotnet build --warnaserror ─────────────────
+echo "▶ [3/5] Typecheck: dotnet build --warnaserror"
 cd host
 # 不要用 `| tee`：管道的退出码取 tee 的，会掩盖编译失败
 powershell -ExecutionPolicy Bypass -File build.ps1 > /tmp/deskland-build.log 2>&1
@@ -47,8 +60,8 @@ cd ../..
 echo "   ✅ 类型检查通过"
 echo ""
 
-# ─── 3. Deslop: 自定义屎山代码检查 ─────────────────────────────
-echo "▶ [3/4] Deslop: 屎山代码检查"
+# ─── 4. Deslop: 自定义屎山代码检查 ─────────────────────────────
+echo "▶ [4/5] Deslop: 屎山代码检查"
 
 DESLOP_FOUND=0
 
@@ -120,8 +133,8 @@ fi
 echo "   ✅ Deslop 检查通过"
 echo ""
 
-# ─── 4. Test: dotnet test ─────────────────────────────────────
-echo "▶ [4/4] Test: dotnet test"
+# ─── 5. Test: dotnet test ─────────────────────────────────────
+echo "▶ [5/5] Test: dotnet test"
 cd test/Deskland.Tests
 if ! dotnet test --no-build 2>&1; then
     echo ""
