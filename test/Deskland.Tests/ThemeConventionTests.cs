@@ -313,6 +313,54 @@ public class ThemeConventionTests
         }
     }
 
+    /// <summary>
+    /// token 源结构门禁：每个叶子必须有 $type（且在允许集合内，含项目扩展 vec2/vec3）、$value；
+    /// 别名为 {group.key} 形式；vec* 的值必须是数字数组。防止手改 token 源引入脏类型。
+    /// </summary>
+    [Fact]
+    public void Tokens_SourcesWellFormed()
+    {
+        var allowed = new HashSet<string>
+        {
+            "color", "dimension", "duration", "easing", "fontfamily", "number",
+            "shadow", "zindex", "opacity", "vec2", "vec3",
+        };
+        var root = Path.Combine(RepoRoot, "frontend", "tokens");
+        var files = Directory.GetFiles(root, "*.tokens.json", SearchOption.AllDirectories);
+        Assert.NotEmpty(files);
+
+        void Walk(JsonElement node, string file)
+        {
+            foreach (var p in node.EnumerateObject())
+            {
+                if (p.Name.StartsWith("$", StringComparison.Ordinal)) continue;
+                Assert.Equal(JsonValueKind.Object, p.Value.ValueKind);
+                var hasValue = p.Value.TryGetProperty("$value", out var value);
+                var hasType = p.Value.TryGetProperty("$type", out var type);
+                if (!hasValue)
+                {
+                    Walk(p.Value, file); // 分组节点
+                    continue;
+                }
+                Assert.True(hasType, $"{file}: {p.Name} 缺少 $type");
+                var typeName = type.GetString() ?? "";
+                Assert.True(allowed.Contains(typeName), $"{file}: {p.Name} 使用了未登记的 $type「{typeName}」");
+
+                if (value.ValueKind == JsonValueKind.String && value.GetString()!.TrimStart().StartsWith("{", StringComparison.Ordinal))
+                {
+                    Assert.Matches(@"^\{\s*[A-Za-z][\w-]*(\.[A-Za-z][\w-]*)?\s*\}$", value.GetString()!);
+                }
+                else if (typeName is "vec2" or "vec3")
+                {
+                    Assert.Equal(JsonValueKind.Array, value.ValueKind);
+                    Assert.Contains(value.EnumerateArray(), n => n.ValueKind == JsonValueKind.Number);
+                }
+            }
+        }
+
+        foreach (var f in files) Walk(JsonDocument.Parse(File.ReadAllText(f)).RootElement, f);
+    }
+
     private static string StripComments(string css) =>
         Regex.Replace(css, @"/\*.*?\*/", string.Empty, RegexOptions.Singleline);
 }

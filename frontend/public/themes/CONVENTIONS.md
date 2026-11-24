@@ -83,6 +83,10 @@ frontend/public/                # 配置型静态（原样拷贝到 dist 根）
 每个 scene token 通过 `$extensions."deskland.v1".uniform` 声明它对应的 WebGL uniform（如 `uGroundMid`）；
 编译器汇总成 `src/engine/tokens.ts` 的 `SCENE_UNIFORMS`，引擎按当前主题取值一次写入 uniform，主循环不回读。
 
+`$type` 只用白名单：`color / dimension / duration / easing / fontfamily / number / shadow / zindex / opacity`，
+外加项目扩展 `vec2 / vec3`（0-1 数值数组，DTCG 注册表无向量类型；编译器的类型一致性校验依赖它）。
+`dotnet test --filter Tokens_SourcesWellFormed` 会拒绝未登记的 $type、缺 $value/$type、别名格式错误与 vec 非数组。
+
 **公共 Token 默认值**（在 `tokens/core/*.tokens.json`，主题可覆盖）：
 
 | 分类   | Token                                                                                             | 默认值                                                                 |
