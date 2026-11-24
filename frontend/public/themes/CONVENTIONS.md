@@ -7,7 +7,7 @@
 
 Vite 结构：`frontend/src/` 放**代码**（Vite root），`frontend/public/` 放**配置型静态**（原样拷贝到产物根）；
 `frontend/scripts/build.ps1` 调 Vite 打包到 `frontend/dist/`，`host/build.ps1` 再复制到 `host/bin/prototype/`。
-宿主把 `https://app.local` 虚拟域映射到 `<exe 目录>\prototype`（见 `host/DesktopHost.cs` 的
+宿主把 `https://deskland.test` 虚拟域映射到 `<exe 目录>\prototype`（见 `host/DesktopHost.cs` 的
 `SetVirtualHostNameToFolderMapping`），所以运行时一切主题文件都在 `prototype/` 下。
 **开发时只改 `frontend/src/` 与 `frontend/public/`，不要改构建产物。**
 

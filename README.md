@@ -14,6 +14,7 @@
 > - Settings styles/scripts live in `frontend/src/settings/settings.css|js`.
 > - Added `tools/ci.ps1` (build + test in one command) and an xUnit + Playwright test suite (19 tests) with visual baselines.
 > - Event-driven desktop-icon tracking (`SetWinEventHook`) with a 400 ms polling fallback.
+> - Faster navigation: the WebView2 virtual host no longer uses the reserved `.local` suffix, removing a fixed ~2 s commit stall (Settings opens in ~0.6 s).
 
 Deskland turns the space around your icons into a living landscape. Move, add or remove an icon and the beach, meadow, sky, clouds and shadows quietly reshape around it — in real time, without AI, an account or an API key.
 
@@ -39,6 +40,7 @@ Meadow, Beach and Sky are included in this fork.
 - **Adaptive scenery:** uses the real positions of desktop icons and transitions smoothly when they move.
 - **Three complete themes:** every setting for Beach, Meadow and Sky is included and saved between sessions.
 - **Made for the desktop:** tray controls, startup on sign-in and automatic pause when a window is maximized or full-screen.
+- **Fast and smooth:** themes are rendered locally and the UI is responsive; Settings opens in ~0.6 s with no multi-second blank screen.
 - **Independent installation:** Preview uses its own install directory, settings, startup entry and instance identity, so it can coexist with other Deskland builds.
 - **English and Simplified Chinese:** no sign-in, purchase restoration, update service or store API is included.
 
@@ -156,6 +158,7 @@ Issues and suggestions are welcome through GitHub Issues. This is an unofficial 
 > - 设置页样式/脚本在 `frontend/src/settings/settings.css|js`。
 > - 新增 `tools/ci.ps1`（一条命令构建 + 测试）与 xUnit + Playwright 测试体系（20 项）及视觉基线。
 > - 桌面图标检测改为 `SetWinEventHook` 事件驱动，400ms 轮询兜底。
+> - 导航更快：WebView2 虚拟域不再使用保留后缀 `.local`，消除固定约 2s 的提交卡顿（设置窗约 0.6s 打开）。
 
 Deskland 是一款 Windows 自适应动态壁纸。移动、添加或删除桌面图标时，海岸线、草地、云朵和阴影会实时围绕图标调整。全部在本地实时演算，不使用 AI，无需账号或 API Key。
 
@@ -175,6 +178,7 @@ Deskland 是一款 Windows 自适应动态壁纸。移动、添加或删除桌�
 - **图标自适应：**读取真实桌面图标的位置，在移动、添加或删除时平滑调整场景。
 - **三个完整主题：**沙滩、草地和天空的全部参数均可调整并自动保存。
 - **适合常驻桌面：**托盘控制、开机自动启动，前台窗口最大化或全屏时自动暂停。
+- **轻快流畅：**主题在本地实时渲染，界面响应迅速；设置窗约 0.6s 打开，不再出现数秒白屏。
 - **独立安装：**安装目录、用户数据、启动项和运行实例标识均独立，可与其他 Deskland 版本共存。
 - **简体中文和英文：**不包含登录、购买恢复、自动更新或商店接口。
 

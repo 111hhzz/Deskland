@@ -943,6 +943,14 @@ static class AppIcon
 }
 
 // 设置窗口：普通的桌面窗口，里面用 WebView2 显示 prototype/pages/settings.html
+// 虚拟域：默认 deskland.test（非 .local 的保留域），可用 DESKLAND_VIRTUAL_HOST 覆盖。
+// 历史坑：曾用 app.local；.local 是 mDNS 保留后缀，WebView2 顶层导航提交前会等一次名字解析超时（约 2s）。
+static class VirtualHost
+{
+    public static string Name() =>
+        Environment.GetEnvironmentVariable("DESKLAND_VIRTUAL_HOST") is string h && h.Length > 0 ? h : "deskland.test";
+}
+
 class SettingsForm : Form
 {
     readonly WebView2 web;
@@ -998,6 +1006,7 @@ class SettingsForm : Form
     protected override async void OnShown(EventArgs e)
     {
         base.OnShown(e);
+        TestProbe.Signal("settings_shown");
         // 等壁纸窗口的 WebView2 初始化完成再设置环境变量：
         // COREWEBVIEW2_FORCED_HOSTING_MODE 是进程级环境变量，如果与壁纸窗口的
         // EnsureCoreWebView2Async 并发执行，会污染壁纸窗口的宿主模式。
@@ -1010,6 +1019,7 @@ class SettingsForm : Form
                 if (host.WallpaperForm != null && host.WallpaperForm.IsWebView2Ready) break;
                 await Task.Delay(50);
             }
+            TestProbe.Signal("settings_wallpaper_wait", new { ms = sw.ElapsedMilliseconds });
         }
         try
         {
@@ -1028,11 +1038,12 @@ class SettingsForm : Form
             }
             await web.EnsureCoreWebView2Async(env);
             if (IsDisposed) return;
+            TestProbe.Signal("settings_webview2_ready");
             var core = web.CoreWebView2;
             SystemTheme.ApplyTo(core);                 // 同步系统深浅色，设置页的 prefers-color-scheme 才能生效
             try { core.MemoryUsageTargetLevel = CoreWebView2MemoryUsageTargetLevel.Low; }
             catch (Exception ex) { Log.Write("设置窗口内存级别调整失败：" + ex.Message); }
-            core.SetVirtualHostNameToFolderMapping("app.local", pageDir, CoreWebView2HostResourceAccessKind.Allow);
+            core.SetVirtualHostNameToFolderMapping(VirtualHost.Name(), pageDir, CoreWebView2HostResourceAccessKind.Allow);
             core.Settings.AreDefaultContextMenusEnabled = false;
             core.Settings.IsStatusBarEnabled = false;
             core.Settings.IsZoomControlEnabled = false;
@@ -1051,9 +1062,10 @@ class SettingsForm : Form
                 }
                 catch (Exception ex) { Log.Write("处理设置消息失败：" + ex.Message); }
             };
-            string settingsUrl = "https://app.local/pages/settings.html?v=" + Uri.EscapeDataString(Application.ProductVersion) + "&ui=2";
+            string settingsUrl = "https://" + VirtualHost.Name() + "/pages/settings.html?v=" + Uri.EscapeDataString(Application.ProductVersion) + "&ui=2";
             Log.Write("设置页面：" + settingsUrl);
             core.Navigate(settingsUrl);
+            TestProbe.Signal("settings_navigated");
         }
         catch (Exception ex)
         {
@@ -1159,8 +1171,8 @@ class WallpaperForm : Form
         Log.Write("WebView2 失效（运行时更新或进程退出），重新挂载壁纸窗口：" + ex.Message);
         Shutdown();
     }
-    string PageUrl { get { return "https://app.local/" + page + "?wallpaper=1&ui=2"; } }
-    string EngineUrl(string id) { return "https://app.local/pages/engine.html?theme=" + id + "&wallpaper=1&ui=2"; }
+    string PageUrl { get { return "https://" + VirtualHost.Name() + "/" + page + "?wallpaper=1&ui=2"; } }
+    string EngineUrl(string id) { return "https://" + VirtualHost.Name() + "/pages/engine.html?theme=" + id + "&wallpaper=1&ui=2"; }
 
     // 切换主题：换页面；新页面就绪后会重新收到设置和图标
     public void LoadPage(string newPage, string newId)
@@ -1226,7 +1238,7 @@ class WallpaperForm : Form
             SystemTheme.ApplyTo(core);                 // 同步系统深浅色（主题页目前不用媒体查询，保持一致性）
             IsWebView2Ready = true;
             TestProbe.Signal("webview2_ready", new { hwnd = Handle.ToInt64() });
-            core.SetVirtualHostNameToFolderMapping("app.local", pageDir, CoreWebView2HostResourceAccessKind.Allow);
+            core.SetVirtualHostNameToFolderMapping(VirtualHost.Name(), pageDir, CoreWebView2HostResourceAccessKind.Allow);
             core.Settings.AreDefaultContextMenusEnabled = false;
             core.Settings.AreDevToolsEnabled = true;
             core.Settings.IsStatusBarEnabled = false;

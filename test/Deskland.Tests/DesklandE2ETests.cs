@@ -339,7 +339,7 @@ public class DesklandE2ETests : IAsyncLifetime
             ("aurora", "themes/aurora/aurora.html"),
         })
         {
-            await _pageWallpaper.GotoAsync($"https://app.local/{page}?wallpaper=1");
+            await _pageWallpaper.GotoAsync($"https://deskland.test/{page}?wallpaper=1");
             // 等宿主图标到达（场按图标重算完成）：分片初始化后引擎就绪更早，
             // 只等首帧会截到还没有图标场的画面
             await _pageWallpaper.WaitForFunctionAsync(
@@ -434,7 +434,7 @@ public class DesklandE2ETests : IAsyncLifetime
         };
         foreach (var (page, bg, sceneName, sceneValue) in cases)
         {
-            await _pageWallpaper.GotoAsync($"https://app.local/{page}?wallpaper=1");
+            await _pageWallpaper.GotoAsync($"https://deskland.test/{page}?wallpaper=1");
             await Task.Delay(1200);
             const string root = "getComputedStyle(document.documentElement)";
             Assert.Equal(bg,
@@ -476,7 +476,7 @@ public class DesklandE2ETests : IAsyncLifetime
     [Fact]
     public async Task AppMode_SmokeTest()
     {
-        await _pageWallpaper.GotoAsync("https://app.local/themes/meadow/meadow.html");
+        await _pageWallpaper.GotoAsync("https://deskland.test/themes/meadow/meadow.html");
         await _pageWallpaper.WaitForSelectorAsync("#desktop .icon", new() { Timeout = 15000 });
         await Task.Delay(800);                                  // 等布局 / 面板 / stats 稳定
 
@@ -558,7 +558,7 @@ public class DesklandE2ETests : IAsyncLifetime
     [Fact]
     public async Task WallpaperMode_HostBindings()
     {
-        await _pageWallpaper.GotoAsync("https://app.local/themes/meadow/meadow.html?wallpaper=1");
+        await _pageWallpaper.GotoAsync("https://deskland.test/themes/meadow/meadow.html?wallpaper=1");
         await Task.Delay(2000);
         Assert.True(await _pageWallpaper.EvaluateAsync<bool>("document.body.classList.contains('wall')"),
             "wallpaper 模式应加 wall 类");
@@ -758,7 +758,7 @@ public class DesklandE2ETests : IAsyncLifetime
 
         foreach (var id in ids)
         {
-            await _pageWallpaper.GotoAsync($"https://app.local/pages/engine.html?theme={id}&wallpaper=1");
+            await _pageWallpaper.GotoAsync($"https://deskland.test/pages/engine.html?theme={id}&wallpaper=1");
             try
             {
                 await _pageWallpaper.WaitForFunctionAsync(
