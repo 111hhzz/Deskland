@@ -1,138 +1,137 @@
-# Deskland+ (Unofficial Community Fork)
+# Deskland+
 
-**Adaptive Windows wallpaper that makes your desktop icons part of the scenery.**
+**Adaptive Windows live wallpaper — your desktop icons become part of the scenery.**
 
 > **Unofficial community fork**
 >
-> This repository is an **unofficial, community-maintained fork** of [Deskland](https://github.com/BLEZZ0102/Deskland). It is not released, endorsed or affiliated with the upstream project (BLEZZ0102/Deskland / deskland.app). Code and theme assets are GPL-3.0; see [TRADEMARKS.md](TRADEMARKS.md).
->
-> **What differs from upstream**
-> - Adds a third usable theme, **Sky** (upstream ships Beach and Meadow only).
-> - Theme engine: pages are thin shells; rendering lives in `frontend/src/engine/` (BaseEngine / SceneEngine / per-theme engines / DeskApp).
-> - In-page theme hot-switching via `engine.html` (no WebView reload).
-> - Frontend sources moved from `prototype/` to `frontend/src/`, with `frontend/scripts/build.ps1`.
-> - Settings styles/scripts live in `frontend/src/settings/settings.css|js`.
-> - Added `tools/ci.ps1` (build + test in one command) and an xUnit + Playwright test suite (19 tests) with visual baselines.
-> - Event-driven desktop-icon tracking (`SetWinEventHook`) with a 400 ms polling fallback.
-> - Faster navigation: the WebView2 virtual host no longer uses the reserved `.local` suffix, removing a fixed ~2 s commit stall (Settings opens in ~0.6 s).
+> This repository is an unofficial, community-maintained fork of [Deskland](https://github.com/BLEZZ0102/Deskland). It is not released, endorsed by, or affiliated with the upstream project (BLEZZ0102/Deskland / deskland.app). Code and bundled theme assets are GPL-3.0; see [TRADEMARKS.md](TRADEMARKS.md) for trademark terms.
 
-Deskland turns the space around your icons into a living landscape. Move, add or remove an icon and the beach, meadow, sky, clouds and shadows quietly reshape around it — in real time, without AI, an account or an API key.
+**English** · [简体中文](#deskland-中文说明)
 
-This is an **unofficial community fork** of Deskland, not a time-limited trial. It includes the complete **Beach**, **Meadow** and **Sky** themes, the Windows host and the settings interface.
+---
 
-**English** · [简体中文](#中文说明) · [Upstream](https://github.com/BLEZZ0102/Deskland) · [Features](#features) · [Build from source](#build-from-source)
+![Meadow theme](media/images/meadow.webp)
 
-![Meadow — included in Deskland+](media/images/meadow.webp)
+![Beach theme](media/images/beach.webp)
 
-![Beach — included in Deskland+](media/images/beach.webp)
+## Highlights
 
-Meadow, Beach and Sky are included in this fork.
+- **Adaptive scenery** — scenes read the real positions of your desktop icons and smoothly reshape around them when you move, add, or remove an icon.
+- **Four ready themes** — Beach, Meadow, Sky and Aurora, all free and fully parameterized; every setting persists between sessions.
+- **Fast and responsive** — WebGL2 rendering runs locally, targeting 30 fps on integrated graphics. Opening Settings takes roughly **0.6 s** in our measurements, with no multi-second blank window.
+- **Live theme switching** — the engine is rebuilt inside the same page instead of reloading WebView2, so a theme change takes effect in about **200 ms**.
+- **Local and private** — no AI, no account, no API key, no telemetry. Everything is computed on your machine.
+- **Independent installation** — its own install directory, settings store (`%LOCALAPPDATA%\DesklandPlus`), startup entry and instance identity, so it can coexist with other Deskland builds.
+- **Bilingual UI** — English and Simplified Chinese, switchable in Settings.
 
-## Included themes
+### Included themes
 
-| Beach | Meadow | Sky |
-| --- | --- | --- |
-| ![Beach theme](frontend/src/thumbs/beach.webp) | ![Meadow theme](frontend/src/thumbs/meadow.webp) | ![Sky theme](frontend/src/thumbs/sky.webp) |
-| Turquoise waves, kayaks, seabirds and coconut palms. | Drifting clouds and shadows, a boy flying a kite and a little black cat. | Cartoon blue sky and puffy clouds, with day, dusk and night. |
-
-## Features
-
-- **Adaptive scenery:** uses the real positions of desktop icons and transitions smoothly when they move.
-- **Three complete themes:** every setting for Beach, Meadow and Sky is included and saved between sessions.
-- **Made for the desktop:** tray controls, startup on sign-in and automatic pause when a window is maximized or full-screen.
-- **Fast and smooth:** themes are rendered locally and the UI is responsive; Settings opens in ~0.6 s with no multi-second blank screen.
-- **Independent installation:** Preview uses its own install directory, settings, startup entry and instance identity, so it can coexist with other Deskland builds.
-- **English and Simplified Chinese:** no sign-in, purchase restoration, update service or store API is included.
+| Beach | Meadow | Sky | Aurora |
+| --- | --- | --- | --- |
+| ![Beach](frontend/public/thumbs/beach.webp) | ![Meadow](frontend/public/thumbs/meadow.webp) | ![Sky](frontend/public/thumbs/sky.webp) | ![Aurora](frontend/public/thumbs/aurora.webp) |
+| Turquoise waves, kayaks, seabirds and coconut palms. | Drifting clouds and shadows, a boy flying a kite and a little black cat. | Cartoon blue sky and puffy clouds, with day, dusk and night. | Flowing aurora bands over a quiet night landscape. |
 
 ## Requirements
 
 - Windows 10 or Windows 11, 64-bit.
-- Microsoft Edge WebView2 Runtime.
-- PowerShell and the .NET Framework C# compiler included with Windows; no .NET SDK installation is required.
-- An internet connection for the first build, which downloads the WebView2 development library.
-- Node.js only if you want to run the browser preview.
+- Microsoft Edge WebView2 Runtime (already present on most Windows 11 systems).
+- To **run a release build**: nothing else.
+- To **build from source**: PowerShell, .NET 8 SDK, Node.js LTS and pnpm.
 
-Currently, Deskland renders on the **primary monitor** and targets 30 fps on integrated graphics.
+Currently Deskland+ renders on the **primary monitor**.
+
+## Install
+
+Grab the latest Windows installer (or portable ZIP) from the [GitHub Releases page](https://github.com/111hhzz/Deskland/releases/latest).
+
+The installer targets `Programs\Deskland+` under the current user profile and does not require administrator rights. If WebView2 is missing, its bootstrapper needs an internet connection. Uninstalling keeps your settings.
+
+> The installer is unsigned, so Windows SmartScreen may show a warning.
 
 ## Build from source
 
 Open PowerShell in the repository root:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File frontend\scripts\build.ps1   # frontend/src → frontend/dist
-powershell -ExecutionPolicy Bypass -File host\build.ps1       # compile the host and copy dist → host/bin/prototype
-host\bin\Deskland.exe
+# 1. Frontend sources -> frontend/dist (Vite)
+powershell -ExecutionPolicy Bypass -File frontend\scripts\build.ps1
+
+# 2. Build the host and copy dist -> host/bin/prototype
+powershell -ExecutionPolicy Bypass -File host\build.ps1
+
+# 3. Run
+.\host\bin\Deskland.exe
 ```
 
-Frontend sources live in `frontend/src/`; `frontend\scripts\build.ps1` produces the static bundle in `frontend/dist/`, and `host\build.ps1` copies it into `host/bin/prototype/`. Build output is written to `host/bin/`.
-
-Run the program again or double-click its tray icon to open Settings. To exit and restore the original Windows wallpaper, use the tray menu or run:
-
-```powershell
-host\bin\Deskland.exe --exit
-```
-
-Preview settings and logs are stored separately in `%LOCALAPPDATA%\DesklandPlus`.
-
-## Developing and testing
-
-One command to build the host and run the full test suite (xUnit + Playwright .NET, needs the .NET SDK):
+`tools\build\ci.ps1` performs both steps and then runs the full test suite:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File tools\build\ci.ps1
 ```
 
-Add `-Package` to also build the installer, or `-SkipTests` to build only. The pre-commit hook runs `dotnet format --verify-no-changes`, `dotnet build --warnaserror`, a deslop check and `dotnet test`.
+Use `-Package` to also build the NSIS installer, or `-SkipTests` to skip testing.
 
-Tests are organised in four layers: **unit** (theme conventions, no browser), **E2E** (Playwright .NET over the WebView2 CDP), **Win32** (window-structure probe) and **visual baseline** (frozen-frame pixel comparison).
+## Using Deskland+
 
-## Browser preview
+- Double-click the tray icon (or launch the exe again) to open **Settings**.
+- Pick a theme and adjust its parameters; changes apply immediately and are saved automatically.
+- The tray menu offers pause/resume, restart and exit. When a window is maximized or full-screen, the wallpaper pauses automatically.
+- To restore the original Windows wallpaper, choose **Exit** in the tray menu or run:
+
+```powershell
+.\host\bin\Deskland.exe --exit
+```
+
+### Browser preview (settings UI only)
 
 ```powershell
 cd frontend
-pnpm dev        # Vite dev server（默认 5173 端口）
+pnpm dev
 ```
 
-Open **http://localhost:5173/pages/settings.html**. The browser uses sample icons; adaptation to real desktop icons requires the Windows host.
+Open <http://localhost:5173/pages/settings.html>. The browser shows sample icons; adapting to real desktop icons requires the Windows host.
 
-## Windows installer
+## Testing
 
-Build the NSIS installer without installing global development tools:
+Run the whole suite (xUnit + Playwright over the WebView2 CDP, plus Vitest for frontend logic):
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File tools\build\build-installer.ps1
+powershell -ExecutionPolicy Bypass -File tools\build\ci.ps1
 ```
 
-The first build downloads portable NSIS and Microsoft's WebView2 bootstrapper. Artifacts are written to `dist/` with SHA256 checksums and a matching source ZIP.
+Tests are organised in layers:
 
-The installer targets the current user's `Programs\Deskland+` directory and does not require administrator rights. If WebView2 is missing, its bootstrapper requires an internet connection. Uninstalling preserves user settings.
+- **Unit / logic** — Vitest for token resolution and settings domain logic.
+- **End-to-end** — Playwright connects to the running host through the WebView2 CDP ports and drives real pages.
+- **Win32 probe** — asserts window structure, Z-order and click-through behaviour.
+- **Visual baselines** — frozen-frame pixel comparisons for the wallpaper and settings pages (threshold: 2% differing pixels).
 
-[Download Deskland+ for Windows](https://github.com/111hhzz/Deskland/releases/latest). The installer is unsigned, so Windows SmartScreen may show a warning.
+A pre-commit hook runs formatting, a warnings-as-errors build, a dead-code/style check and the test suite before allowing a commit.
 
 ## Project layout
 
 | Path | Contents |
 | --- | --- |
-| `host/` | Windows host, build scripts and application manifest |
-| `frontend/src/` | Frontend sources (Vite root): pages, themes, engine, scenes, settings |
-| `frontend/src/pages/` | App pages: `engine.html`（页内热切换入口）、`settings.html` |
-| `frontend/src/themes/<id>/<id>.html` | 主题页（beach / meadow / sky / aurora） |
-| `frontend/src/engine/` | 主题引擎类（BaseEngine / SceneEngine / 各主题引擎 / DeskApp） |
-| `frontend/src/settings/` | 设置页样式 / 脚本 |
-| `frontend/public/` | 配置型静态（themes / i18n / thumbs / lib） |
-| `frontend/public/themes/_products.json` | 主题授权表（id / status / product + 展示顺序，宿主持有） |
-| `frontend/public/themes/<id>/theme.json` | 单个主题的自描述（含锁定主题的展示信息） |
-| `tools/` | 构建 / 打包 / 发布脚本（`build/` 构建与打包、`release/` 发布、`local.ps1` 本机状态） |
+| `host/` | Windows host (WinForms + WebView2), build script, manifest and icon |
+| `frontend/src/engine/` | Rendering engine: `BaseEngine`, `SceneEngine`, per-theme engines, `DeskApp` |
+| `frontend/src/scenes/` | Scene implementations (meadow, sky, beach, aurora) |
+| `frontend/src/pages/` | Page entries: `engine.html`, `settings.html` |
+| `frontend/src/settings/` | Settings page React sources and styles |
+| `frontend/public/themes/` | `_products.json` (catalog/entitlements), per-theme `theme.json`, generated CSS, thumbnails |
+| `frontend/tokens/` | DTCG design-token sources (single source of truth) |
+| `test/Deskland.Tests/` | xUnit + Playwright E2E tests and visual baselines |
+| `test/win32-probe/` | Window-structure assertions (standalone C#) |
+| `tools/` | Build, packaging, release and local-state scripts |
 
 ## Known limitations
 
 - Only the primary monitor is supported.
 - Windows Spotlight or a wallpaper slideshow can briefly flash when Windows changes the background image.
-- Preview does not include account sign-in, entitlement restoration, automatic updates or the other themes' implementation.
+- This fork ships no account sign-in, purchase restoration, update service or store API.
 
 ## Credits and license
 
-Source code and included theme assets are released under [GPL-3.0](LICENSE). Third-party dependencies are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Source code and bundled theme assets are released under [GPL-3.0](LICENSE). Third-party dependencies are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 The Deskland name and icon are not licensed as trademarks; modified distributions should use their own name and icon. See [TRADEMARKS.md](TRADEMARKS.md).
 
@@ -140,136 +139,139 @@ Issues and suggestions are welcome through GitHub Issues. This is an unofficial 
 
 ---
 
-## 中文说明
+## Deskland 中文说明
 
-[English](#deskland-unofficial-community-fork) · **简体中文**
-
-**让桌面图标成为风景的一部分。**
+**自适应 Windows 动态壁纸——让你的桌面图标成为风景的一部分。**
 
 > **非官方社区修改版**
 >
-> 本仓库是 [Deskland](https://github.com/BLEZZ0102/Deskland) 的**非官方、社区维护的修改版**，与上游官方（BLEZZ0102/Deskland / deskland.app）**无关联、未获认可或背书**。代码与主题素材按 GPL-3.0 发布；上游商标条款见 [TRADEMARKS.md](TRADEMARKS.md)。
->
-> **与上游的主要差异**
-> - 新增第三个可用主题 **Sky（天空）**（上游仅 Beach / Meadow）。
-> - 主题引擎化：页面退化为引导壳，渲染逻辑在 `frontend/src/engine/`（BaseEngine / SceneEngine / 各主题引擎 / DeskApp）。
-> - 新增 `engine.html` 页内主题热切换，不重建 WebView。
-> - 前端源从 `prototype/` 迁移到 `frontend/src/`，新增 `frontend/scripts/build.ps1` 打包。
-> - 设置页样式/脚本在 `frontend/src/settings/settings.css|js`。
-> - 新增 `tools/ci.ps1`（一条命令构建 + 测试）与 xUnit + Playwright 测试体系（20 项）及视觉基线。
-> - 桌面图标检测改为 `SetWinEventHook` 事件驱动，400ms 轮询兜底。
-> - 导航更快：WebView2 虚拟域不再使用保留后缀 `.local`，消除固定约 2s 的提交卡顿（设置窗约 0.6s 打开）。
+> 本仓库是 [Deskland](https://github.com/BLEZZ0102/Deskland) 的非官方、社区维护修改版，与上游官方（BLEZZ0102/Deskland / deskland.app）无关联、未获认可或背书。代码与随附主题素材按 GPL-3.0 发布；上游商标条款见 [TRADEMARKS.md](TRADEMARKS.md)。
 
-Deskland 是一款 Windows 自适应动态壁纸。移动、添加或删除桌面图标时，海岸线、草地、云朵和阴影会实时围绕图标调整。全部在本地实时演算，不使用 AI，无需账号或 API Key。
+[English](#deskland) · **简体中文**
 
-本仓库是 Deskland 的**非官方社区修改版**，不是限时试用版，包含完整的沙滩、草地和天空主题、Windows 宿主与设置界面。
+![草地主题](media/images/meadow.webp)
 
-[上游项目](https://github.com/BLEZZ0102/Deskland) · [从源码运行](#build-from-source) · [许可](#credits-and-license)
+![沙滩主题](media/images/beach.webp)
+
+### 亮点
+
+- **图标自适应：**场景读取桌面图标的真实位置，在你移动、添加或删除图标时平滑地重新布局。
+- **四个完整主题：**沙滩、草地、天空、极光，全部免费且参数完整可调，设置自动保存。
+- **轻快流畅：**WebGL2 本地渲染，核显目标 30 fps；实测打开设置窗约 **0.6s**，不再出现数秒白屏。
+- **页内热切换：**切换主题时在同一页面内重建引擎，不重载 WebView2，实际生效约 **200ms**。
+- **本地私密：**不使用 AI、不需要账号或 API Key，也没有遥测，全部在本地计算。
+- **独立安装：**独立的安装目录、设置数据（`%LOCALAPPDATA%\DesklandPlus`）、启动项与实例标识，可与其他 Deskland 版本共存。
+- **中英文界面：**设置页内置英文与简体中文切换。
 
 ### 包含的主题
 
-| 沙滩 | 草地 | 天空 |
-| --- | --- | --- |
-| ![沙滩主题](frontend/src/thumbs/beach.webp) | ![草地主题](frontend/src/thumbs/meadow.webp) | ![天空主题](frontend/src/thumbs/sky.webp) |
-| 海浪、皮划艇、海鸟和椰子树。 | 漂浮的云与云影、放风筝的男孩和小黑猫。 | 卡通风的蓝天白云，可选白天、傍晚、晚上。 |
-
-### 功能
-
-- **图标自适应：**读取真实桌面图标的位置，在移动、添加或删除时平滑调整场景。
-- **三个完整主题：**沙滩、草地和天空的全部参数均可调整并自动保存。
-- **适合常驻桌面：**托盘控制、开机自动启动，前台窗口最大化或全屏时自动暂停。
-- **轻快流畅：**主题在本地实时渲染，界面响应迅速；设置窗约 0.6s 打开，不再出现数秒白屏。
-- **独立安装：**安装目录、用户数据、启动项和运行实例标识均独立，可与其他 Deskland 版本共存。
-- **简体中文和英文：**不包含登录、购买恢复、自动更新或商店接口。
+| 沙滩 | 草地 | 天空 | 极光 |
+| --- | --- | --- | --- |
+| ![沙滩](frontend/public/thumbs/beach.webp) | ![草地](frontend/public/thumbs/meadow.webp) | ![天空](frontend/public/thumbs/sky.webp) | ![极光](frontend/public/thumbs/aurora.webp) |
+| 海浪、皮划艇、海鸟和椰子树。 | 漂浮的云与云影、放风筝的男孩和小黑猫。 | 卡通风蓝天白云，支持白天、傍晚与夜晚。 | 夜空中流动的极光光带。 |
 
 ### 系统要求
 
 - Windows 10 / Windows 11，64 位。
-- Microsoft Edge WebView2 Runtime。
-- 使用 Windows 自带的 .NET Framework C# 编译器，无需安装 .NET SDK。
-- 第一次构建需要联网下载 WebView2 开发库。
-- 仅浏览器预览需要 Node.js。
+- Microsoft Edge WebView2 Runtime（多数 Windows 11 已自带）。
+- **运行发行版：**无需其他依赖。
+- **从源码构建：**PowerShell、.NET 8 SDK、Node.js LTS 与 pnpm。
 
-目前只覆盖**主显示器**，以核显 30fps 为目标。
+目前仅支持**主显示器**。
 
-### 从源码运行
+### 安装
+
+从 [GitHub Releases](https://github.com/111hhzz/Deskland/releases/latest) 下载最新 Windows 安装包（或便携 ZIP）。
+
+安装到当前用户的 `Programs\Deskland+` 目录，无需管理员权限；缺少 WebView2 时会联网安装引导程序；卸载保留用户设置。
+
+> 安装包未签名，Windows SmartScreen 可能给出提示。
+
+### 从源码构建
 
 在仓库根目录打开 PowerShell：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File frontend\scripts\build.ps1   # frontend/src → frontend/dist
-powershell -ExecutionPolicy Bypass -File host\build.ps1       # 编译宿主并把 dist 复制到 host/bin/prototype
-host\bin\Deskland.exe
+# 1. 前端源 -> frontend/dist（Vite）
+powershell -ExecutionPolicy Bypass -File frontend\scripts\build.ps1
+
+# 2. 编译宿主并复制 dist -> host/bin/prototype
+powershell -ExecutionPolicy Bypass -File host\build.ps1
+
+# 3. 运行
+.\host\bin\Deskland.exe
 ```
 
-前端源在 `frontend/src/`，`frontend\scripts\build.ps1` 产出静态包到 `frontend/dist/`，`host\build.ps1` 再复制到 `host/bin/prototype/`。编译结果位于 `host/bin/`。
-
-再次运行程序或双击托盘图标可打开设置。退出并恢复系统原壁纸，请使用托盘菜单或执行：
-
-```powershell
-host\bin\Deskland.exe --exit
-```
-
-体验版的设置与日志独立保存在 `%LOCALAPPDATA%\DesklandPlus`。
-
-### 开发与测试
-
-一条命令构建宿主并跑完整测试（xUnit + Playwright .NET，需要 .NET SDK）：
+`tools\build\ci.ps1` 会依次完成上述两步并跑完整测试：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File tools\build\ci.ps1
 ```
 
-加 `-Package` 同时打包安装器，或加 `-SkipTests` 只构建。pre-commit 钩子会依次跑 `dotnet format --verify-no-changes`、`dotnet build --warnaserror`、屎山检查与 `dotnet test`。
+加 `-Package` 同时构建 NSIS 安装包，加 `-SkipTests` 跳过测试。
 
-测试分四层：**单元**（主题约定，无浏览器）、**E2E**（Playwright .NET 经 WebView2 CDP）、**Win32**（窗口结构探针）与**视觉基线**（冻结画面像素比对）。
+### 使用
 
-### 浏览器预览
+- 双击托盘图标（或再次运行 exe）打开**设置**。
+- 选择主题并调整参数，改动立即生效并自动保存。
+- 托盘菜单提供暂停/继续、重启与退出；窗口最大化或全屏时自动暂停。
+- 退出并恢复系统原壁纸：使用托盘菜单的**退出**，或执行：
+
+```powershell
+.\host\bin\Deskland.exe --exit
+```
+
+#### 浏览器预览（仅设置界面）
 
 ```powershell
 cd frontend
-pnpm dev        # Vite dev server（默认 5173 端口）
+pnpm dev
 ```
 
-打开 **http://localhost:5173/pages/settings.html**。浏览器使用示例图标，真实桌面图标适配需要 Windows 宿主。
+打开 <http://localhost:5173/pages/settings.html>。浏览器中使用示例图标；真实桌面图标适配需要 Windows 宿主。
 
-### Windows 安装包
+### 测试
+
+一条命令跑完整套件（xUnit + Playwright 经 WebView2 CDP，以及前端 Vitest）：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File tools\build\build-installer.ps1
+powershell -ExecutionPolicy Bypass -File tools\build\ci.ps1
 ```
 
-首次构建会下载便携版 NSIS 和微软 WebView2 引导程序，无需安装全局开发工具。产物位于 `dist/`，附 SHA256 校验文件和对应源码 ZIP。
+测试分层：
 
-安装包安装到当前用户的 `Programs\Deskland+` 目录，无需管理员权限。缺少 WebView2 时需要联网安装；卸载保留用户设置。
+- **单元 / 逻辑：**Vitest 覆盖 token 解析与设置域逻辑。
+- **端到端：**Playwright 通过 WebView2 CDP 端口连接运行中的宿主，驱动真实页面。
+- **Win32 探针：**断言窗口结构、Z 序与点击穿透行为。
+- **视觉基线：**对壁纸与设置页做冻结画面像素比对（阈值：差异像素占比 2%）。
 
-[下载 Deskland+ Windows 安装包](https://github.com/111hhzz/Deskland/releases/latest)。安装包未签名，Windows SmartScreen 可能显示提示。
+提交前的 pre-commit 钩子会依次执行格式化检查、警告即错误的构建、代码卫生检查与完整测试。
 
 ### 目录结构
 
-| 路径 | 用途 |
+| 路径 | 内容 |
 | --- | --- |
-| `host/` | Windows 宿主、构建脚本与清单 |
-| `frontend/src/` | 前端源（Vite root）：pages、themes、engine、scenes、settings |
-| `frontend/src/pages/` | 应用页：`engine.html`（页内热切换入口）、`settings.html` |
-| `frontend/src/themes/<id>/<id>.html` | 主题页（beach / meadow / sky / aurora） |
-| `frontend/src/engine/` | 主题引擎类（BaseEngine / SceneEngine / 各主题引擎 / DeskApp） |
-| `frontend/src/settings/` | 设置页样式 / 脚本 |
-| `frontend/public/` | 配置型静态（themes / i18n / thumbs / lib） |
-| `frontend/public/themes/_products.json` | 主题授权表（id / status / product + 展示顺序，宿主持有） |
-| `frontend/public/themes/<id>/theme.json` | 单个主题的完整定义及锁定主题的展示信息 |
-| `tools/` | 构建 / 打包 / 发布脚本（`build/` 构建与打包、`release/` 发布、`local.ps1` 本机状态） |
+| `host/` | Windows 宿主（WinForms + WebView2）、构建脚本、清单与图标 |
+| `frontend/src/engine/` | 渲染引擎：`BaseEngine`、`SceneEngine`、各主题引擎、`DeskApp` |
+| `frontend/src/scenes/` | 场景实现（meadow / sky / beach / aurora） |
+| `frontend/src/pages/` | 页面入口：`engine.html`、`settings.html` |
+| `frontend/src/settings/` | 设置页 React 源码与样式 |
+| `frontend/public/themes/` | `_products.json`（清单/授权）、各主题 `theme.json`、生成的 CSS、缩略图 |
+| `frontend/tokens/` | DTCG Design Token 源（唯一视觉值来源） |
+| `test/Deskland.Tests/` | xUnit + Playwright 端到端测试与视觉基线 |
+| `test/win32-probe/` | 窗口结构断言（独立 C#） |
+| `tools/` | 构建、打包、发布与本机状态脚本 |
 
 ### 已知限制
 
-- 目前只支持主显示器。
+- 仅支持主显示器。
 - 使用 Windows 聚焦或壁纸幻灯片时，系统换图可能造成短暂闪烁。
-- 体验版不包含账号登录、购买恢复、自动更新或其他主题实现。
+- 本修改版不包含账号登录、购买恢复、自动更新或商店接口。
 
 ### 许可与反馈
 
-项目源码和随附主题素材按 [GPL-3.0](LICENSE) 发布，第三方依赖见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+项目源码与随附主题素材按 [GPL-3.0](LICENSE) 发布，第三方依赖见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
-Deskland 名称与图标不作为商标授权授予；修改版应使用自己的名称和图标，详见 [TRADEMARKS.md](TRADEMARKS.md)。
+Deskland 名称与图标不作为商标授权授予；修改版应使用自己的名称与图标，详见 [TRADEMARKS.md](TRADEMARKS.md)。
 
 欢迎通过 GitHub Issues 反馈问题和建议。本仓库为非官方社区修改版，不保证即时回复。
