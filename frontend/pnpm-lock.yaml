@@ -225,6 +225,9 @@ importers:
       vite-plus:
         specifier: ^1.7.0
         version: 1.7.0(@types/node@24.19.2)(@vitest/ui@5.1.0)(typescript@7.0.2)
+      vitest:
+        specifier: 5.1.0
+        version: 5.1.0(@types/node@24.19.2)(@vitest/browser-preview@5.1.0)(@vitest/ui@5.1.0)(@voidzero-dev/vite-plus-core@8.3.8000(@types/node@24.19.2)(typescript@7.0.2))
 
 packages:
 

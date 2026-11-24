@@ -9,7 +9,8 @@
     "tokens": "node scripts/build-tokens.mjs --emit",
     "tokens:check": "node scripts/build-tokens.mjs --check-all",
     "build": "pnpm tokens && tsc --noEmit && vp build",
-    "check": "pnpm tokens:check && vp check --deny-warnings",
+    "check": "pnpm tokens:check && vp check --deny-warnings && pnpm test",
+    "test": "vp test run",
     "lint": "vp lint",
     "fmt": "vp fmt",
     "typecheck": "tsc --noEmit",
@@ -30,7 +31,8 @@
     "stylelint": "^18.1.0",
     "stylelint-config-standard": "^41.1.0",
     "typescript": "^7.0.2",
-    "vite-plus": "^1.7.0"
+    "vite-plus": "^1.7.0",
+    "vitest": "5.1.0"
   },
   "packageManager": "pnpm@12.23.0"
 }

@@ -31,4 +31,7 @@ export function fmtParam(p: ParamDef, v: number): string {
 }
 
 // 主题清单里的 thumb 是 CSS background 值，可能内嵌 url(...)；取出来给 <img> 用
-export const thumbUrl = (value: string): string => String(value || '').match(/^url\(([^)]+)\)/)?.[1] || '';
+export const thumbUrl = (value: string): string =>
+  String(value || '')
+    .match(/^url\(([^)]+)\)/)?.[1]
+    ?.replace(/^['"]|['"]$/g, '') || '';
