@@ -1,0 +1,9 @@
+{
+  "text-shadow": {
+    "label": {
+      "$value": "0 0 2px rgba(0, 0, 0, .95), 0 1px 3px rgba(0, 0, 0, .85)",
+      "$type": "shadow",
+      "$description": ""
+    }
+  }
+}

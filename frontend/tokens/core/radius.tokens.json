@@ -1,0 +1,29 @@
+{
+  "radius": {
+    "sm": {
+      "$value": "4px",
+      "$type": "dimension",
+      "$description": ""
+    },
+    "button": {
+      "$value": "5px",
+      "$type": "dimension",
+      "$description": ""
+    },
+    "md": {
+      "$value": "7px",
+      "$type": "dimension",
+      "$description": ""
+    },
+    "lg": {
+      "$value": "12px",
+      "$type": "dimension",
+      "$description": ""
+    },
+    "icon": {
+      "$value": "9px",
+      "$type": "dimension",
+      "$description": ""
+    }
+  }
+}

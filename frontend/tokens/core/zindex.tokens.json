@@ -1,0 +1,24 @@
+{
+  "z": {
+    "icon-drag": {
+      "$value": 10,
+      "$type": "zindex",
+      "$description": ""
+    },
+    "taskbar": {
+      "$value": 40,
+      "$type": "zindex",
+      "$description": ""
+    },
+    "ripple": {
+      "$value": 45,
+      "$type": "zindex",
+      "$description": ""
+    },
+    "panel": {
+      "$value": 50,
+      "$type": "zindex",
+      "$description": ""
+    }
+  }
+}

@@ -127,17 +127,17 @@ export class AuroraEngine extends CloudSceneEngine {
 
   override buildScenePalette(): ScenePalette {
     return {
-      skyTop: this.sceneToken('--scene-sky-top') || [0.03, 0.05, 0.14],
-      skyBot: this.sceneToken('--scene-sky-bottom') || [0.08, 0.12, 0.26],
-      aurA: this.sceneToken('--scene-aurora-a') || [0.24, 0.86, 0.59],
-      aurB: this.sceneToken('--scene-aurora-b') || [0.48, 0.38, 1.0],
-      cloudHi: this.sceneToken('--scene-cloud-hi') || [0.75, 0.92, 0.86],
-      cloudBody: this.sceneToken('--scene-cloud-body') || [0.3, 0.42, 0.62],
-      cloudSh: this.sceneToken('--scene-cloud-shade') || [0.2, 0.28, 0.46],
-      cloudShadow: this.sceneToken('--scene-cloud-shadow') || [0.16, 0.22, 0.4],
-      lightDir: this.sceneToken('--scene-light-dir') || [-0.6, -0.8],
-      shadowOff: this.sceneToken('--scene-shadow-offset') || [115.0, 156.0],
-      moonCol: this.sceneToken('--scene-moon') || [0.91, 0.89, 0.82],
+      skyTop: this.sceneToken('--scene-sky-top'),
+      skyBot: this.sceneToken('--scene-sky-bottom'),
+      aurA: this.sceneToken('--scene-aurora-a'),
+      aurB: this.sceneToken('--scene-aurora-b'),
+      cloudHi: this.sceneToken('--scene-cloud-hi'),
+      cloudBody: this.sceneToken('--scene-cloud-body'),
+      cloudSh: this.sceneToken('--scene-cloud-shade'),
+      cloudShadow: this.sceneToken('--scene-cloud-shadow'),
+      lightDir: this.sceneToken('--scene-light-dir'),
+      shadowOff: this.sceneToken('--scene-shadow-offset'),
+      moonCol: this.sceneToken('--scene-moon'),
     };
   }
 

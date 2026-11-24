@@ -1,9 +1,11 @@
 // Deskland 引擎基类：所有主题引擎的公共骨架。
 // 职责：Canvas / WebGL2 上下文、requestAnimationFrame 主循环、resize、事件订阅（on/off/emit）、
-//       --scene-* Token 读取、destroy 清理。
+//       场景 Token 取值（经 tokenRuntime 读生成的 tokens.ts）、destroy 清理。
 // 渲染相关的具体逻辑由子类实现：buildShaders / buildResources / update / render / dispose。
 //
 // 说明：这是骨架文件，迁移逻辑时子类覆盖对应钩子即可，不要把主题特例写进基类。
+
+import { sceneToken as sceneTokenFromTokens } from './tokenRuntime.js';
 
 // 构造选项：wallpaper / preview 决定画布缩放与布局（SceneEngine 读取）
 export interface EngineOpts {
@@ -179,12 +181,9 @@ export class BaseEngine {
   }
 
   // ---- 场景 Token ----
-  // 读取 theme.css 里的 --scene-*（值为空格分隔的 0-1 数值），返回数组；解析失败返回 null
+  // 从生成的 tokens.ts 取当前主题的 --scene-*（0-1 三元组 / vec2）；缺失或非法返回 null
   sceneToken(name: string): number[] | null {
-    const raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-    if (!raw) return null;
-    const p = raw.split(/\s+/).map(Number);
-    return p.length >= 2 && p.every(Number.isFinite) ? p : null;
+    return sceneTokenFromTokens(name);
   }
 
   // 场景时间（秒），语义同迁移前的 (now - T0) / 1000

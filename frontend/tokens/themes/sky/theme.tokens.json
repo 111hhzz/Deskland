@@ -3,6 +3,12 @@
     "bg": { "$value": "#6fb3ea", "$type": "color", "$description": "天空主题底色" }
   },
   "scene": {
+    "shadow": {
+      "$value": [0.56, 0.66, 0.52],
+      "$type": "vec3",
+      "$description": "云影 / 投影叠加色",
+      "$extensions": { "deskland.v1": { "uniform": "uShadow" } }
+    },
     "cloud-shadow": {
       "$value": [0.78, 0.84, 0.92],
       "$type": "vec3",

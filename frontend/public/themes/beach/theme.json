@@ -91,56 +91,370 @@
     }
   ],
   "tokens": {
+    "app": {
+      "icon-size": {
+        "type": "dimension",
+        "description": ""
+      },
+      "size": {
+        "type": "dimension",
+        "description": ""
+      }
+    },
+    "blur": {
+      "panel": {
+        "type": "dimension",
+        "description": ""
+      },
+      "taskbar": {
+        "type": "dimension",
+        "description": ""
+      }
+    },
     "color": {
+      "accent": {
+        "type": "color",
+        "description": ""
+      },
+      "app-hover-bg": {
+        "type": "color",
+        "description": ""
+      },
       "bg": {
         "type": "color",
-        "description": "页面 / 场景底色"
+        "description": "海滩主题底色"
+      },
+      "border": {
+        "type": "color",
+        "description": ""
+      },
+      "btn-bg": {
+        "type": "color",
+        "description": ""
+      },
+      "btn-border": {
+        "type": "color",
+        "description": ""
+      },
+      "btn-hover-bg": {
+        "type": "color",
+        "description": ""
+      },
+      "ghost-bg": {
+        "type": "color",
+        "description": ""
+      },
+      "ghost-label": {
+        "type": "color",
+        "description": ""
+      },
+      "icon-hover-bg": {
+        "type": "color",
+        "description": ""
+      },
+      "icon-hover-border": {
+        "type": "color",
+        "description": ""
+      },
+      "icon-sel-bg": {
+        "type": "color",
+        "description": ""
+      },
+      "icon-sel-border": {
+        "type": "color",
+        "description": ""
+      },
+      "label": {
+        "type": "color",
+        "description": ""
+      },
+      "nogl": {
+        "type": "color",
+        "description": ""
+      },
+      "ripple": {
+        "type": "color",
+        "description": ""
+      },
+      "ripple-glow": {
+        "type": "color",
+        "description": ""
+      },
+      "ripple-inset": {
+        "type": "color",
+        "description": ""
+      },
+      "stat-bg": {
+        "type": "color",
+        "description": ""
+      },
+      "surface": {
+        "type": "color",
+        "description": "面板底"
+      },
+      "surface-2": {
+        "type": "color",
+        "description": ""
+      },
+      "surface-active": {
+        "type": "color",
+        "description": ""
+      },
+      "taskbar-bg": {
+        "type": "color",
+        "description": ""
+      },
+      "taskbar-border": {
+        "type": "color",
+        "description": ""
+      },
+      "text": {
+        "type": "color",
+        "description": ""
+      },
+      "text-muted": {
+        "type": "color",
+        "description": ""
+      }
+    },
+    "font": {
+      "main": {
+        "type": "fontfamily",
+        "description": ""
+      },
+      "mono": {
+        "type": "fontfamily",
+        "description": ""
+      },
+      "size-lg": {
+        "type": "dimension",
+        "description": ""
+      },
+      "size-md": {
+        "type": "dimension",
+        "description": ""
+      },
+      "size-sm": {
+        "type": "dimension",
+        "description": ""
+      },
+      "size-xs": {
+        "type": "dimension",
+        "description": ""
+      }
+    },
+    "icon": {
+      "cell-width": {
+        "type": "dimension",
+        "description": ""
+      },
+      "glyph-size": {
+        "type": "dimension",
+        "description": ""
+      },
+      "label-max": {
+        "type": "dimension",
+        "description": ""
+      }
+    },
+    "motion": {
+      "born": {
+        "type": "duration",
+        "description": ""
+      },
+      "ease-out": {
+        "type": "easing",
+        "description": ""
+      },
+      "ease-settle": {
+        "type": "easing",
+        "description": ""
+      },
+      "ease-spring": {
+        "type": "easing",
+        "description": ""
+      },
+      "fade": {
+        "type": "duration",
+        "description": ""
+      },
+      "ripple": {
+        "type": "duration",
+        "description": ""
+      },
+      "settle": {
+        "type": "duration",
+        "description": ""
+      }
+    },
+    "opacity": {
+      "faint": {
+        "type": "opacity",
+        "description": ""
+      },
+      "icon-drag": {
+        "type": "opacity",
+        "description": ""
+      },
+      "muted": {
+        "type": "opacity",
+        "description": ""
+      },
+      "seg": {
+        "type": "opacity",
+        "description": ""
+      }
+    },
+    "panel": {
+      "offset": {
+        "type": "dimension",
+        "description": ""
+      },
+      "width": {
+        "type": "dimension",
+        "description": ""
+      }
+    },
+    "radius": {
+      "button": {
+        "type": "dimension",
+        "description": ""
+      },
+      "icon": {
+        "type": "dimension",
+        "description": ""
+      },
+      "lg": {
+        "type": "dimension",
+        "description": ""
+      },
+      "md": {
+        "type": "dimension",
+        "description": ""
+      },
+      "sm": {
+        "type": "dimension",
+        "description": ""
+      }
+    },
+    "saturate": {
+      "panel": {
+        "type": "number",
+        "description": ""
+      },
+      "taskbar": {
+        "type": "number",
+        "description": ""
       }
     },
     "scene": {
-      "sea-0": {
+      "cloud-body": {
         "type": "vec3",
-        "description": "海水：最浅（近岸）"
+        "description": "云主体色"
       },
-      "sea-1": {
+      "cloud-hi": {
         "type": "vec3",
-        "description": "海水：浅"
+        "description": "云受光面色"
       },
-      "sea-2": {
+      "cloud-shade": {
         "type": "vec3",
-        "description": "海水：中"
-      },
-      "sea-3": {
-        "type": "vec3",
-        "description": "海水：深"
-      },
-      "sea-4": {
-        "type": "vec3",
-        "description": "海水：最深（远海）"
-      },
-      "sand-0": {
-        "type": "vec3",
-        "description": "沙滩：干沙"
-      },
-      "sand-1": {
-        "type": "vec3",
-        "description": "沙滩：湿沙"
-      },
-      "sand-2": {
-        "type": "vec3",
-        "description": "沙滩：水带"
-      },
-      "sand-3": {
-        "type": "vec3",
-        "description": "沙滩：深水痕迹"
+        "description": "云背光面补间色"
       },
       "foam": {
         "type": "vec3",
         "description": "浪花"
       },
+      "light-dir": {
+        "type": "vec2",
+        "description": "平行光方向（代码直接使用，无变换）"
+      },
+      "sand-0": {
+        "type": "vec3",
+        "description": "干沙高亮"
+      },
+      "sand-1": {
+        "type": "vec3",
+        "description": "干沙 2"
+      },
+      "sand-2": {
+        "type": "vec3",
+        "description": "湿沙过渡"
+      },
+      "sand-3": {
+        "type": "vec3",
+        "description": "湿沙阴影"
+      },
+      "sea-0": {
+        "type": "vec3",
+        "description": "最近岸海浪"
+      },
+      "sea-1": {
+        "type": "vec3",
+        "description": "海浪 2"
+      },
+      "sea-2": {
+        "type": "vec3",
+        "description": "海浪 3"
+      },
+      "sea-3": {
+        "type": "vec3",
+        "description": "海浪 4"
+      },
+      "sea-4": {
+        "type": "vec3",
+        "description": "最远海"
+      },
+      "shadow-offset": {
+        "type": "vec2",
+        "description": "人物落点位移系数（非 0-1，故 vec2 不强制分量范围）"
+      },
       "wetsand": {
         "type": "vec3",
-        "description": "湿沙底色"
+        "description": "湿沙带"
+      }
+    },
+    "shadow": {
+      "ghost": {
+        "type": "shadow",
+        "description": ""
+      },
+      "glyph": {
+        "type": "shadow",
+        "description": ""
+      },
+      "panel": {
+        "type": "shadow",
+        "description": ""
+      }
+    },
+    "taskbar": {
+      "size": {
+        "type": "dimension",
+        "description": ""
+      }
+    },
+    "text-shadow": {
+      "label": {
+        "type": "shadow",
+        "description": ""
+      }
+    },
+    "z": {
+      "icon-drag": {
+        "type": "zindex",
+        "description": ""
+      },
+      "panel": {
+        "type": "zindex",
+        "description": ""
+      },
+      "ripple": {
+        "type": "zindex",
+        "description": ""
+      },
+      "taskbar": {
+        "type": "zindex",
+        "description": ""
       }
     }
   }

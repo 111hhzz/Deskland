@@ -1,0 +1,19 @@
+{
+  "icon": {
+    "cell-width": {
+      "$value": "76px",
+      "$type": "dimension",
+      "$description": ""
+    },
+    "glyph-size": {
+      "$value": "48px",
+      "$type": "dimension",
+      "$description": ""
+    },
+    "label-max": {
+      "$value": "72px",
+      "$type": "dimension",
+      "$description": ""
+    }
+  }
+}

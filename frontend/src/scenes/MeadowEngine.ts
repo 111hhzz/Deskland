@@ -210,16 +210,16 @@ export class MeadowEngine extends ActorSceneEngine {
 
   override buildScenePalette(): ScenePalette {
     return {
-      groundLight: this.sceneToken('--scene-ground-light') || [0.76, 0.83, 0.52],
-      groundMid: this.sceneToken('--scene-ground-mid') || [0.62, 0.75, 0.42],
-      groundDeep: this.sceneToken('--scene-ground-deep') || [0.52, 0.68, 0.36],
-      ink: this.sceneToken('--scene-ink') || [0.24, 0.38, 0.18],
-      shadow: this.sceneToken('--scene-shadow') || [0.56, 0.66, 0.52],
-      cloudHi: this.sceneToken('--scene-cloud-hi') || [1.0, 1.0, 0.99],
-      cloudBody: this.sceneToken('--scene-cloud-body') || [0.9, 0.93, 0.96],
-      cloudSh: this.sceneToken('--scene-cloud-shade') || [0.8, 0.85, 0.9],
-      lightDir: this.sceneToken('--scene-light-dir') || [-0.6, -0.8],
-      shadowOff: this.sceneToken('--scene-shadow-offset') || [115.0, 156.0],
+      groundLight: this.sceneToken('--scene-ground-light'),
+      groundMid: this.sceneToken('--scene-ground-mid'),
+      groundDeep: this.sceneToken('--scene-ground-deep'),
+      ink: this.sceneToken('--scene-ink'),
+      shadow: this.sceneToken('--scene-shadow'),
+      cloudHi: this.sceneToken('--scene-cloud-hi'),
+      cloudBody: this.sceneToken('--scene-cloud-body'),
+      cloudSh: this.sceneToken('--scene-cloud-shade'),
+      lightDir: this.sceneToken('--scene-light-dir'),
+      shadowOff: this.sceneToken('--scene-shadow-offset'),
     };
   }
 

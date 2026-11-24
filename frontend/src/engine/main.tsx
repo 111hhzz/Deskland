@@ -8,6 +8,7 @@ import { SkyEngine } from '../scenes/SkyEngine.js';
 import { FlatEngine } from '../scenes/FlatEngine.js';
 import { AuroraEngine } from '../scenes/AuroraEngine.js';
 import { DeskApp } from './DeskApp.js';
+import { loadTheme as loadThemeTokens } from './tokenRuntime.js';
 import type { DeskEngine } from './DeskApp.js';
 import { installLegacyFor } from './legacyInstall.js';
 import '../lib/ripple.js'; // 桌面点击涟漪（只读鼠标钩子），import 即装
@@ -62,8 +63,10 @@ async function loadTheme(id: string): Promise<EngineInstance> {
   const factory = ENGINES[id];
   const known = !!factory;
   const Cls = factory ? factory() : MeadowEngine;
-  // 主题样式（热切换时换掉）
-  (document.getElementById('themeCss') as HTMLLinkElement).href = THEME_STYLE(known ? id : 'meadow');
+  // 主题样式（热切换时换掉）+ 切换 token 表（引擎的 --scene-* 取值来自它）
+  const themeId = known ? id : 'meadow';
+  (document.getElementById('themeCss') as HTMLLinkElement).href = THEME_STYLE(themeId);
+  loadThemeTokens(themeId);
   return new Cls(canvas, { wallpaper: QS.has('wallpaper'), preview: QS.has('preview') });
 }
 

@@ -1,0 +1,24 @@
+{
+  "opacity": {
+    "icon-drag": {
+      "$value": ".88",
+      "$type": "opacity",
+      "$description": ""
+    },
+    "muted": {
+      "$value": ".6",
+      "$type": "opacity",
+      "$description": ""
+    },
+    "faint": {
+      "$value": ".5",
+      "$type": "opacity",
+      "$description": ""
+    },
+    "seg": {
+      "$value": ".75",
+      "$type": "opacity",
+      "$description": ""
+    }
+  }
+}

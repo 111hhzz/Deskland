@@ -1,0 +1,14 @@
+{
+  "panel": {
+    "width": {
+      "$value": "284px",
+      "$type": "dimension",
+      "$description": ""
+    },
+    "offset": {
+      "$value": "14px",
+      "$type": "dimension",
+      "$description": ""
+    }
+  }
+}

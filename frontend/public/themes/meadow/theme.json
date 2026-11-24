@@ -54,46 +54,366 @@
           "key": "showBoy",
           "label": "显示男孩",
           "hint": "男孩和他手中的风筝一起显示或隐藏",
-          "options": ["隐藏", "显示"],
+          "options": [
+            "隐藏",
+            "显示"
+          ],
           "default": 1
         },
         {
           "key": "showCat",
           "label": "显示小猫",
           "hint": "躺在草地上的小黑猫",
-          "options": ["隐藏", "显示"],
+          "options": [
+            "隐藏",
+            "显示"
+          ],
           "default": 1
         }
       ]
     }
   ],
   "tokens": {
+    "app": {
+      "icon-size": {
+        "type": "dimension",
+        "description": ""
+      },
+      "size": {
+        "type": "dimension",
+        "description": ""
+      }
+    },
+    "blur": {
+      "panel": {
+        "type": "dimension",
+        "description": ""
+      },
+      "taskbar": {
+        "type": "dimension",
+        "description": ""
+      }
+    },
     "color": {
+      "accent": {
+        "type": "color",
+        "description": ""
+      },
+      "app-hover-bg": {
+        "type": "color",
+        "description": ""
+      },
       "bg": {
         "type": "color",
-        "description": "页面 / 场景底色"
+        "description": "草地主题底色 / 首帧背景色"
+      },
+      "border": {
+        "type": "color",
+        "description": ""
+      },
+      "btn-bg": {
+        "type": "color",
+        "description": ""
+      },
+      "btn-border": {
+        "type": "color",
+        "description": ""
+      },
+      "btn-hover-bg": {
+        "type": "color",
+        "description": ""
+      },
+      "ghost-bg": {
+        "type": "color",
+        "description": ""
+      },
+      "ghost-label": {
+        "type": "color",
+        "description": ""
+      },
+      "icon-hover-bg": {
+        "type": "color",
+        "description": ""
+      },
+      "icon-hover-border": {
+        "type": "color",
+        "description": ""
+      },
+      "icon-sel-bg": {
+        "type": "color",
+        "description": ""
+      },
+      "icon-sel-border": {
+        "type": "color",
+        "description": ""
+      },
+      "label": {
+        "type": "color",
+        "description": ""
+      },
+      "nogl": {
+        "type": "color",
+        "description": ""
+      },
+      "ripple": {
+        "type": "color",
+        "description": ""
+      },
+      "ripple-glow": {
+        "type": "color",
+        "description": ""
+      },
+      "ripple-inset": {
+        "type": "color",
+        "description": ""
+      },
+      "stat-bg": {
+        "type": "color",
+        "description": ""
+      },
+      "surface": {
+        "type": "color",
+        "description": "面板底"
+      },
+      "surface-2": {
+        "type": "color",
+        "description": ""
+      },
+      "surface-active": {
+        "type": "color",
+        "description": ""
+      },
+      "taskbar-bg": {
+        "type": "color",
+        "description": ""
+      },
+      "taskbar-border": {
+        "type": "color",
+        "description": ""
+      },
+      "text": {
+        "type": "color",
+        "description": ""
+      },
+      "text-muted": {
+        "type": "color",
+        "description": ""
+      }
+    },
+    "font": {
+      "main": {
+        "type": "fontfamily",
+        "description": ""
+      },
+      "mono": {
+        "type": "fontfamily",
+        "description": ""
+      },
+      "size-lg": {
+        "type": "dimension",
+        "description": ""
+      },
+      "size-md": {
+        "type": "dimension",
+        "description": ""
+      },
+      "size-sm": {
+        "type": "dimension",
+        "description": ""
+      },
+      "size-xs": {
+        "type": "dimension",
+        "description": ""
+      }
+    },
+    "icon": {
+      "cell-width": {
+        "type": "dimension",
+        "description": ""
+      },
+      "glyph-size": {
+        "type": "dimension",
+        "description": ""
+      },
+      "label-max": {
+        "type": "dimension",
+        "description": ""
+      }
+    },
+    "motion": {
+      "born": {
+        "type": "duration",
+        "description": ""
+      },
+      "ease-out": {
+        "type": "easing",
+        "description": ""
+      },
+      "ease-settle": {
+        "type": "easing",
+        "description": ""
+      },
+      "ease-spring": {
+        "type": "easing",
+        "description": ""
+      },
+      "fade": {
+        "type": "duration",
+        "description": ""
+      },
+      "ripple": {
+        "type": "duration",
+        "description": ""
+      },
+      "settle": {
+        "type": "duration",
+        "description": ""
+      }
+    },
+    "opacity": {
+      "faint": {
+        "type": "opacity",
+        "description": ""
+      },
+      "icon-drag": {
+        "type": "opacity",
+        "description": ""
+      },
+      "muted": {
+        "type": "opacity",
+        "description": ""
+      },
+      "seg": {
+        "type": "opacity",
+        "description": ""
+      }
+    },
+    "panel": {
+      "offset": {
+        "type": "dimension",
+        "description": ""
+      },
+      "width": {
+        "type": "dimension",
+        "description": ""
+      }
+    },
+    "radius": {
+      "button": {
+        "type": "dimension",
+        "description": ""
+      },
+      "icon": {
+        "type": "dimension",
+        "description": ""
+      },
+      "lg": {
+        "type": "dimension",
+        "description": ""
+      },
+      "md": {
+        "type": "dimension",
+        "description": ""
+      },
+      "sm": {
+        "type": "dimension",
+        "description": ""
+      }
+    },
+    "saturate": {
+      "panel": {
+        "type": "number",
+        "description": ""
+      },
+      "taskbar": {
+        "type": "number",
+        "description": ""
       }
     },
     "scene": {
-      "ground-light": {
+      "cloud-body": {
         "type": "vec3",
-        "description": "草地亮部"
+        "description": "云主体色"
       },
-      "ground-mid": {
+      "cloud-hi": {
         "type": "vec3",
-        "description": "草地主色"
+        "description": "云受光面色"
+      },
+      "cloud-shade": {
+        "type": "vec3",
+        "description": "云背光面补间色"
       },
       "ground-deep": {
         "type": "vec3",
-        "description": "草地深色块"
+        "description": "远景草地带"
+      },
+      "ground-light": {
+        "type": "vec3",
+        "description": "近景草地带"
+      },
+      "ground-mid": {
+        "type": "vec3",
+        "description": "中景草地带"
       },
       "ink": {
         "type": "vec3",
-        "description": "画草的墨绿短线"
+        "description": "男孩剪影 / 猫身墨色"
+      },
+      "light-dir": {
+        "type": "vec2",
+        "description": "平行光方向（代码直接使用，无变换）"
       },
       "shadow": {
         "type": "vec3",
-        "description": "云影"
+        "description": "云影 / 人物投影叠加色"
+      },
+      "shadow-offset": {
+        "type": "vec2",
+        "description": "人物落点位移系数（非 0-1，故 vec2 不强制分量范围）"
+      }
+    },
+    "shadow": {
+      "ghost": {
+        "type": "shadow",
+        "description": ""
+      },
+      "glyph": {
+        "type": "shadow",
+        "description": ""
+      },
+      "panel": {
+        "type": "shadow",
+        "description": ""
+      }
+    },
+    "taskbar": {
+      "size": {
+        "type": "dimension",
+        "description": ""
+      }
+    },
+    "text-shadow": {
+      "label": {
+        "type": "shadow",
+        "description": ""
+      }
+    },
+    "z": {
+      "icon-drag": {
+        "type": "zindex",
+        "description": ""
+      },
+      "panel": {
+        "type": "zindex",
+        "description": ""
+      },
+      "ripple": {
+        "type": "zindex",
+        "description": ""
+      },
+      "taskbar": {
+        "type": "zindex",
+        "description": ""
       }
     }
   }

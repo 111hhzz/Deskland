@@ -6,8 +6,10 @@
   "type": "module",
   "scripts": {
     "dev": "vp dev",
-    "build": "tsc --noEmit && vp build",
-    "check": "vp check --deny-warnings",
+    "tokens": "node scripts/build-tokens.mjs --emit",
+    "tokens:check": "node scripts/build-tokens.mjs --check-all",
+    "build": "pnpm tokens && tsc --noEmit && vp build",
+    "check": "pnpm tokens:check && vp check --deny-warnings",
     "lint": "vp lint",
     "fmt": "vp fmt",
     "typecheck": "tsc --noEmit",

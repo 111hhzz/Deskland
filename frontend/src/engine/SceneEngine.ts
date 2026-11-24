@@ -58,8 +58,8 @@ export interface NoiseField {
   wx: Float32Array;
   wy: Float32Array;
 }
-// 场景调色板：theme.css 的 --scene-* 读出的 0-1 三元组，键由各主题自己定
-export type ScenePalette = Record<string, number[]>;
+// 场景调色板：从 tokens.ts 取当前主题的 --scene-*（0-1 三元组 / vec2），键由各主题自己定；缺失为 null
+export type ScenePalette = Record<string, number[] | null>;
 // 面板配置（应用层 DeskApp 渲染与绑定）
 export interface SliderDef {
   key: string;
@@ -163,7 +163,7 @@ export class SceneEngine extends BaseEngine {
     // 面板配置（应用层 DeskApp 读取；子类覆盖）
     this.sliders = [];
     this.displayKeys = [];
-    // 场景调色板：从 theme.css 的 --scene-* 读取（0-1 的 r g b 或数值三元组）
+    // 场景调色板：从生成的 tokens.ts 取当前主题的 --scene-*（0-1 的 r g b 或 vec2）
     this.scene = this.buildScenePalette();
     this._now = 0;
   }

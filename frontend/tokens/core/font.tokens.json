@@ -1,0 +1,34 @@
+{
+  "font": {
+    "main": {
+      "$value": "\"Segoe UI Variable Text\", \"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", system-ui, sans-serif",
+      "$type": "fontfamily",
+      "$description": ""
+    },
+    "mono": {
+      "$value": "Consolas, \"Cascadia Mono\", monospace",
+      "$type": "fontfamily",
+      "$description": ""
+    },
+    "size-xs": {
+      "$value": "11px",
+      "$type": "dimension",
+      "$description": ""
+    },
+    "size-sm": {
+      "$value": "12px",
+      "$type": "dimension",
+      "$description": ""
+    },
+    "size-md": {
+      "$value": "14px",
+      "$type": "dimension",
+      "$description": ""
+    },
+    "size-lg": {
+      "$value": "16px",
+      "$type": "dimension",
+      "$description": ""
+    }
+  }
+}

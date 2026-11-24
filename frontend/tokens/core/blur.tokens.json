@@ -1,0 +1,14 @@
+{
+  "blur": {
+    "taskbar": {
+      "$value": "28px",
+      "$type": "dimension",
+      "$description": ""
+    },
+    "panel": {
+      "$value": "18px",
+      "$type": "dimension",
+      "$description": ""
+    }
+  }
+}

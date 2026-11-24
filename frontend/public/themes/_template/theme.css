@@ -1,5 +1,8 @@
-/* <主题名> 的 Token 值。
- * 只声明自定义属性，禁止写选择器；公共默认值见 ../base.css，命名规则见 ../CONVENTIONS.md。 */
+/* 模板示例：新主题不再手写 theme.css。
+ * 请在 frontend/tokens/themes/<id>/*.tokens.json 写覆盖值，然后 `pnpm tokens` 生成
+ * public/themes/<id>/theme.css（core + 覆盖）。下面仅示意“覆盖哪些字段”：
+ *   --color-bg / --scene-*（0-1 三元组或 vec2，见 ../CONVENTIONS.md 第 3 节）
+ * 本文件保留仅为兼容旧工具扫描，实际生效值一律来自 tokens/。 */
 :root {
   --color-bg: #1aa3c4;
   --scene-ground-mid: 0.62 0.75 0.42;

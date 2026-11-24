@@ -97,18 +97,18 @@ export class SkyEngine extends CloudSceneEngine {
 
   override buildScenePalette(): ScenePalette {
     return {
-      cloudHi: this.sceneToken('--scene-cloud-hi') || [1.0, 1.0, 0.99],
-      cloudBody: this.sceneToken('--scene-cloud-body') || [0.9, 0.93, 0.96],
-      cloudSh: this.sceneToken('--scene-cloud-shade') || [0.8, 0.85, 0.9],
-      cloudShadow: this.sceneToken('--scene-cloud-shadow') || [0.78, 0.84, 0.92],
-      lightDir: this.sceneToken('--scene-light-dir') || [-0.6, -0.8],
-      shadowOff: this.sceneToken('--scene-shadow-offset') || [115.0, 156.0],
-      skyDayTop: this.sceneToken('--scene-sky-day-top') || [0.27, 0.56, 0.88],
-      skyDayBot: this.sceneToken('--scene-sky-day-bottom') || [0.62, 0.82, 0.96],
-      skyDuskTop: this.sceneToken('--scene-sky-dusk-top') || [0.28, 0.3, 0.58],
-      skyDuskBot: this.sceneToken('--scene-sky-dusk-bottom') || [0.98, 0.66, 0.42],
-      skyNightTop: this.sceneToken('--scene-sky-night-top') || [0.04, 0.06, 0.16],
-      skyNightBot: this.sceneToken('--scene-sky-night-bottom') || [0.2, 0.26, 0.44],
+      cloudHi: this.sceneToken('--scene-cloud-hi'),
+      cloudBody: this.sceneToken('--scene-cloud-body'),
+      cloudSh: this.sceneToken('--scene-cloud-shade'),
+      cloudShadow: this.sceneToken('--scene-cloud-shadow'),
+      lightDir: this.sceneToken('--scene-light-dir'),
+      shadowOff: this.sceneToken('--scene-shadow-offset'),
+      skyDayTop: this.sceneToken('--scene-sky-day-top'),
+      skyDayBot: this.sceneToken('--scene-sky-day-bottom'),
+      skyDuskTop: this.sceneToken('--scene-sky-dusk-top'),
+      skyDuskBot: this.sceneToken('--scene-sky-dusk-bottom'),
+      skyNightTop: this.sceneToken('--scene-sky-night-top'),
+      skyNightBot: this.sceneToken('--scene-sky-night-bottom'),
     };
   }
 

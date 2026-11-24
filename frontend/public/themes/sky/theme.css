@@ -1,14 +1,101 @@
-/* 天空主题 Token 值。
- * 本文件只声明自定义属性，禁止写选择器；公共默认值见 ../base.css。
- * scene-* 为 0-1 的 r g b 三元组，供 WebGL 着色器使用。 */
+/* 本文件由 scripts/build-tokens.mjs 生成（主题：sky），请勿手改。
+ * 源：tokens/core/*.tokens.json + tokens/themes/sky/*.tokens.json
+ * 内容 = core 默认值 + 本主题覆盖；页面 <link> 与热切换逻辑无需改动。 */
 :root {
+  /* ---- app ---- */
+  --app-icon-size: 24px;
+  --app-size: 40px;
+  /* ---- blur ---- */
+  --blur-panel: 18px;
+  --blur-taskbar: 28px;
+  /* ---- color ---- */
+  --color-accent: #7fe3d6;
+  --color-app-hover-bg: rgba(255, 255, 255, .08);
   --color-bg: #6fb3ea;
-  --scene-sky-day-top: 0.27 0.56 0.88;
-  --scene-sky-day-bottom: 0.62 0.82 0.96;
-  --scene-sky-dusk-top: 0.28 0.30 0.58;
-  --scene-sky-dusk-bottom: 0.98 0.66 0.42;
-  --scene-sky-night-top: 0.04 0.06 0.16;
-  --scene-sky-night-bottom: 0.20 0.26 0.44;
+  --color-border: rgba(255, 255, 255, .14);
+  --color-btn-bg: rgba(255, 255, 255, .1);
+  --color-btn-border: rgba(255, 255, 255, .1);
+  --color-btn-hover-bg: rgba(255, 255, 255, .18);
+  --color-ghost-bg: rgba(255, 255, 255, .88);
+  --color-ghost-label: rgba(255, 255, 255, .75);
+  --color-icon-hover-bg: rgba(255, 255, 255, .16);
+  --color-icon-hover-border: rgba(255, 255, 255, .24);
+  --color-icon-sel-bg: rgba(0, 120, 215, .34);
+  --color-icon-sel-border: rgba(140, 200, 255, .7);
+  --color-label: #fff;
+  --color-nogl: #fff;
+  --color-ripple: rgba(255, 255, 255, .8);
+  --color-ripple-glow: rgba(255, 255, 255, .55);
+  --color-ripple-inset: rgba(255, 255, 255, .35);
+  --color-stat-bg: rgba(0, 0, 0, .25);
+  --color-surface: rgba(20, 52, 64, .74);
+  --color-surface-2: rgba(255, 255, 255, .06);
+  --color-surface-active: rgba(255, 255, 255, .17);
+  --color-taskbar-bg: rgba(28, 32, 38, .6);
+  --color-taskbar-border: rgba(255, 255, 255, .08);
+  --color-text: #eef6f5;
+  --color-text-muted: #d4e4e2;
+  /* ---- font ---- */
+  --font-main: "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", system-ui, sans-serif;
+  --font-mono: Consolas, "Cascadia Mono", monospace;
+  --font-size-lg: 16px;
+  --font-size-md: 14px;
+  --font-size-sm: 12px;
+  --font-size-xs: 11px;
+  /* ---- icon ---- */
+  --icon-cell-width: 76px;
+  --icon-glyph-size: 48px;
+  --icon-label-max: 72px;
+  /* ---- motion ---- */
+  --motion-born: .45s;
+  --motion-ease-out: ease-out;
+  --motion-ease-settle: cubic-bezier(.2, .8, .3, 1);
+  --motion-ease-spring: cubic-bezier(.2, .9, .3, 1.2);
+  --motion-fade: 250ms;
+  --motion-ripple: .65s;
+  --motion-settle: .22s;
+  /* ---- opacity ---- */
+  --opacity-faint: .5;
+  --opacity-icon-drag: .88;
+  --opacity-muted: .6;
+  --opacity-seg: .75;
+  /* ---- panel ---- */
+  --panel-offset: 14px;
+  --panel-width: 284px;
+  /* ---- radius ---- */
+  --radius-button: 5px;
+  --radius-icon: 9px;
+  --radius-lg: 12px;
+  --radius-md: 7px;
+  --radius-sm: 4px;
+  /* ---- saturate ---- */
+  --saturate-panel: 1.3;
+  --saturate-taskbar: 1.6;
+  /* ---- scene ---- */
+  --scene-cloud-body: 0.9 0.93 0.96;
+  --scene-cloud-hi: 1 1 0.99;
+  --scene-cloud-shade: 0.8 0.85 0.9;
   --scene-cloud-shadow: 0.78 0.84 0.92;
+  --scene-light-dir: -0.6 -0.8;
   --scene-shadow: 0.56 0.66 0.52;
+  --scene-shadow-offset: 115 156;
+  --scene-sky-day-bottom: 0.62 0.82 0.96;
+  --scene-sky-day-top: 0.27 0.56 0.88;
+  --scene-sky-dusk-bottom: 0.98 0.66 0.42;
+  --scene-sky-dusk-top: 0.28 0.3 0.58;
+  --scene-sky-night-bottom: 0.2 0.26 0.44;
+  --scene-sky-night-top: 0.04 0.06 0.16;
+  /* ---- shadow ---- */
+  --shadow-ghost: 3px 6px 8px rgba(40, 60, 90, .28);
+  --shadow-glyph: drop-shadow(0 1px 1px rgba(0, 0, 0, .25)) drop-shadow(3px 6px 4px rgba(90, 80, 110, .25));
+  --shadow-panel: 0 12px 32px rgba(0, 0, 0, .25);
+  /* ---- taskbar ---- */
+  --taskbar-size: 48px;
+  /* ---- text-shadow ---- */
+  --text-shadow-label: 0 0 2px rgba(0, 0, 0, .95), 0 1px 3px rgba(0, 0, 0, .85);
+  /* ---- z ---- */
+  --z-icon-drag: 10;
+  --z-panel: 50;
+  --z-ripple: 45;
+  --z-taskbar: 40;
 }

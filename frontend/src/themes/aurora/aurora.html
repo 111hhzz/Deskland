@@ -86,9 +86,11 @@
     <script type="module">
       import { AuroraEngine } from '../../scenes/AuroraEngine.js';
       import { DeskApp } from '../../engine/DeskApp.js';
+      import { loadTheme } from '../../engine/tokenRuntime.js';
       import '../../lib/ripple.js'; // 桌面点击涟漪（只读鼠标钩子），import 即装
 
       const QS = new URLSearchParams(location.search);
+      loadTheme('aurora');
       const engine = new AuroraEngine(document.getElementById('art'), {
         wallpaper: QS.has('wallpaper'),
         preview: QS.has('preview'),

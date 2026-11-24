@@ -15,6 +15,9 @@ Vite 结构：`frontend/src/` 放**代码**（Vite root），`frontend/public/` 
 frontend/src/                  # 代码（Vite root = src）
   themes/<id>/<id>.html        # 主题页入口（MPA，vite 自动扫描全部 HTML）
   engine/ scenes/ assets/       # 引擎、场景、设置页逻辑
+frontend/tokens/                 # Design Token 源（DTCG JSON，唯一手写入口）
+  core/                       # 跨主题默认值（原 base.css :root）
+  themes/<id>/                # 该主题的覆盖（只写与 core 不同的值）
 frontend/public/                # 配置型静态（原样拷贝到 dist 根）
   themes/
     _products.json              # 宿主持有的授权表：id / status / product + 展示顺序
@@ -33,16 +36,22 @@ frontend/public/                # 配置型静态（原样拷贝到 dist 根）
 
 ## 2. 各文件的职责
 
-| 文件                     | 职责                                                                 | 谁读                                         |
-| ------------------------ | -------------------------------------------------------------------- | -------------------------------------------- |
-| `themes/_products.json`  | 授权表：id / status / product + 展示顺序（**主题不能自己声明授权**） | 宿主 `Themes.cs`、打包脚本                   |
-| `themes/<id>/theme.json` | 主题自描述：名字/说明/页面/缩略图/参数 groups + Token schema         | 宿主 `Themes.cs`、设置页、约定测试、打包脚本 |
-| `themes/<id>/theme.css`  | 主题 Token **值**（只含 `:root` 自定义属性）                         | 浏览器（CSS）+ 引擎（JS 读 computed style）  |
-| `themes/base.css`        | 公共样式 + 跨主题 Token 默认值                                       | 浏览器                                       |
-| `themes/<id>/<id>.html`  | 主题页面（引擎 + DOM）                                               | 宿主加载                                     |
+| 文件                                        | 职责                                                                  | 谁读                                                        |
+| ------------------------------------------- | --------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `themes/_products.json`                     | 授权表：id / status / product + 展示顺序（**主题不能自己声明授权**）  | 宿主 `Themes.cs`、打包脚本                                  |
+| `themes/<id>/theme.json`                    | 主题自描述：名字/说明/页面/缩略图/参数 groups + 生成的 Token 生效视图 | 宿主 `Themes.cs`（丢弃 tokens）、设置页、约定测试、打包脚本 |
+| `themes/<id>/theme.css`                     | **生成产物**：core + 本主题覆盖合并后的 `:root` 自定义属性            | 浏览器（CSS）                                               |
+| `themes/base.css`                           | 公共样式（唯一允许写选择器处），只引用 `var(--*)`                     | 浏览器                                                      |
+| `../../../tokens/core/*.tokens.json`        | DTCG 共享默认值（token 源，唯一手写入口）                             | token 编译器                                                |
+| `../../../tokens/themes/<id>/*.tokens.json` | DTCG 本主题覆盖（只写与 core 不同的值）                               | token 编译器                                                |
+| `themes/<id>/<id>.html`                     | 主题页面（引擎 + DOM）                                                | 宿主加载                                                    |
 
-`theme.json` 的 `tokens` 是 **schema**（声明本主题用了哪些 Token），值在 `theme.css`；
-约定测试会交叉校验“schema 里的每个名字都存在于 theme.css”。
+`theme.json` 的 `tokens` 是**生效视图**（core + 覆盖合并后的全量类型/说明），由编译器回写；
+宿主 `ThemeScan.cs` 的白名单会丢弃该段，因此它对宿主透明，仅供人 / AI / 测试消费。
+
+**Token 值的唯一来源是 DTCG JSON**（`tokens/core/` + `tokens/themes/<id>/`）。
+`theme.css`、`src/engine/tokens.ts`、`theme.json.tokens` 都是编译产物，禁止手改；
+改完 token 源跑 `pnpm tokens`（写入产物）+ `pnpm tokens:check`（产物↔源同步门禁）。
 
 `theme.json` 的 `page` 是相对运行时 `prototype/` 的路径（如 `themes/<id>/<id>.html`），
 页面文件由 `frontend/src/themes/<id>/<id>.html` 经 Vite 打包产出。
@@ -69,12 +78,12 @@ frontend/public/                # 配置型静态（原样拷贝到 dist 根）
 | `shadow` | 阴影                 | `--shadow-panel`、`--shadow-glyph`                      |
 | `scene`  | **WebGL 场景调色板** | `--scene-ground-mid`、`--scene-cloud-hi`                |
 
-**scene token 格式：** `--scene-*` 的颜色值写成 **0-1 的 `r g b` 三元组**（如 `0.62 0.75 0.42`），
-由引擎用 `getComputedStyle(document.documentElement).getPropertyValue(...)` 读出后解析；
-方向/偏移类（`--scene-light-dir`、`--scene-shadow-offset`）用空格分隔的数值。
-这样主题 CSS 同时驱动 DOM 和着色器，无需把颜色硬编码进 GLSL。
+**scene token 格式：** `--scene-*` 的颜色值写成 **0-1 的 `r g b` 三元组**（如 `[0.62, 0.75, 0.42]`，DTCG `$type: vec3`）；
+方向/偏移类（`--scene-light-dir`、`--scene-shadow-offset`）用 `vec2` 数组。
+每个 scene token 通过 `$extensions."deskland.v1".uniform` 声明它对应的 WebGL uniform（如 `uGroundMid`）；
+编译器汇总成 `src/engine/tokens.ts` 的 `SCENE_UNIFORMS`，引擎按当前主题取值一次写入 uniform，主循环不回读。
 
-**公共 Token 默认值**（在 `base.css :root`，主题可覆盖）：
+**公共 Token 默认值**（在 `tokens/core/*.tokens.json`，主题可覆盖）：
 
 | 分类   | Token                                                                                             | 默认值                                                                 |
 | ------ | ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
@@ -99,7 +108,7 @@ frontend/public/                # 配置型静态（原样拷贝到 dist 根）
 | scene  | `--scene-cloud-hi` / `--scene-cloud-body` / `--scene-cloud-shade`                                 | 云的亮部 / 主体 / 暗部                                                 |
 | scene  | `--scene-light-dir` / `--scene-shadow-offset`                                                     | 阳光方向 / 云影偏移                                                    |
 
-每个主题的 `theme.css` 至少覆盖 `--color-bg` 与自己的 `--scene-*` 调色板；其余继承 `base.css` 默认值。
+每个主题在 `tokens/themes/<id>/` 至少覆盖 `--color-bg` 与自己的 `--scene-*` 调色板；其余继承 core 默认值。
 
 ## 4. 主题页如何引入
 
@@ -131,17 +140,17 @@ frontend/public/                # 配置型静态（原样拷贝到 dist 根）
 
 ## 6. 开发红线
 
-1. **`theme.css` 只能包含 `:root { --token: value; }`**，禁止任何其他选择器。
-2. **`base.css` 是唯一允许写选择器的地方**；其中禁止出现字面颜色（`#hex`、`rgb()`、`rgba()`、
-   `hsl()`、`white`、`black` 等），只能 `var(--*)`（`transparent` / `inherit` / `none` 等关键字除外）。
-3. **新增颜色、字体、动效、圆角、模糊、阴影必须先定义 Token**，再在 `base.css` 或 `theme.css` 引用；
-   禁止在页面 `<style>` 或 JS 里硬编码颜色（WebGL 调色板走 `--scene-*`）。
-4. `theme.json` 的 `tokens` schema 必须与 `theme.css` 里实际声明的 Token 一一对应。
-5. 新增主题不得修改其他主题的 `theme.css` / `theme.json`，也不得修改 `base.css` 的默认值
-   （除非所有主题同步迁移）。
+1. **`theme.css` 是编译产物**，只能包含 `:root { --token: value; }`；要改值请改 `tokens/` 后跑 `pnpm tokens`。
+2. **`base.css` 是唯一允许写选择器的地方**；禁止出现字面颜色（`#hex`、`rgb()`、`rgba()`、
+   `hsl()`、`white`、`black` 等）与 `:root` token 块，只能 `var(--*)`（`transparent` / `inherit` / `none` 等关键字除外）。
+3. **新增颜色、字体、动效、圆角、模糊、阴影必须先写进 `tokens/`**（core 或主题覆盖），
+   再在 `base.css` 用 `var()` 引用；禁止在页面 `<style>` 或 JS 里硬编码颜色（WebGL 调色板走 `--scene-*`）。
+4. **scene token 必须在 `$extensions."deskland.v1".uniform` 登记 uniform 名**，否则引擎取不到值。
+5. 新增主题不得修改其他主题的 token / 产物，也不得修改 core 默认值（除非所有主题同步迁移）。
 
 ## 7. 验证
 
-- 约定测试：`dotnet test --filter ThemeConvention`（校验上述红线与 schema 一致性）。
+- Token 同步门禁：`pnpm tokens:check`（产物必须等于 token 源重新编译的结果）。
+- 约定测试：`dotnet test --filter ThemeConvention`（校验上述红线、schema 与 engine↔uniform 双向一致性）。
 - 视觉基线：设置页（浅/深）+ 四个壁纸页（暂停动画后采样）共 6 张，见 `test/Deskland.Tests/`。
 - 性能：`theme_switch` 埋点阈值，见 `DesklandE2ETests`。

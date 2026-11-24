@@ -55,19 +55,35 @@ public class ThemeConventionTests
         }
     }
 
+    /// <summary>
+    /// base.css 只写选择器：Design Token 的默认值已迁至 DTCG（tokens/core/*.tokens.json），
+    /// 由 scripts/build-tokens.mjs 编译进各主题 theme.css。因此 base.css 既不能有 :root token 块，
+    /// 也不能出现任何硬编码颜色。
+    /// </summary>
     [Fact]
-    public void BaseCss_NoHardcodedColorsOutsideRoot()
+    public void BaseCss_NoTokenBlockAndNoHardcodedColors()
     {
         var path = Path.Combine(ThemesDir, "base.css");
         Assert.True(File.Exists(path), $"缺少 {path}");
         var css = StripComments(File.ReadAllText(path));
-        var root = Regex.Match(css, @"(?s):root\s*\{(.*?)\}");
-        Assert.True(root.Success, "base.css 缺少 :root Token 默认值");
-        var outside = css.Substring(0, root.Index) + css.Substring(root.Index + root.Length);
-        Assert.DoesNotMatch(@"#[0-9a-fA-F]{3,8}\b", outside);
-        Assert.DoesNotMatch(@"\brgba?\s*\(", outside);
-        Assert.DoesNotMatch(@"\bhsla?\s*\(", outside);
-        Assert.DoesNotMatch(@"\b(white|black)\b(?!\s*-)", outside);   // 排除 white-space 等属性名
+        Assert.DoesNotMatch(@":root\s*\{", css);
+        Assert.DoesNotMatch(@"#[0-9a-fA-F]{3,8}\b", css);
+        Assert.DoesNotMatch(@"\brgba?\s*\(", css);
+        Assert.DoesNotMatch(@"\bhsla?\s*\(", css);
+        Assert.DoesNotMatch(@"\b(white|black)\b(?!\s*-)", css);   // 排除 white-space 等属性名
+    }
+
+    /// <summary>theme.css 是编译产物：必须带生成头，防止有人绕过 token 源手改。</summary>
+    [Fact]
+    public void ThemeCss_AreGeneratedArtifacts()
+    {
+        foreach (var id in ThemeFolderIds)
+        {
+            var path = Path.Combine(ThemesDir, id, "theme.css");
+            var css = File.ReadAllText(path);
+            Assert.True(css.StartsWith("/* 本文件由 scripts/build-tokens.mjs 生成", StringComparison.Ordinal),
+                $"{id}/theme.css 不是生成产物（或缺少生成头），请改 tokens/themes/{id}/*.tokens.json 后跑 pnpm tokens");
+        }
     }
 
     [Fact]
@@ -202,6 +218,39 @@ public class ThemeConventionTests
             Assert.Contains(id + ":", engineHtml);
             Assert.True(File.Exists(Path.Combine(ThemesDir, id, "theme.css")), $"缺少 themes/{id}/theme.css");
         }
+    }
+
+    /// <summary>
+    /// Token SSOT 双向校验：
+    ///  1) 引擎调色板里每个 sceneToken('--scene-x') 都必须在生成的 SCENE_UNIFORMS 中有 token→uniform 映射；
+    ///  2) SCENE_UNIFORMS 的每个 uniform 都必须真的被引擎以 U.&lt;name&gt; 使用（防止登记了却没人用的死映射）。
+    /// 源为 frontend/tokens/**/*.tokens.json，映射由 scripts/build-tokens.mjs 编译进 src/engine/tokens.ts。
+    /// </summary>
+    [Fact]
+    public void Tokens_EngineUniformMappingConsistent()
+    {
+        var tokensTs = File.ReadAllText(Path.Combine(SrcDir, "engine", "tokens.ts"));
+        var block = tokensTs.Split("SCENE_UNIFORMS = {", StringSplitOptions.RemoveEmptyEntries)[1];
+        block = block.Split(new[] { "} as const" }, StringSplitOptions.None)[0];
+        var map = Regex.Matches(block, @"""(--scene-[a-z0-9-]+)"":\s*""(u[A-Z][A-Za-z0-9]*)""")
+            .Cast<Match>()
+            .Select(m => (Token: m.Groups[1].Value, Uniform: m.Groups[2].Value))
+            .ToList();
+        Assert.NotEmpty(map);
+
+        var engineFiles = Directory.GetFiles(SrcDir, "*.ts", SearchOption.AllDirectories);
+        var engineSrc = string.Join("\n", engineFiles.Select(File.ReadAllText));
+
+        var used = Regex.Matches(engineSrc, @"U\.(u[A-Z][A-Za-z0-9]*)")
+            .Cast<Match>().Select(m => m.Groups[1].Value).ToHashSet();
+        var unused = map.Where(x => !used.Contains(x.Uniform)).Select(x => x.Token + " → " + x.Uniform).ToArray();
+        Assert.True(unused.Length == 0, "SCENE_UNIFORMS 里这些映射没有被引擎使用：\n" + string.Join("\n", unused));
+
+        var keys = map.Select(x => x.Token).ToHashSet();
+        var paletteTokens = Regex.Matches(engineSrc, @"sceneToken\('(--scene-[a-z0-9-]+)'\)")
+            .Cast<Match>().Select(m => m.Groups[1].Value).Distinct();
+        var missing = paletteTokens.Where(t => !keys.Contains(t)).ToArray();
+        Assert.True(missing.Length == 0, "引擎读取的 scene token 未在 SCENE_UNIFORMS 登记：\n" + string.Join("\n", missing));
     }
 
     private static string StripComments(string css) =>

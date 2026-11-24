@@ -458,17 +458,17 @@ export class FlatEngine extends SceneEngine {
 
   override buildScenePalette(): ScenePalette {
     return {
-      sea0: this.sceneToken('--scene-sea-0') || [0.74, 0.93, 0.87],
-      sea1: this.sceneToken('--scene-sea-1') || [0.47, 0.87, 0.84],
-      sea2: this.sceneToken('--scene-sea-2') || [0.17, 0.76, 0.81],
-      sea3: this.sceneToken('--scene-sea-3') || [0.03, 0.66, 0.79],
-      sea4: this.sceneToken('--scene-sea-4') || [0.0, 0.56, 0.73],
-      sand0: this.sceneToken('--scene-sand-0') || [0.97, 0.93, 0.88],
-      sand1: this.sceneToken('--scene-sand-1') || [0.91, 0.85, 0.84],
-      sand2: this.sceneToken('--scene-sand-2') || [0.82, 0.76, 0.79],
-      sand3: this.sceneToken('--scene-sand-3') || [0.71, 0.67, 0.75],
-      foam: this.sceneToken('--scene-foam') || [0.98, 0.99, 0.98],
-      wetsand: this.sceneToken('--scene-wetsand') || [0.93, 0.86, 0.72],
+      sea0: this.sceneToken('--scene-sea-0'),
+      sea1: this.sceneToken('--scene-sea-1'),
+      sea2: this.sceneToken('--scene-sea-2'),
+      sea3: this.sceneToken('--scene-sea-3'),
+      sea4: this.sceneToken('--scene-sea-4'),
+      sand0: this.sceneToken('--scene-sand-0'),
+      sand1: this.sceneToken('--scene-sand-1'),
+      sand2: this.sceneToken('--scene-sand-2'),
+      sand3: this.sceneToken('--scene-sand-3'),
+      foam: this.sceneToken('--scene-foam'),
+      wetsand: this.sceneToken('--scene-wetsand'),
     };
   }
 

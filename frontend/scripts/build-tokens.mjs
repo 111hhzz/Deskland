@@ -17,7 +17,7 @@
  *       把生成结果与参考 CSS（base.css + 手写 theme.css）做“计算值等价”比对；
  *       默认只报差异；--strict 时 missing/extra 也视为失败（全量迁移后应开）。
  */
-import { readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -218,7 +218,9 @@ ${uni}
 
 // ---------- 主流程 ----------
 
-function build(outDir) {
+/** 解析全部 token，返回 { coreResolved, themeResolved, uniforms }；出错时返回 null 并 report()。 */
+function generate() {
+  index.clear();
   const coreFiles = [];
   scanDir(join(TOKENS_DIR, 'core'), coreFiles);
   const themeDirs = readdirSync(join(TOKENS_DIR, 'themes'), { withFileTypes: true })
@@ -274,25 +276,104 @@ function build(outDir) {
     }
   }
 
-  for (const [id, merged] of themeResolved) {
+  return {
+    coreResolved,
+    themeResolved,
+    uniforms,
+    tokensTs: renderTokensTs(
+      Object.fromEntries(coreResolved),
+      Object.fromEntries([...themeResolved].map(([id, m]) => [id, Object.fromEntries(m)])),
+      uniforms,
+    ),
+  };
+}
+
+/** 开发预览输出：CSS 与 TS 都落到 .local/token-out */
+function writePreview(g) {
+  const outDir = join(FRONTEND, '.local', 'token-out');
+  for (const [id, merged] of g.themeResolved) {
     const cssPath = join(outDir, 'themes', id, 'theme.css');
     mkdirSync(dirname(cssPath), { recursive: true });
     writeFileSync(cssPath, renderThemeCss(id, merged));
   }
   mkdirSync(join(outDir, 'engine'), { recursive: true });
-  writeFileSync(
-    join(outDir, 'engine', 'tokens.ts'),
-    renderTokensTs(
-      Object.fromEntries(coreResolved),
-      Object.fromEntries([...themeResolved].map(([id, m]) => [id, Object.fromEntries(m)])),
-      uniforms,
-    ),
-  );
-
-  console.log(`✔ 编译完成：core ${coreResolved.size} 个 token；主题 ${[...themeResolved.keys()].join(', ')}`);
+  writeFileSync(join(outDir, 'engine', 'tokens.ts'), g.tokensTs);
+  console.log(`✔ 编译完成：core ${g.coreResolved.size} 个 token；主题 ${[...g.themeResolved.keys()].join(', ')}`);
   console.log(`   CSS  → ${join(outDir, 'themes')}`);
   console.log(`   TS   → ${join(outDir, 'engine', 'tokens.ts')}`);
-  console.log(`   uniform 映射 ${Object.keys(uniforms).length} 条`);
+  console.log(`   uniform 映射 ${Object.keys(g.uniforms).length} 条`);
+}
+
+/** theme.json 的 tokens 视图：本主题生效全景（core + 覆盖），供人 / AI / 测试消费；宿主白名单会丢弃该段。 */
+function renderTokensJson(merged) {
+  const groups = {};
+  for (const [name, entry] of [...merged].sort((a, b) => a[0].localeCompare(b[0]))) {
+    const cat = entry.path[0];
+    const key = name.slice(cat.length + 3); // 去掉 "--" 前缀与分类后的连字符
+    (groups[cat] ??= {})[key] = { type: entry.type, description: entry.description };
+  }
+  return groups;
+}
+
+/** 正式产出：theme.css 覆盖 public/themes/<id>/，tokens.ts 落到 src/engine/，theme.json.tokens 更新为生效视图 */
+function writeEmit(g) {
+  for (const [id, merged] of g.themeResolved) {
+    const dir = join(FRONTEND, 'public', 'themes', id);
+    const cssPath = join(dir, 'theme.css');
+    mkdirSync(dirname(cssPath), { recursive: true });
+    writeFileSync(cssPath, renderThemeCss(id, merged));
+
+    const jsonPath = join(dir, 'theme.json');
+    if (existsSync(jsonPath)) {
+      const manifest = JSON.parse(readFileSync(jsonPath, 'utf8'));
+      manifest.tokens = renderTokensJson(merged);
+      writeFileSync(jsonPath, JSON.stringify(manifest, null, 2) + '\n');
+    }
+  }
+  const tsPath = join(FRONTEND, 'src', 'engine', 'tokens.ts');
+  mkdirSync(dirname(tsPath), { recursive: true });
+  writeFileSync(tsPath, g.tokensTs);
+  console.log(`✔ 已写入 ${g.themeResolved.size} 个主题的 theme.css / theme.json.tokens 与 src/engine/tokens.ts`);
+}
+
+/** 同步门禁：已提交的产物必须与 token 源重新编译的结果一致（防止手改产物 / 漏编译） */
+function checkAll() {
+  const g = generate();
+  if (!g) return;
+  const bad = [];
+  for (const [id, merged] of g.themeResolved) {
+    const cssPath = join(FRONTEND, 'public', 'themes', id, 'theme.css');
+    let actual = null;
+    try {
+      actual = readFileSync(cssPath, 'utf8');
+    } catch {
+      /* 缺文件 */
+    }
+    if (actual !== renderThemeCss(id, merged)) bad.push('public/themes/' + id + '/theme.css');
+
+    const jsonPath = join(FRONTEND, 'public', 'themes', id, 'theme.json');
+    if (existsSync(jsonPath)) {
+      const manifest = JSON.parse(readFileSync(jsonPath, 'utf8'));
+      if (JSON.stringify(manifest.tokens) !== JSON.stringify(renderTokensJson(merged))) {
+        if (actual !== renderThemeCss(id, merged)) bad.push('public/themes/' + id + '/theme.css');
+      }
+    }
+  }
+  const tsPath = join(FRONTEND, 'src', 'engine', 'tokens.ts');
+  let tsActual = null;
+  try {
+    tsActual = readFileSync(tsPath, 'utf8');
+  } catch {
+    /* 缺文件 */
+  }
+  if (tsActual !== g.tokensTs) bad.push('src/engine/tokens.ts');
+  if (bad.length) {
+    console.error(`✘ 产物与 token 源不一致（${bad.length} 处）：`);
+    for (const f of bad) console.error('  - ' + f);
+    console.error('  修复：node scripts/build-tokens.mjs --emit');
+    process.exit(1);
+  }
+  console.log(`✔ 同步校验通过：${g.themeResolved.size} 个主题 CSS + src/engine/tokens.ts`);
 }
 
 function report() {
@@ -377,9 +458,12 @@ if (args[0] === '--check') {
     process.exit(2);
   }
   check(pos[0], pos[1], pos[2], strict);
+} else if (args[0] === '--check-all') {
+  checkAll();
+} else if (args[0] === '--emit') {
+  const g = generate();
+  if (g) writeEmit(g);
 } else {
-  const outIdx = args.indexOf('--out');
-  const outDir = outIdx >= 0 ? args[outIdx + 1] : join(FRONTEND, '.local', 'token-out');
-  build(outDir);
-  report();
+  const g = generate();
+  if (g) writePreview(g);
 }

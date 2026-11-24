@@ -10,15 +10,125 @@
       "$type": "color",
       "$description": "面板底"
     },
+    "surface-2": {
+      "$value": "rgba(255, 255, 255, .06)",
+      "$type": "color",
+      "$description": ""
+    },
+    "surface-active": {
+      "$value": "rgba(255, 255, 255, .17)",
+      "$type": "color",
+      "$description": ""
+    },
+    "border": {
+      "$value": "rgba(255, 255, 255, .14)",
+      "$type": "color",
+      "$description": ""
+    },
     "text": {
       "$value": "#eef6f5",
       "$type": "color",
-      "$description": "主文字色"
+      "$description": ""
+    },
+    "text-muted": {
+      "$value": "#d4e4e2",
+      "$type": "color",
+      "$description": ""
     },
     "accent": {
       "$value": "#7fe3d6",
       "$type": "color",
-      "$description": "强调色（滑块、选中态、时钟）"
+      "$description": ""
+    },
+    "taskbar-bg": {
+      "$value": "rgba(28, 32, 38, .6)",
+      "$type": "color",
+      "$description": ""
+    },
+    "taskbar-border": {
+      "$value": "rgba(255, 255, 255, .08)",
+      "$type": "color",
+      "$description": ""
+    },
+    "app-hover-bg": {
+      "$value": "rgba(255, 255, 255, .08)",
+      "$type": "color",
+      "$description": ""
+    },
+    "icon-hover-bg": {
+      "$value": "rgba(255, 255, 255, .16)",
+      "$type": "color",
+      "$description": ""
+    },
+    "icon-hover-border": {
+      "$value": "rgba(255, 255, 255, .24)",
+      "$type": "color",
+      "$description": ""
+    },
+    "icon-sel-bg": {
+      "$value": "rgba(0, 120, 215, .34)",
+      "$type": "color",
+      "$description": ""
+    },
+    "icon-sel-border": {
+      "$value": "rgba(140, 200, 255, .7)",
+      "$type": "color",
+      "$description": ""
+    },
+    "label": {
+      "$value": "#fff",
+      "$type": "color",
+      "$description": ""
+    },
+    "ripple": {
+      "$value": "rgba(255, 255, 255, .8)",
+      "$type": "color",
+      "$description": ""
+    },
+    "ripple-glow": {
+      "$value": "rgba(255, 255, 255, .55)",
+      "$type": "color",
+      "$description": ""
+    },
+    "ripple-inset": {
+      "$value": "rgba(255, 255, 255, .35)",
+      "$type": "color",
+      "$description": ""
+    },
+    "ghost-bg": {
+      "$value": "rgba(255, 255, 255, .88)",
+      "$type": "color",
+      "$description": ""
+    },
+    "ghost-label": {
+      "$value": "rgba(255, 255, 255, .75)",
+      "$type": "color",
+      "$description": ""
+    },
+    "stat-bg": {
+      "$value": "rgba(0, 0, 0, .25)",
+      "$type": "color",
+      "$description": ""
+    },
+    "btn-bg": {
+      "$value": "rgba(255, 255, 255, .1)",
+      "$type": "color",
+      "$description": ""
+    },
+    "btn-border": {
+      "$value": "rgba(255, 255, 255, .1)",
+      "$type": "color",
+      "$description": ""
+    },
+    "btn-hover-bg": {
+      "$value": "rgba(255, 255, 255, .18)",
+      "$type": "color",
+      "$description": ""
+    },
+    "nogl": {
+      "$value": "#fff",
+      "$type": "color",
+      "$description": ""
     }
   }
 }

@@ -1,0 +1,14 @@
+{
+  "app": {
+    "size": {
+      "$value": "40px",
+      "$type": "dimension",
+      "$description": ""
+    },
+    "icon-size": {
+      "$value": "24px",
+      "$type": "dimension",
+      "$description": ""
+    }
+  }
+}

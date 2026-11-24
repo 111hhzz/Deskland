@@ -62,11 +62,11 @@ export default defineConfig({
     printWidth: 120,
     tabWidth: 2,
     trailingComma: 'all',
-    ignorePatterns: ['dist', 'node_modules', '.local', '*.css'],
+    ignorePatterns: ['dist', 'node_modules', '.local', '*.css', 'src/engine/tokens.ts'],
   },
   // Oxlint：类型感知规则 + 类型检查（tsrs，即 TypeScript 7 native）。
   lint: {
-    ignorePatterns: ['dist/**', 'node_modules/**'],
+    ignorePatterns: ['dist/**', 'node_modules/**', 'src/engine/tokens.ts'],
     options: { typeAware: true, typeCheck: true },
   },
 });

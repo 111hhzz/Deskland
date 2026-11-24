@@ -1,0 +1,9 @@
+{
+  "taskbar": {
+    "size": {
+      "$value": "48px",
+      "$type": "dimension",
+      "$description": ""
+    }
+  }
+}

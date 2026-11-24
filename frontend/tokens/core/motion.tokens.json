@@ -1,0 +1,39 @@
+{
+  "motion": {
+    "fade": {
+      "$value": "250ms",
+      "$type": "duration",
+      "$description": ""
+    },
+    "settle": {
+      "$value": ".22s",
+      "$type": "duration",
+      "$description": ""
+    },
+    "born": {
+      "$value": ".45s",
+      "$type": "duration",
+      "$description": ""
+    },
+    "ripple": {
+      "$value": ".65s",
+      "$type": "duration",
+      "$description": ""
+    },
+    "ease-out": {
+      "$value": "ease-out",
+      "$type": "easing",
+      "$description": ""
+    },
+    "ease-settle": {
+      "$value": "cubic-bezier(.2, .8, .3, 1)",
+      "$type": "easing",
+      "$description": ""
+    },
+    "ease-spring": {
+      "$value": "cubic-bezier(.2, .9, .3, 1.2)",
+      "$type": "easing",
+      "$description": ""
+    }
+  }
+}
