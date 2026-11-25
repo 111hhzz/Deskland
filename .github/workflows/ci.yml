@@ -1,0 +1,135 @@
+name: CI
+
+# Deskland+ 硬门禁：让 AI 可以犯错，但错误不能合入 main。
+#
+# 分层（详见工作区 docs/specs/2026-11-25-ci-hardening-spec.md）：
+#   gates  = L0 确定性检查（格式 / 类型 / deslop / 构建），required
+#   e2e    = L1 E2E 非视觉，观察期 non-required，稳定后再升为 required
+#   visual = L2 视觉基线像素 diff，永不 required（CI 无 GPU / DPI 差异会 flaky）
+#
+# 本地 hook（.githooks/pre-commit、pre-push）调用同一份 tools/ci/run-gates.ps1，避免两套逻辑漂移。
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - '.githooks/**'
+      - 'media/**'
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - '.githooks/**'
+      - 'media/**'
+
+concurrency:
+  # 同一分支的新提交直接取消旧 run，省 Windows runner 分钟数
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # 测试 profile / WebView2 用户数据放在工作区内，不写到仓库外
+  DESKLAND_LOCAL: ${{ github.workspace }}\.deskland-local
+
+jobs:
+  gates:
+    name: L0 硬门禁（格式 / 类型 / deslop / 构建）
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 还原 .NET SDK（按 global.json）
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: |
+            host/obj/project.assets.json
+            test/Deskland.Tests/obj/project.assets.json
+
+      - name: 还原 Node（按 .nvmrc）
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: 启用 corepack（使用 packageManager 声明的 pnpm 版本）
+        run: corepack enable
+
+      - name: 运行 L0
+        shell: pwsh
+        run: pwsh -NoProfile -File tools/ci/run-gates.ps1 -Stage L0
+
+  e2e:
+    name: L1 E2E 非视觉（观察期 non-required）
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 还原 .NET SDK（按 global.json）
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: |
+            host/obj/project.assets.json
+            test/Deskland.Tests/obj/project.assets.json
+
+      - name: 还原 Node（按 .nvmrc）
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: 启用 corepack
+        run: corepack enable
+
+      - name: 构建（L0 的 build 部分，产出 E2E 所需宿主 exe）
+        shell: pwsh
+        run: pwsh -NoProfile -File tools/ci/run-gates.ps1 -Stage L0
+
+      - name: 运行 L1（Category!=visual）
+        shell: pwsh
+        run: pwsh -NoProfile -File tools/ci/run-gates.ps1 -Stage L1
+
+  visual:
+    name: L2 视觉基线（永不 required）
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 还原 .NET SDK（按 global.json）
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: |
+            host/obj/project.assets.json
+            test/Deskland.Tests/obj/project.assets.json
+
+      - name: 还原 Node（按 .nvmrc）
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: 启用 corepack
+        run: corepack enable
+
+      - name: 构建（L0 的 build 部分）
+        shell: pwsh
+        run: pwsh -NoProfile -File tools/ci/run-gates.ps1 -Stage L0
+
+      - name: 运行 L2（Category=visual）
+        shell: pwsh
+        run: pwsh -NoProfile -File tools/ci/run-gates.ps1 -Stage L2

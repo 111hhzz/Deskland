@@ -52,6 +52,8 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4191.47" />
+    <!-- net48 引用程序集改由 NuGet 提供，不再依赖本机/CI runner 是否安装 Developer Pack -->
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="All" />
   </ItemGroup>
 
 </Project>

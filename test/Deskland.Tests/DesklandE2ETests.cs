@@ -279,6 +279,9 @@ public class DesklandE2ETests : IAsyncLifetime
     /// 生成基线：设置环境变量 DESKLAND_UPDATE_BASELINES=1 后运行本测试。
     /// </summary>
     [Fact]
+    // 视觉基线依赖真实 GPU / DPI / 字体渲染，CI（无 GPU、软件渲染）上必然与本机像素不同，
+    // 因此单独打标：L1 用 Category!=visual 排除，L2 用 Category=visual 只跑本项，且 L2 永不作硬门禁。
+    [Trait("Category", "visual")]
     public async Task VisualBaseline_AllScreens()
     {
         Directory.CreateDirectory(BaselineDir);
