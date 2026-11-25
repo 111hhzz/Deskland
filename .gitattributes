@@ -11,3 +11,10 @@
 *.exe binary
 *.dll binary
 *.zip binary
+
+# Token SSOT：编译产物必须与源字节一致（门禁 readFileSync + 字符串比对，不做换行归一）。
+# Windows checkout 若把 LF 转成 CRLF 会误报「产物与 token 源不一致」，故强制这些路径恒为 LF。
+frontend/tokens/**              text eol=lf
+frontend/public/themes/**       text eol=lf
+frontend/src/engine/tokens.ts   text eol=lf
+frontend/theme.json.tokens      text eol=lf
