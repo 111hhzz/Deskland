@@ -47,10 +47,9 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
+          # 不设 cache-dependency-path：它默认指向的 obj/project.assets.json 在 checkout 后不存在，
+          # 会被严格校验拦下（"Some specified paths were not resolved"）；保留 cache 仍走项目文件哈希。
           cache: true
-          cache-dependency-path: |
-            host/obj/project.assets.json
-            test/Deskland.Tests/obj/project.assets.json
 
       - name: 还原 Node（按 .nvmrc）
         uses: actions/setup-node@v4
@@ -77,10 +76,9 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
+          # 不设 cache-dependency-path：它默认指向的 obj/project.assets.json 在 checkout 后不存在，
+          # 会被严格校验拦下（"Some specified paths were not resolved"）；保留 cache 仍走项目文件哈希。
           cache: true
-          cache-dependency-path: |
-            host/obj/project.assets.json
-            test/Deskland.Tests/obj/project.assets.json
 
       - name: 还原 Node（按 .nvmrc）
         uses: actions/setup-node@v4
@@ -111,10 +109,9 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
+          # 不设 cache-dependency-path：它默认指向的 obj/project.assets.json 在 checkout 后不存在，
+          # 会被严格校验拦下（"Some specified paths were not resolved"）；保留 cache 仍走项目文件哈希。
           cache: true
-          cache-dependency-path: |
-            host/obj/project.assets.json
-            test/Deskland.Tests/obj/project.assets.json
 
       - name: 还原 Node（按 .nvmrc）
         uses: actions/setup-node@v4
