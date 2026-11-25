@@ -51,15 +51,17 @@ foreach ($file in $sourceFiles) {
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 [IO.Compression.ZipFile]::CreateFromDirectory($sourceStage, (Join-Path $payload 'Deskland-source.zip'))
 
-# 安装目录布局：prototype\* + 宿主 exe / 运行库 + 文档 + 源码包
+# 安装目录布局（与 installer.nsi 一致）：host\bin\ 下的宿主 exe / 运行库 / prototype\* + 文档 + 源码包。
+# 注意：这里保留 host\bin\ 前缀（installer.nsi 的图标、快捷方式、卸载器都按 $INSTDIR\host\bin\Deskland.exe 定位），
+# 不能用 ConvertTo-InstallPath 拍平；便携版才是拍平布局。
 $docs = @('LICENSE', 'NOTICE', 'README.md', 'THIRD_PARTY_NOTICES.md', 'TRADEMARKS.md')
 foreach ($f in $runtime) {
-    $target = Join-Path $payload (ConvertTo-InstallPath $f)
+    $target = Join-Path $payload $f
     New-Item -ItemType Directory -Force (Split-Path $target) | Out-Null
     Copy-Item -LiteralPath (Join-Path $root $f) -Destination $target
 }
 foreach ($d in $docs) { Copy-Item -LiteralPath (Join-Path $root $d) -Destination (Join-Path $payload $d) }
-$installFiles = @($docs) + @($runtime | ForEach-Object { ConvertTo-InstallPath $_ }) + @('Deskland-source.zip')
+$installFiles = @($docs) + $runtime + @('Deskland-source.zip')
 
 $utf8 = New-Object Text.UTF8Encoding($true)
 $fileLines = @()

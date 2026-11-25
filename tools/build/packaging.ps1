@@ -29,7 +29,8 @@ function Get-RuntimeFiles {
     return @($files)
 }
 
-# host\bin\ 前缀去掉后就是安装目录里的相对路径（prototype\... / Deskland.exe）
+# host\bin\ 前缀去掉后是便携版压缩包里的相对路径（prototype\... / Deskland.exe）。
+# 安装器不用此函数：installer.nsi 按 $INSTDIR\host\bin\Deskland.exe 定位，暂存需保留 host\bin\ 前缀。
 function ConvertTo-InstallPath { param([string]$RepoRelative) $RepoRelative -replace '^host\\bin\\', '' }
 
 # 清空并删除临时目录（逐个删除，不用递归删除）
