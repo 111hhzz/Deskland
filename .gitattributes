@@ -1,3 +1,7 @@
+# 统一行尾为 LF：Windows 的 git（含 GitHub runner）默认会把文本检出为 CRLF，
+# 而 Oxfmt / token 同步门禁都是逐字符串比对、不做换行归一，会因此误报“格式不符 / 产物不一致”。
+* text=auto eol=lf
+
 # 二进制文件标记，避免无意义的文本 diff
 *.png binary
 *.ico binary
@@ -11,10 +15,3 @@
 *.exe binary
 *.dll binary
 *.zip binary
-
-# Token SSOT：编译产物必须与源字节一致（门禁 readFileSync + 字符串比对，不做换行归一）。
-# Windows checkout 若把 LF 转成 CRLF 会误报「产物与 token 源不一致」，故强制这些路径恒为 LF。
-frontend/tokens/**              text eol=lf
-frontend/public/themes/**       text eol=lf
-frontend/src/engine/tokens.ts   text eol=lf
-frontend/theme.json.tokens      text eol=lf
