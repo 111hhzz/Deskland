@@ -19,7 +19,9 @@
 - 设置页是静态 DOM，整图比对。
 - 壁纸页通过 `AddInitScriptAsync` 冻结 `performance.now` / `requestAnimationFrame`，
   并把 `Math.random` 换成固定种子的 PRNG（meadow.html 用 `Math.random()` 生成场景种子）。
-  因此截图不随时间、桌面图标位置变化。
+- 截图前调用 `__dbg.applyLayout('mine')`，把图标重摆到内置固定格子：云团形状绕图标走，
+  若用真实桌面图标，布局随机器 / 会话变化会导致基线漂移（曾反复失效的根因）。
+- 因此截图不随时间、桌面图标位置变化；换分辨率 / DPI 后仍需重新生成。
 - 允许 2% 的像素差异（`MaxDiffRatio`），用于吸收抗锯齿/缩放的轻微抖动。
 
 ## 重新生成

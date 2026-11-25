@@ -346,6 +346,9 @@ public class DesklandE2ETests : IAsyncLifetime
                 "() => window.__desklandIcons === true",
                 null,
                 new PageWaitForFunctionOptions { Timeout = 20000 });
+            // 云团形状绕着桌面图标走，而真实桌面图标布局随机器 / 会话变化——这是基线反复漂移的根因。
+            // 改用内置的确定性布局（mineCells 固定格子）重摆图标，截图与桌面状态无关。
+            await _pageWallpaper.EvaluateAsync("window.__dbg && window.__dbg.applyLayout && window.__dbg.applyLayout('mine')");
             // 测试把 performance.now 冻结了，页面只画一帧；手动走完形态过渡再画一帧，
             // 否则取到的可能是"图标还没就位"的那一帧（与图标到达形成竞态）。
             // 截图前把随机序列归位，保证这一帧与之前跑了几帧无关。
