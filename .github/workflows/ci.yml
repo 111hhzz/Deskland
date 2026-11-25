@@ -37,7 +37,8 @@ env:
 
 jobs:
   gates:
-    name: L0 硬门禁（格式 / 类型 / deslop / 构建）
+    # name 故意不设：check-run 的 context 直接用 job id（"gates"），
+    # 便于在 branch ruleset 中把 required status check 写成稳定的短名。
     runs-on: windows-latest
     timeout-minutes: 25
     steps:
@@ -66,7 +67,7 @@ jobs:
         run: pwsh -NoProfile -File tools/ci/run-gates.ps1 -Stage L0
 
   e2e:
-    name: L1 E2E 非视觉（观察期 non-required）
+    # 同上：context = "e2e"；观察期内不设为 required。
     runs-on: windows-latest
     timeout-minutes: 40
     steps:
@@ -99,7 +100,7 @@ jobs:
         run: pwsh -NoProfile -File tools/ci/run-gates.ps1 -Stage L1
 
   visual:
-    name: L2 视觉基线（永不 required）
+    # 同上：context = "visual"；永不设为 required。
     runs-on: windows-latest
     timeout-minutes: 40
     steps:
