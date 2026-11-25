@@ -1196,7 +1196,9 @@ public class DesklandE2ETests : IAsyncLifetime
     [Fact]
     public void HostSettings_ClickThroughPersisted()
     {
-        var hostSrc = File.ReadAllText(Path.Combine(RepoRoot, "host", "DesktopHost.cs"));
+        // 宿主已按职责拆成多文件（Program/Settings/HostContext…），这里合并读取整个 host 目录，避免与文件名耦合
+        var hostDir = Path.Combine(RepoRoot, "host");
+        var hostSrc = string.Join("\n", Directory.GetFiles(hostDir, "*.cs").Select(File.ReadAllText));
         Assert.Contains("public static bool ClickThrough = false;", hostSrc);
         Assert.Contains("root.TryGetValue(\"clickThrough\", out v) && v is bool", hostSrc);
         Assert.Contains("\"clickThrough\", ClickThrough", hostSrc);
