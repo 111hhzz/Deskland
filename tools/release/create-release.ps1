@@ -9,7 +9,8 @@ if (-not $token) {
   if (Test-Path -LiteralPath $tokenFile) { $token = (Get-Content -LiteralPath $tokenFile -Raw).Trim() }
 }
 if (-not $token) { throw 'Set GITHUB_TOKEN environment variable (or create .gh_token) with a GitHub PAT (repo scope).' }
-$repo = '111hhzz/Deskland'
+$repo = $env:GITHUB_REPO
+if (-not $repo) { $repo = '111hhzz/Deskland' }
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))   # tools/release → 仓库根
 $version = (Get-Content -LiteralPath (Join-Path $PSScriptRoot '..\build\version.json') -Raw | ConvertFrom-Json).version
 if ($tag -eq 'v0.1.3') { $tag = 'v' + $version }
@@ -45,7 +46,11 @@ if (-not $rj) {
     body = $notes
   } | ConvertTo-Json -Depth 4
 
-  $release = Invoke-WebRequest -Uri "$base/releases" -Method Post -UseBasicParsing -Proxy $proxy -Headers $headers -Body $body -ContentType 'application/json'
+  # Windows PowerShell 5.1 会把字符串 Body 按本地 ANSI(GBK) 字节发出，GitHub 按 UTF-8
+  # 解析就会把中文全变成 '?'。显式转成 UTF-8 字节再发。
+  $bodyBytes = [Text.Encoding]::UTF8.GetBytes($body)
+
+  $release = Invoke-WebRequest -Uri "$base/releases" -Method Post -UseBasicParsing -Proxy $proxy -Headers $headers -Body $bodyBytes -ContentType 'application/json'
   $rj = $release.Content | ConvertFrom-Json
   Write-Host ("Created release id=" + $rj.id + " tag=" + $rj.tag_name)
   Write-Host ("Upload URL: " + $rj.upload_url)
