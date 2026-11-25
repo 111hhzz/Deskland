@@ -2,12 +2,17 @@ name: CI
 
 # Deskland+ 硬门禁：让 AI 可以犯错，但错误不能合入 main。
 #
-# 分层（详见工作区 docs/specs/2026-11-25-ci-hardening-spec.md）：
-#   gates  = L0 确定性检查（格式 / 类型 / deslop / 构建），required
-#   e2e    = L1 E2E 非视觉，观察期 non-required，稳定后再升为 required
-#   visual = L2 视觉基线像素 diff，永不 required（CI 无 GPU / DPI 差异会 flaky）
+# 只有一个 job：gates = L0 确定性检查（前端 check / dotnet format / deslop / 两处 --warnaserror 构建），
+# 在 branch ruleset（#28082234）中设为 required，是唯一「拦住合并」的检查。
 #
-# 本地 hook（.githooks/pre-commit、pre-push）调用同一份 tools/ci/run-gates.ps1，避免两套逻辑漂移。
+# L1（E2E 非视觉）与 L2（视觉基线像素 diff）**不在云端跑**，只在本地 hook 的全量中执行
+# （pre-commit / pre-push 都调 tools/ci/run-gates.ps1 -Stage All）：
+#   - L2 依赖分辨率 / GPU / 字体：托管 runner 上连基线尺寸都对不上（实测 actual 1028x749 vs baseline 1400x1000）；
+#   - L1 在无 GPU runner 上单轮约 30 分钟且 CDP 端口易 30s 超时（实测 42/45）。
+#   两者上云只会长期飘红、稀释信号，所以定位为本地质量建议层（可被 --no-verify 绕过，故本就不该拦人）。
+#   需要时仍可手动跑：pwsh -File tools/ci/run-gates.ps1 -Stage L1|L2
+#
+# 详见工作区 docs/specs/2026-11-25-ci-hardening-spec.md。
 
 on:
   push:
@@ -65,69 +70,3 @@ jobs:
       - name: 运行 L0
         shell: pwsh
         run: pwsh -NoProfile -File tools/ci/run-gates.ps1 -Stage L0
-
-  e2e:
-    # 同上：context = "e2e"；观察期内不设为 required。
-    runs-on: windows-latest
-    timeout-minutes: 40
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: 还原 .NET SDK（按 global.json）
-        uses: actions/setup-dotnet@v4
-        with:
-          global-json-file: global.json
-          # 不用 NuGet 缓存：setup-dotnet 在未指定 cache-dependency-path 时只认 packages.lock.json，
-          # 指定 obj/project.assets.json 又会在 checkout 后不存在而报错；依赖少，直连还原即可。
-          cache: false
-
-      - name: 还原 Node（按 .nvmrc）
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          # 不设 cache：恢复缓存要在 PATH 中找到 pnpm，而 corepack 在本步之后才启用；
-          # 且该字段只接受 'npm'/'pnpm'/'yarn'，写 false 会报 "Caching for 'false' is not supported"。
-
-      - name: 启用 corepack
-        run: corepack enable
-
-      - name: 构建（L0 的 build 部分，产出 E2E 所需宿主 exe）
-        shell: pwsh
-        run: pwsh -NoProfile -File tools/ci/run-gates.ps1 -Stage L0
-
-      - name: 运行 L1（Category!=visual）
-        shell: pwsh
-        run: pwsh -NoProfile -File tools/ci/run-gates.ps1 -Stage L1
-
-  visual:
-    # 同上：context = "visual"；永不设为 required。
-    runs-on: windows-latest
-    timeout-minutes: 40
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: 还原 .NET SDK（按 global.json）
-        uses: actions/setup-dotnet@v4
-        with:
-          global-json-file: global.json
-          # 不用 NuGet 缓存：setup-dotnet 在未指定 cache-dependency-path 时只认 packages.lock.json，
-          # 指定 obj/project.assets.json 又会在 checkout 后不存在而报错；依赖少，直连还原即可。
-          cache: false
-
-      - name: 还原 Node（按 .nvmrc）
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          # 不设 cache：恢复缓存要在 PATH 中找到 pnpm，而 corepack 在本步之后才启用；
-          # 且该字段只接受 'npm'/'pnpm'/'yarn'，写 false 会报 "Caching for 'false' is not supported"。
-
-      - name: 启用 corepack
-        run: corepack enable
-
-      - name: 构建（L0 的 build 部分）
-        shell: pwsh
-        run: pwsh -NoProfile -File tools/ci/run-gates.ps1 -Stage L0
-
-      - name: 运行 L2（Category=visual）
-        shell: pwsh
-        run: pwsh -NoProfile -File tools/ci/run-gates.ps1 -Stage L2
