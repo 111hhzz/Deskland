@@ -27,6 +27,7 @@ VIAddVersionKey /LANG=1033 "LegalCopyright" "Copyright 2026 Deskland authors"
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_LICENSE "${PAYLOAD}\LICENSE"
 !insertmacro MUI_PAGE_DIRECTORY
+!insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
 !insertmacro MUI_UNPAGE_CONFIRM
@@ -40,6 +41,8 @@ LangString AppFiles ${LANG_SIMPCHINESE} "Deskland+ 社区版（沙滩、草地�
 LangString AppFiles ${LANG_ENGLISH} "Deskland+ Community (Beach, Meadow and Sky)"
 LangString DesktopShortcut ${LANG_SIMPCHINESE} "桌面快捷方式"
 LangString DesktopShortcut ${LANG_ENGLISH} "Desktop shortcut"
+LangString DesktopShortcutDesc ${LANG_SIMPCHINESE} "在桌面创建 Deskland+ 的启动图标（默认不勾选；开始菜单快捷方式始终创建）"
+LangString DesktopShortcutDesc ${LANG_ENGLISH} "Create a Deskland+ icon on the desktop (unchecked by default; the Start menu shortcut is always created)"
 LangString NeedX64 ${LANG_SIMPCHINESE} "需要 64 位 Windows 10 或更高版本。"
 LangString NeedX64 ${LANG_ENGLISH} "64-bit Windows 10 or later is required."
 LangString CloseFailed ${LANG_SIMPCHINESE} "请退出正在运行的 Deskland+ 后重试。"
@@ -109,6 +112,8 @@ Section "$(AppFiles)" SecApp
   CreateDirectory "$SMPROGRAMS\Deskland+"
   CreateShortcut "$SMPROGRAMS\Deskland+\Deskland+.lnk" "$INSTDIR\host\bin\Deskland.exe"
   CreateShortcut "$SMPROGRAMS\Deskland+\Uninstall.lnk" "$INSTDIR\Uninstall.exe"
+  # 清掉上一次安装留下的桌面快捷方式；下面的可选 Section 再根据用户勾选决定是否重建
+  Delete "$DESKTOP\Deskland+.lnk"
   WriteRegStr HKCU "Software\DesklandPlus\Installer" "InstallDir" "$INSTDIR"
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\DesklandPlus" "DisplayName" "Deskland+"
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\DesklandPlus" "DisplayVersion" "${VERSION}"
@@ -127,6 +132,18 @@ Function un.onInit
   SetShellVarContext current
   SetRegView 64
 FunctionEnd
+
+# 可选：桌面快捷方式（/o = 默认不勾选）。放在主 Section 之后执行，
+# 因此主 Section 先删旧链接、这里再按需重建，重复安装不会留下陈旧链接。
+# 静默安装（/S）看不到界面，保持默认不勾选。
+Section /o "$(DesktopShortcut)" SecDesktop
+  CreateShortcut "$DESKTOP\Deskland+.lnk" "$INSTDIR\host\bin\Deskland.exe" "" "$INSTDIR\host\bin\DesklandPlus.ico"
+SectionEnd
+
+!insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecDesktop} $(DesktopShortcutDesc)
+!insertmacro MUI_FUNCTION_DESCRIPTION_END
+
 Section "Uninstall"
   IfFileExists "$INSTDIR\host\bin\Deskland.exe" 0 unclosed
   ExecWait '"$INSTDIR\host\bin\Deskland.exe" --exit-installed' $0
@@ -147,6 +164,7 @@ Section "Uninstall"
   Delete "$SMPROGRAMS\Deskland+\Deskland+.lnk"
   Delete "$SMPROGRAMS\Deskland+\Uninstall.lnk"
   RMDir "$SMPROGRAMS\Deskland+"
+  Delete "$DESKTOP\Deskland+.lnk"
   DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\DesklandPlus"
   DeleteRegKey HKCU "Software\DesklandPlus\Installer"
 SectionEnd
