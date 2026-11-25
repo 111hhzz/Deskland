@@ -14,7 +14,6 @@ using System;
 using System.Diagnostics;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -97,15 +96,23 @@ static class Log
     public static readonly string DataDir = InstallProfile.DataDir;
     public static readonly string FilePath = Path.Combine(DataDir, "host.log");
     public static readonly string EventsPath = Path.Combine(DataDir, "test-events-" + Process.GetCurrentProcess().Id + ".jsonl");
+    public static readonly string RotatedPath = Path.Combine(DataDir, "host.log.1");
+    const long MaxBytes = 1 << 20;                      // 1 MiB：超过就把当前日志挪成 host.log.1（覆盖上一份），总量封顶约 2 MiB
 
     public static void Write(string msg)
     {
         try
         {
             Directory.CreateDirectory(DataDir);
+            var fi = new FileInfo(FilePath);
+            if (fi.Exists && fi.Length >= MaxBytes)
+            {
+                if (File.Exists(RotatedPath)) File.Delete(RotatedPath);
+                File.Move(FilePath, RotatedPath);
+            }
             File.AppendAllText(FilePath, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss ") + msg + "\r\n");
         }
-        catch { }
+        catch { /* 日志自身写不了：静默，别递归 */ }
     }
 }
 
@@ -128,52 +135,14 @@ static class TestProbe
                     "ts", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), "data", data);
                 File.AppendAllText(Log.EventsPath, Json.Stringify(obj) + "\n", Encoding.UTF8);
             }
-            catch { }
+            catch { /* 探针事件写不了不影响主流程 */ }
         }
     }
 }
 
-// 2026-10-10 改名（Habitat Wallpaper → Deskland）：老用户的东西照旧能用
-//   - 数据目录 %LOCALAPPDATA%\HabitatWallpaper（设置、开机自启的记录、WebView2 缓存）整个搬到 %LOCALAPPDATA%\Deskland；
-//     旧程序还开着、WebView2 的文件被占着搬不动时，只把设置这些小文件拷过去
-//   - 用户开着开机自启：注册表 Run 项里的 HabitatWallpaper 换成指向 Deskland.exe 的 Deskland（用户原来的选择照旧，不会替没开的人打开）
+// 2026-11-20 改名（Deskland Preview → Deskland+）：把旧数据目录的设置复制到新目录（保留旧目录，不删用户数据）
 static class Rename
 {
-    const string OldName = "HabitatWallpaper";
-    public static void Migrate()
-    {
-        string oldDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), OldName);
-        try
-        {
-            if (Directory.Exists(oldDir) && !Directory.Exists(Log.DataDir))
-            {
-                try { Directory.Move(oldDir, Log.DataDir); }
-                catch
-                {
-                    Directory.CreateDirectory(Log.DataDir);
-                    foreach (string src in Directory.GetFiles(oldDir))
-                        if (!src.EndsWith(".log", StringComparison.OrdinalIgnoreCase)) File.Copy(src, Path.Combine(Log.DataDir, Path.GetFileName(src)), false);
-                }
-                Log.Write("改名：数据目录从 " + oldDir + " 搬到 " + Log.DataDir);
-            }
-        }
-        catch (Exception ex) { Log.Write("改名：搬数据目录失败：" + ex.Message); }
-        try
-        {
-            using (RegistryKey k = Registry.CurrentUser.OpenSubKey(HostContext.RunKey, true))
-            {
-                if (k != null && k.GetValue(OldName) != null)
-                {
-                    k.DeleteValue(OldName, false);
-                    k.SetValue(HostContext.RunName, "\"" + Application.ExecutablePath + "\" --autostart");
-                    Log.Write("改名：开机自启的启动项 " + OldName + " 换成 " + HostContext.RunName);
-                }
-            }
-        }
-        catch (Exception ex) { Log.Write("改名：换开机自启的启动项失败：" + ex.Message); }
-    }
-
-    // 2026-11-20 改名（Deskland Preview → Deskland+）：把旧数据目录的设置复制到新目录（保留旧目录，不删用户数据）
     const string PreviewName = "DesklandPreview";
     public static void MigratePreview()
     {
@@ -217,7 +186,7 @@ static class AutoStartCheck
 
     static void Stamp(string path)
     {
-        try { Directory.CreateDirectory(Log.DataDir); File.WriteAllText(path, DateTime.UtcNow.Ticks.ToString()); } catch { }
+        try { Directory.CreateDirectory(Log.DataDir); File.WriteAllText(path, DateTime.UtcNow.Ticks.ToString()); } catch { /* 时间戳标记写不了不影响启动 */ }
     }
     static DateTime ReadStamp(string path)
     {
@@ -818,7 +787,7 @@ class HostContext : ApplicationContext
 
     void Watch()
     {
-        if (dead != null) { try { dead.Dispose(); } catch { } dead = null; }
+        if (dead != null) { try { dead.Dispose(); } catch { /* 旧窗口销毁失败：下个 tick 再收 */ } dead = null; }
         if (exitEvent.WaitOne(0)) { Exit(); return; }
         if (menuEvent.WaitOne(0)) ShowMenu();
         if (settingsEvent.WaitOne(0)) OpenSettings();
@@ -832,7 +801,7 @@ class HostContext : ApplicationContext
         exiting = true;
         watch.Stop();
         if (saveDue != DateTime.MaxValue) Settings.Save();
-        if (settingsWin != null) { try { settingsWin.Close(); } catch { } }
+        if (settingsWin != null) { try { settingsWin.Close(); } catch { /* 设置窗关闭竞争（正在 Dispose）忽略 */ } }
         hotkey.Dispose();
         clickHook.Stop();
         tray.Visible = false;
@@ -916,7 +885,7 @@ class DesktopClickHook
             if (c != "Progman" && c != "WorkerW") return next;
             wallpaper.Post(Json.Stringify(Json.Obj("t", "ripple", "x", data.pt.X - scr.X, "y", data.pt.Y - scr.Y)));
         }
-        catch { }
+        catch { /* 观察钩子：异常绝不能拦截用户点击 */ }
         return next;
     }
 }
@@ -927,18 +896,6 @@ static class AppIcon
     public static Icon Create()
     {
         return new Icon(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DesklandPlus.ico"));
-    }
-
-    static GraphicsPath RoundRect(Rectangle r, int radius)
-    {
-        int d = radius * 2;
-        var p = new GraphicsPath();
-        p.AddArc(r.X, r.Y, d, d, 180, 90);
-        p.AddArc(r.Right - d, r.Y, d, d, 270, 90);
-        p.AddArc(r.Right - d, r.Bottom - d, d, d, 0, 90);
-        p.AddArc(r.X, r.Bottom - d, d, d, 90, 90);
-        p.CloseFigure();
-        return p;
     }
 }
 
@@ -1050,7 +1007,7 @@ class SettingsForm : Form
             core.WebMessageReceived += delegate (object s, CoreWebView2WebMessageReceivedEventArgs a)
             {
                 string msg = null;
-                try { msg = a.TryGetWebMessageAsString(); } catch { }
+                try { msg = a.TryGetWebMessageAsString(); } catch { /* 消息取不出来按无消息处理 */ }
                 try
                 {
                     // 测试信号：页面 ready（DOMContentLoaded 后首帧）
@@ -1083,18 +1040,20 @@ class SettingsForm : Form
     {
         // 设置窗口是临时窗口：它的 WebView2 失效就先不发（关掉重开即恢复），别把异常抛回壁纸的轮询
         try { if (!IsDisposed && web.CoreWebView2 != null) web.CoreWebView2.PostWebMessageAsString(json); }
-        catch { }
+        catch { /* WebView2 已失效：设置窗关掉重开即恢复 */ }
     }
 
     protected override void OnFormClosed(FormClosedEventArgs e)
     {
-        try { web.Dispose(); } catch { }
+        try { web.Dispose(); } catch { /* WebView2 可能已被释放 */ }
         base.OnFormClosed(e);
     }
 }
 
 class WallpaperForm : Form
 {
+    const int IconInterval = 400;              // 正常：跟住桌面图标变化
+    const int IconIntervalPaused = 2000;      // 手动暂停：仍需维持 Z 序与点击穿透，但降低跨进程读取频率
     readonly WebView2 web;
     readonly System.Windows.Forms.Timer iconTimer, fgTimer;
     readonly string pageDir;
@@ -1139,14 +1098,29 @@ class WallpaperForm : Form
         Controls.Add(web);
 
         iconTimer = new System.Windows.Forms.Timer();
-        iconTimer.Interval = 400;
+        iconTimer.Interval = IconInterval;
         iconTimer.Tick += delegate { PollIcons(); };
         fgTimer = new System.Windows.Forms.Timer();
         fgTimer.Interval = 500;
         fgTimer.Tick += delegate { PollForeground(); };
     }
 
-    public void SetManualPause(bool v) { manualPause = v; PollForeground(); }
+    public void SetManualPause(bool v)
+    {
+        manualPause = v;
+        if (v)
+        {
+            fgTimer.Stop();                      // 暂停优先：前台检测这时不会改变结果，停掉省一次窗口遍历
+            iconTimer.Interval = IconIntervalPaused;
+        }
+        else
+        {
+            iconTimer.Interval = IconInterval;
+            fgTimer.Start();
+        }
+        PollForeground();                        // 立刻把新状态推给页面
+        if (!v) PollIcons();                     // 恢复时马上取一次图标位置与层级
+    }
 
     public void Reload()
     {
@@ -1203,7 +1177,7 @@ class WallpaperForm : Form
                 if (p != null) LoadPage(p, id);
             }
         }
-        catch { }
+        catch { /* 切换脚本异常：按未切换处理，页面保持原主题 */ }
     }
 
     protected override async void OnShown(EventArgs e)
@@ -1246,7 +1220,7 @@ class WallpaperForm : Form
             core.WebMessageReceived += delegate (object s, CoreWebView2WebMessageReceivedEventArgs a)
             {
                 string msg = null;
-                try { msg = a.TryGetWebMessageAsString(); } catch { }
+                try { msg = a.TryGetWebMessageAsString(); } catch { /* 消息取不出来按无消息处理 */ }
                 string kind = null, theme = null;
                 if (msg == "ready") kind = "ready";
                 else
@@ -1260,7 +1234,7 @@ class WallpaperForm : Form
                             object th; if (parsed.TryGetValue("theme", out th)) theme = th as string;
                         }
                     }
-                    catch { }
+                    catch { /* 消息不是 JSON：按未知类型忽略 */ }
                 }
                 if (kind == null) return;
                 // 不回按 theme 过滤：engine.html 可以由测试 / 开发直接导航到任意主题，
@@ -1299,12 +1273,13 @@ class WallpaperForm : Form
                 lastIcons = ""; lastPause = -1; PollIcons(); PollForeground();
             };
             core.Navigate(EngineUrl(string.IsNullOrEmpty(themeId) ? "meadow" : themeId));
+            iconTimer.Interval = manualPause ? IconIntervalPaused : IconInterval;
             iconTimer.Start();
-            fgTimer.Start();
+            if (!manualPause) fgTimer.Start();
             // 事件驱动图标刷新：监听桌面 ListView 的 LOCATIONCHANGE，去抖后触发 PollIcons
             IntPtr lv = iconLocator.TryLocate();
             if (lv != IntPtr.Zero) { iconLocator.DesktopIconsMayHaveChanged += PollIcons; iconLocator.Start(lv); }
-            else Log.Write("找不到桌面图标列表：不启用图标事件监听，保留 400ms 轮询兜底");
+            else Log.Write("找不到桌面图标列表：不启用图标事件监听，保留 " + IconInterval + "ms 轮询兜底");
             Log.Write("WebView2 就绪：" + core.Environment.BrowserVersionString);
         }
         catch (Exception ex)
@@ -1561,7 +1536,7 @@ class WallpaperForm : Form
         reader.Dispose();
         iconLocator.Stop();
         IntPtr parent = parentHwnd;
-        try { web.Dispose(); } catch { }
+        try { web.Dispose(); } catch { /* 退出阶段 WebView2 失效无妨 */ }
         if (IsHandleCreated) { Native.SetParent(Handle, IntPtr.Zero); Hide(); }
         // 不改动壁纸设置（幻灯片 / 聚焦壁纸也不受影响），只让资源管理器重画
         if (parent != IntPtr.Zero && Native.IsWindow(parent))
@@ -1817,7 +1792,7 @@ static class InstallProfile
                     using (ev) ev.Set();
                     if (!process.WaitForExit(10000)) return 1;
                 }
-                catch (InvalidOperationException) { }
+                catch (InvalidOperationException) { /* 进程模块读不到（已退出）：按未结束处理 */ }
                 catch { return 1; }
             }
         }

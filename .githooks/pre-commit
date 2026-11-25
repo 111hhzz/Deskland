@@ -90,11 +90,21 @@ if [ -n "$DEBUG_HITS" ]; then
     DESLOP_FOUND=1
 fi
 
-# 检查空 catch 块（排除 bin/obj/.playwright）
+# 检查空 catch 块：catch 的 {} 内只有空白即违规（// 理由注释豁免）。
+# 检测器 = tools/deslop-catch.awk（词法状态机跳过字符串/注释后配平花括号）。
+# 老实现 grep -A1 "catch" | grep -B1 '^\s*}$' 只匹配多行写法，对本仓库通行的单行 `catch { }` 完全无效。
 echo "   检查空 catch 块..."
-EMPTY_CATCH=$(grep -rn --include="*.cs" -A1 "catch" host/ 2>/dev/null \
-    --exclude-dir="bin" --exclude-dir="obj" --exclude-dir=".playwright" \
-    | grep -B1 "^\s*}$" | grep "catch" || true)
+if ! command -v awk >/dev/null 2>&1; then
+    echo "   ⚠️  找不到 awk，无法检查空 catch"
+    DESLOP_FOUND=1
+else
+    EMPTY_CATCH=""
+    for f in host/*.cs; do
+        [ -f "$f" ] || continue
+        case "$f" in */bin/* | */obj/*) continue ;; esac
+        EMPTY_CATCH="$EMPTY_CATCH$(awk -f tools/deslop-catch.awk "$f")"
+    done
+fi
 if [ -n "$EMPTY_CATCH" ]; then
     echo "   ⚠️  发现空 catch 块："
     echo "$EMPTY_CATCH" | head -5 | sed 's/^/      /'
