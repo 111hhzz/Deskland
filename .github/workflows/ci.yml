@@ -55,8 +55,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-          cache: pnpm
-          cache-dependency-path: frontend/pnpm-lock.yaml
+          # 不用 pnpm store 缓存：恢复缓存要在 PATH 中找到 pnpm，而 corepack 在本步之后才启用，
+          # 否则报 "Unable to locate executable file: pnpm"。依赖走 frozen lockfile 直连还原。
+          cache: false
 
       - name: 启用 corepack（使用 packageManager 声明的 pnpm 版本）
         run: corepack enable
@@ -84,8 +85,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-          cache: pnpm
-          cache-dependency-path: frontend/pnpm-lock.yaml
+          # 不用 pnpm store 缓存：恢复缓存要在 PATH 中找到 pnpm，而 corepack 在本步之后才启用，
+          # 否则报 "Unable to locate executable file: pnpm"。依赖走 frozen lockfile 直连还原。
+          cache: false
 
       - name: 启用 corepack
         run: corepack enable
@@ -117,8 +119,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-          cache: pnpm
-          cache-dependency-path: frontend/pnpm-lock.yaml
+          # 不用 pnpm store 缓存：恢复缓存要在 PATH 中找到 pnpm，而 corepack 在本步之后才启用，
+          # 否则报 "Unable to locate executable file: pnpm"。依赖走 frozen lockfile 直连还原。
+          cache: false
 
       - name: 启用 corepack
         run: corepack enable
