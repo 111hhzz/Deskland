@@ -621,7 +621,13 @@ public class DesklandE2ETests : IAsyncLifetime
             var engineSrc = await File.ReadAllTextAsync(scenePath);
 
             Assert.Contains("static override FS", engineSrc, StringComparison.Ordinal);
-            Assert.Contains("void main", engineSrc, StringComparison.Ordinal);
+            // 片元着色器入口允许落在同目录的着色器资产文件里（如 FlatEngine → flatShade.ts）：
+            // 引擎自身含 void main，或文件名包含类名主干（去 Engine 后缀）的场景文件含 void main 均可
+            var stem = Regex.Replace(cls, "Engine$", "").ToLowerInvariant();
+            var hasMain = engineSrc.Contains("void main") || Directory.EnumerateFiles(scenesDir, "*.ts")
+                .Any(f => Path.GetFileName(f).ToLowerInvariant().Contains(stem) &&
+                          File.ReadAllText(f).Contains("void main"));
+            Assert.True(hasMain, $"{cls} 缺少片元着色器入口 void main");
 
             var defaults = Regex.Match(engineSrc, @"defaultParams\(\)[^{]*\{(.*?)\}", RegexOptions.Singleline);
             Assert.True(defaults.Success, $"{cls} 缺少 defaultParams");
@@ -718,7 +724,7 @@ public class DesklandE2ETests : IAsyncLifetime
             await File.ReadAllTextAsync(Path.Combine(scenesDir, "MeadowEngine.ts")), StringComparison.Ordinal);
 
         // 着色器层红线：人物 / 小猫的 ifdef 段与 GLSL_MEADOW_EXTRA 只允许 meadow 有（其他主题曾复制回来过）
-        foreach (var src in new[] { "SkyEngine.ts", "AuroraEngine.ts", "FlatEngine.ts" })
+        foreach (var src in new[] { "SkyEngine.ts", "AuroraEngine.ts", "FlatEngine.ts", "flatShade.ts" })
         {
             var s = await File.ReadAllTextAsync(Path.Combine(scenesDir, src));
             Assert.DoesNotContain("#ifdef MEADOW_", s, StringComparison.Ordinal);
@@ -737,10 +743,12 @@ public class DesklandE2ETests : IAsyncLifetime
         Assert.DoesNotContain("waves:", flatSrc, StringComparison.Ordinal);
         Assert.DoesNotContain("numParam(P, 'waves')", flatSrc, StringComparison.Ordinal);
         // segD（点到线段距离）唯一事实来源在 common.ts：FlatEngine 曾自带一份等价的 segSD，
-        // 且必须仍被桨的绘制使用（删了调用会让桨杆消失）
+        // 且必须仍被桨的绘制使用（删了调用会让桨杆消失）。着色器资产已拆到 flatShade.ts，检查随之迁移。
         Assert.DoesNotContain("segSD", flatSrc, StringComparison.Ordinal);
-        Assert.Contains("segD(", flatSrc, StringComparison.Ordinal);
-        Assert.Contains("GLSL_SEG", flatSrc, StringComparison.Ordinal);
+        var flatShadeSrc = await File.ReadAllTextAsync(Path.Combine(scenesDir, "flatShade.ts"));
+        Assert.DoesNotContain("segSD", flatShadeSrc, StringComparison.Ordinal);
+        Assert.Contains("segD(", flatShadeSrc, StringComparison.Ordinal);
+        Assert.Contains("GLSL_SEG", flatShadeSrc, StringComparison.Ordinal);
         var commonSrc = await File.ReadAllTextAsync(Path.Combine(srcDir, "engine", "glsl", "common.ts"));
         Assert.Single(Regex.Matches(commonSrc, Regex.Escape("float segD(")));
         Assert.Contains("export const GLSL_SEG", commonSrc, StringComparison.Ordinal);

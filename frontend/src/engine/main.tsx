@@ -120,6 +120,12 @@ window.__dbg = {
     if (engine) engine.settleAndRender();
   },
   bench: () => (engine ? engine.bench() : null), // 调试：10 帧中位耗时（含每帧 readPixels 同步）
+  // 宿主钩子指针注入的测试入口（ADR 0002）：与 _handle 的 ptr 分支同一函数，供 E2E 绕过全局输入验证链路。
+  injectPointer: (x: number, y: number, p = 'move') => {
+    if (app) app.injectPointer(x, y, p as 'move' | 'down' | 'up');
+  },
+  // 引擎内部指针场快照（有指针能力的主题返回实时状态，其余主题返回 null）
+  ptr: () => (engine ? engine.pointerState : null),
   switchTheme: (id: string) => {
     if (!ENGINES[id]) return false; // 不支持（如海滩旧脚本）→ 交由宿主回退整页导航
     clearTimeout(switchTimer);
