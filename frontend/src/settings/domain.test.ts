@@ -41,6 +41,12 @@ describe('settings/domain', () => {
     expect(fmtParam(param({ step: 0.1, unit: 'm' }), 1.25)).toBe('1.25 m');
   });
 
+  it('fmtParam：bool 参数显示开 / 关', () => {
+    const p = param({ key: 'autoCycle', label: '循环更换形态', type: 'bool', default: true });
+    expect(fmtParam(p, true)).toBe('开');
+    expect(fmtParam(p, false)).toBe('关');
+  });
+
   it('thumbUrl：从 CSS background 的 url(...) 中取出地址', () => {
     expect(thumbUrl('url(a.png) center/cover')).toBe('a.png');
     expect(thumbUrl('url("b.png") center/cover')).toBe('b.png');

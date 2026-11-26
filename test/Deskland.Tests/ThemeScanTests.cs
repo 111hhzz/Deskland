@@ -190,4 +190,22 @@ public class ThemeScanTests
         var g = (List<Dictionary<string, object>>)list[0]["groups"];
         Assert.Empty((List<Dictionary<string, object>>)g[0]["params"]);
     }
+
+    [Fact]
+    public void Build_KeepsBoolParamTypeOnly()
+    {
+        // type=bool 是设置页渲染开关的依据；其它取值（拼写错误 / 数字）不应外发
+        var param = new Dictionary<string, object> { { "key", "autoCycle" }, { "label", "循环更换形态" }, { "type", "bool" }, { "default", true } };
+        var bad = new Dictionary<string, object> { { "key", "x" }, { "type", "switch" }, { "default", false } };
+        var group = new Dictionary<string, object> { { "name", "球" }, { "params", new List<object> { param, bad } } };
+        var m = Manifest("a");
+        m["groups"] = new List<object> { group };
+        var products = new List<Dictionary<string, object>> { Product("a") };
+        var list = Build(products, new Dictionary<string, Dictionary<string, object>> { { "a", m } }, "themes/a/a.html");
+
+        var ps = (List<Dictionary<string, object>>)((List<Dictionary<string, object>>)list[0]["groups"])[0]["params"];
+        Assert.Equal("bool", ps[0]["type"]);
+        Assert.True((bool)ps[0]["default"], "布尔参数默认值应保留");
+        Assert.False(ps[1].ContainsKey("type"), "非 bool 的 type 值不应外发");
+    }
 }

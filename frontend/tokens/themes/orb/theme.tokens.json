@@ -1,0 +1,41 @@
+{
+  "color": {
+    "bg": {
+      "$value": "#070a18",
+      "$type": "color",
+      "$description": "深空底（页面 / 场景底色）"
+    }
+  },
+  "scene": {
+    "bg-top": {
+      "$value": [0.024, 0.032, 0.075],
+      "$type": "vec3",
+      "$description": "背景渐变 · 天顶（深空蓝黑）",
+      "$extensions": { "deskland.v1": { "uniform": "uBgTop" } }
+    },
+    "bg-bottom": {
+      "$value": [0.058, 0.04, 0.115],
+      "$type": "vec3",
+      "$description": "背景渐变 · 地平线（微紫）",
+      "$extensions": { "deskland.v1": { "uniform": "uBgBot" } }
+    },
+    "halo": {
+      "$value": [0.32, 0.4, 0.72],
+      "$type": "vec3",
+      "$description": "球体后方的径向辉光色",
+      "$extensions": { "deskland.v1": { "uniform": "uHalo" } }
+    },
+    "dot-core": {
+      "$value": [0.62, 0.73, 0.96],
+      "$type": "vec3",
+      "$description": "点阵主色（冰蓝）",
+      "$extensions": { "deskland.v1": { "uniform": "uDotCol" } }
+    },
+    "dot-accent": {
+      "$value": [0.42, 0.9, 0.98],
+      "$type": "vec3",
+      "$description": "指针激励时的强调色（青）",
+      "$extensions": { "deskland.v1": { "uniform": "uAccCol" } }
+    }
+  }
+}

@@ -3,11 +3,51 @@ import { useSettings } from '../store.js';
 import { fmtParam, themeById, valuesOf } from '../domain.js';
 import type { ParamDef } from '../types.js';
 
-function ParamRow({ p, value }: { p: ParamDef; value: number }) {
+function ParamRow({ p, value }: { p: ParamDef; value: number | boolean }) {
   const { setParam, t } = useSettings();
   const changed = value !== p.default;
+
+  // 布尔开关：右侧显示开 / 关，控件复用设置页既有的 .switch-row 样式
+  if (p.type === 'bool') {
+    return (
+      <div className={`param${changed ? ' changed' : ''}`} id={`p-${p.key}`}>
+        <div className="row">
+          <span className="label">
+            {p.label}
+            {p.hint ? <span className="hint">{p.hint}</span> : null}
+          </span>
+          <span className="right">
+            <button
+              type="button"
+              className="undo"
+              data-reset={p.key}
+              title={t('resetOne', { v: fmtParam(p, p.default) })}
+              aria-label={t('resetOneAria', { label: p.label })}
+              onClick={() => setParam(p.key, p.default)}
+            >
+              ↺
+            </button>
+            <span className="value" id={`v-${p.key}`}>
+              {value ? '开' : '关'}
+            </span>
+          </span>
+        </div>
+        <label className="switch-row">
+          <input
+            type="checkbox"
+            data-key={p.key}
+            checked={!!value}
+            onChange={(e) => setParam(p.key, e.target.checked)}
+          />
+          <span className="switch" />
+        </label>
+      </div>
+    );
+  }
+
+  const num = typeof value === 'number' ? value : 0;
   const pct =
-    p.min !== undefined && p.max !== undefined && p.max > p.min ? ((value - p.min) / (p.max - p.min)) * 100 : 50;
+    p.min !== undefined && p.max !== undefined && p.max > p.min ? ((num - p.min) / (p.max - p.min)) * 100 : 50;
   return (
     <div className={`param${changed ? ' changed' : ''}`} id={`p-${p.key}`}>
       <div className="row">
@@ -38,9 +78,9 @@ function ParamRow({ p, value }: { p: ParamDef; value: number }) {
               type="button"
               key={i}
               data-opt={i}
-              className={value === i ? 'on' : ''}
+              className={num === i ? 'on' : ''}
               role="radio"
-              aria-checked={value === i}
+              aria-checked={num === i}
               onClick={() => setParam(p.key, i)}
             >
               {o}
@@ -59,7 +99,7 @@ function ParamRow({ p, value }: { p: ParamDef; value: number }) {
             min={p.min}
             max={p.max}
             step={p.step}
-            value={value}
+            value={num}
             aria-label={p.label}
             style={{ '--p': pct + '%' } as CSSProperties}
             onChange={(e) => setParam(p.key, Number(e.target.value))}

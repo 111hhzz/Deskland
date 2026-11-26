@@ -10,6 +10,7 @@
 | `wallpaper-sky.png` | 天空壁纸页（动画冻结） |
 | `wallpaper-beach.png` | 沙滩壁纸页（动画冻结） |
 | `wallpaper-aurora.png` | 夜航 · 极光壁纸页（动画冻结） |
+| `wallpaper-orb.png` | 星尘 · 点阵球壁纸页（动画冻结） |
 
 新增 ready 主题时，在 `DesklandE2ETests.VisualBaseline_AllScreens` 的页面列表里加一条，
 并用下面的命令重新生成基线。

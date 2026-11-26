@@ -9,10 +9,12 @@ export interface ParamDef {
   key: string;
   label: string;
   hint?: string;
+  /** 参数类型：缺省 number（滑杆 / 选项）；"bool" 渲染开关 */
+  type?: 'bool';
   min?: number;
   max?: number;
   step?: number;
-  default: number;
+  default: number | boolean;
   unit?: string;
   format?: 'times' | 'percent';
   options?: string[];
@@ -50,7 +52,7 @@ export interface ScreenSize {
 export interface InitPayload {
   t: 'init';
   theme: string;
-  params: Record<string, Record<string, number>>;
+  params: Record<string, Record<string, number | boolean>>;
   themes: ThemeDef[];
   screen: ScreenSize;
   autostart: boolean;
@@ -73,7 +75,7 @@ export interface UpdateState {
 export type OutMessage =
   | { t: 'hello' }
   | { t: 'ready' }
-  | { t: 'set'; theme: string; key: string; value: number }
+  | { t: 'set'; theme: string; key: string; value: number | boolean }
   | { t: 'theme'; id: string }
   | { t: 'autostart'; v: boolean }
   | { t: 'autostartWarnSeen' }

@@ -77,10 +77,24 @@ static class ThemeScan
                             var s = v as string;
                             if (s != null) p[k] = s;
                         }
-                        else if (k == "min" || k == "max" || k == "step" || k == "default")
+                        else if (k == "type")
+                        {
+                            // 参数类型标记：缺省 number；目前只认 "bool"（设置页渲染开关）
+                            var ts = v as string;
+                            if (ts == "bool") p[k] = ts;
+                        }
+                        else if (k == "min" || k == "max" || k == "step")
                         {
                             double d;
                             if (TryNumber(v, out d)) p[k] = d;
+                        }
+                        else if (k == "default")
+                        {
+                            // 数值参数的默认值是数字；布尔参数的默认值是 true/false
+                            double d;
+                            bool bdef;
+                            if (TryNumber(v, out d)) p[k] = d;
+                            else if (TryBool(v, out bdef)) p[k] = bdef;
                         }
                         else if (k == "options")
                         {

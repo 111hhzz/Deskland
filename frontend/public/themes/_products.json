@@ -20,6 +20,11 @@
       "id": "aurora",
       "status": "ready",
       "product": "free"
+    },
+    {
+      "id": "orb",
+      "status": "ready",
+      "product": "free"
     }
   ]
 }

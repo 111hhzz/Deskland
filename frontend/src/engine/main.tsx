@@ -7,6 +7,7 @@ import { MeadowEngine } from '../scenes/MeadowEngine.js';
 import { SkyEngine } from '../scenes/SkyEngine.js';
 import { FlatEngine } from '../scenes/FlatEngine.js';
 import { AuroraEngine } from '../scenes/AuroraEngine.js';
+import { OrbEngine } from '../scenes/OrbEngine.js';
 import { DeskApp } from './DeskApp.js';
 import { loadTheme as loadThemeTokens } from './tokenRuntime.js';
 import type { DeskEngine } from './DeskApp.js';
@@ -35,6 +36,7 @@ const ENGINES: Record<string, () => EngineCtor> = {
   sky: () => SkyEngine,
   beach: () => FlatEngine,
   aurora: () => AuroraEngine,
+  orb: () => OrbEngine,
 };
 const THEME_STYLE = (id: string) => '/themes/' + id + '/theme.css'; // 绝对路径：主题样式在 public，运行时按站点根解析
 

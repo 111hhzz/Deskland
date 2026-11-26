@@ -2,27 +2,29 @@
 
 import type { ParamDef, ThemeDef } from './types.js';
 
-export type Params = Record<string, Record<string, number>>;
+export type Params = Record<string, Record<string, number | boolean>>;
 
 export const newSeed = (): number => Math.floor(Math.random() * 1e6);
 
 export const themeById = (themes: ThemeDef[], id: string): ThemeDef | undefined => themes.find((t) => t.id === id);
 
-export const defaultsOf = (theme: ThemeDef): Record<string, number> => {
-  const d: Record<string, number> = {};
+export const defaultsOf = (theme: ThemeDef): Record<string, number | boolean> => {
+  const d: Record<string, number | boolean> = {};
   if (theme.adaptive) d.adaptive = 1;
   for (const g of theme.groups ?? []) for (const p of g.params) d[p.key] = p.default;
   return d;
 };
 
-export const valuesOf = (theme: ThemeDef, params: Params): Record<string, number> => ({
+export const valuesOf = (theme: ThemeDef, params: Params): Record<string, number | boolean> => ({
   ...defaultsOf(theme),
   ...params[theme.id],
 });
 
-export const seedOf = (id: string, params: Params): number | undefined => (params[id] || {}).seed;
+export const seedOf = (id: string, params: Params): number | undefined => (params[id] || {}).seed as number | undefined;
 
-export function fmtParam(p: ParamDef, v: number): string {
+export function fmtParam(p: ParamDef, v: number | boolean): string {
+  if (p.type === 'bool') return v ? '开' : '关';
+  if (typeof v === 'boolean') return String(v);
   if (p.options) return p.options[v] || '';
   if (p.format === 'times') return '×' + v.toFixed(2);
   if (p.format === 'percent') return Math.round(v * 100) + '%';
