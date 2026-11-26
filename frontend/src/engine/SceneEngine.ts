@@ -17,6 +17,8 @@
 import { BaseEngine } from './BaseEngine.js';
 import type { EngineOpts, EngineParams, EngineStats } from './BaseEngine.js';
 import { GLSL_VS } from './glsl/common.js';
+import { buildParamRules } from './paramSchema.js';
+import type { ParamRule } from './paramSchema.js';
 
 const STEP = 5; // 陆地场的格子大小（px）
 const MORPH_MS = 1800; // 图标挪动时、场在新旧两张之间过渡的时长
@@ -501,6 +503,12 @@ export class SceneEngine extends BaseEngine {
 
   hasField(): boolean {
     return !!this.FB;
+  }
+
+  // 参数规则表：由主题声明的 sliders / displayKeys 惰性合成（子类构造器先 super() 再赋声明，不能提前构建）。
+  // 应用层（DeskApp.applySettings）只查表执行，新增参数不必改应用层。
+  get paramRules(): Record<string, ParamRule> {
+    return buildParamRules(this.sliders, this.displayKeys);
   }
   setSeed(v: number): void {
     this._seed = v;

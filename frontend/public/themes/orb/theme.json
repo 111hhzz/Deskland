@@ -1,0 +1,428 @@
+{
+  "id": "orb",
+  "name": "星尘 · 点阵球",
+  "desc": "光点构成的思考球：随指针旋转、被磁场推开，点击泛起涟漪",
+  "page": "themes/orb/orb.html",
+  "thumb": "url(/thumbs/orb.webp?v=orb) center / cover no-repeat, linear-gradient(135deg, #0b1030 0%, #1a1440 100%)",
+  "groups": [
+    {
+      "name": "点阵球",
+      "params": [
+        {
+          "key": "sigma",
+          "label": "球体大小",
+          "hint": "点阵球的整体尺寸",
+          "min": 0.5,
+          "max": 1.5,
+          "step": 0.01,
+          "default": 1,
+          "format": "times"
+        },
+        {
+          "key": "orbDesign",
+          "label": "形态",
+          "hint": "点云的几何排布",
+          "default": 0,
+          "options": [
+            "球体",
+            "环面",
+            "双旋臂",
+            "星轨盘",
+            "晶格壳"
+          ]
+        },
+        {
+          "key": "autoCycle",
+          "type": "bool",
+          "label": "循环更换形态",
+          "hint": "每隔一段时间自动切换点云形态；关掉后停留在当前形态",
+          "default": true
+        },
+        {
+          "key": "density",
+          "label": "点密度",
+          "hint": "同一形态下的点数",
+          "min": 0.3,
+          "max": 2,
+          "step": 0.05,
+          "default": 1,
+          "format": "times"
+        },
+        {
+          "key": "speed",
+          "label": "旋转速度",
+          "hint": "自转快慢；指针靠近时会加速",
+          "min": 0,
+          "max": 3,
+          "step": 0.05,
+          "default": 1,
+          "format": "times"
+        },
+        {
+          "key": "hoverReaction",
+          "label": "指针响应",
+          "hint": "指针进入球内时自转加速的强度",
+          "min": 0,
+          "max": 2,
+          "step": 0.05,
+          "default": 1,
+          "format": "times"
+        },
+        {
+          "key": "glow",
+          "label": "辉光强度",
+          "hint": "点光的亮度（背景辉光不受此项控制）",
+          "min": 0,
+          "max": 1.5,
+          "step": 0.05,
+          "default": 0.8,
+          "format": "percent"
+        }
+      ]
+    }
+  ],
+  "tokens": {
+    "app": {
+      "icon-size": {
+        "type": "dimension",
+        "description": ""
+      },
+      "size": {
+        "type": "dimension",
+        "description": ""
+      }
+    },
+    "blur": {
+      "panel": {
+        "type": "dimension",
+        "description": ""
+      },
+      "taskbar": {
+        "type": "dimension",
+        "description": ""
+      }
+    },
+    "color": {
+      "accent": {
+        "type": "color",
+        "description": ""
+      },
+      "app-hover-bg": {
+        "type": "color",
+        "description": ""
+      },
+      "bg": {
+        "type": "color",
+        "description": "深空底（页面 / 场景底色）"
+      },
+      "border": {
+        "type": "color",
+        "description": ""
+      },
+      "btn-bg": {
+        "type": "color",
+        "description": ""
+      },
+      "btn-border": {
+        "type": "color",
+        "description": ""
+      },
+      "btn-hover-bg": {
+        "type": "color",
+        "description": ""
+      },
+      "ghost-bg": {
+        "type": "color",
+        "description": ""
+      },
+      "ghost-label": {
+        "type": "color",
+        "description": ""
+      },
+      "icon-hover-bg": {
+        "type": "color",
+        "description": ""
+      },
+      "icon-hover-border": {
+        "type": "color",
+        "description": ""
+      },
+      "icon-sel-bg": {
+        "type": "color",
+        "description": ""
+      },
+      "icon-sel-border": {
+        "type": "color",
+        "description": ""
+      },
+      "label": {
+        "type": "color",
+        "description": ""
+      },
+      "nogl": {
+        "type": "color",
+        "description": ""
+      },
+      "ripple": {
+        "type": "color",
+        "description": ""
+      },
+      "ripple-glow": {
+        "type": "color",
+        "description": ""
+      },
+      "ripple-inset": {
+        "type": "color",
+        "description": ""
+      },
+      "stat-bg": {
+        "type": "color",
+        "description": ""
+      },
+      "surface": {
+        "type": "color",
+        "description": "面板底"
+      },
+      "surface-2": {
+        "type": "color",
+        "description": ""
+      },
+      "surface-active": {
+        "type": "color",
+        "description": ""
+      },
+      "taskbar-bg": {
+        "type": "color",
+        "description": ""
+      },
+      "taskbar-border": {
+        "type": "color",
+        "description": ""
+      },
+      "text": {
+        "type": "color",
+        "description": ""
+      },
+      "text-muted": {
+        "type": "color",
+        "description": ""
+      }
+    },
+    "font": {
+      "main": {
+        "type": "fontfamily",
+        "description": ""
+      },
+      "mono": {
+        "type": "fontfamily",
+        "description": ""
+      },
+      "size-lg": {
+        "type": "dimension",
+        "description": ""
+      },
+      "size-md": {
+        "type": "dimension",
+        "description": ""
+      },
+      "size-sm": {
+        "type": "dimension",
+        "description": ""
+      },
+      "size-xs": {
+        "type": "dimension",
+        "description": ""
+      }
+    },
+    "icon": {
+      "cell-width": {
+        "type": "dimension",
+        "description": ""
+      },
+      "glyph-size": {
+        "type": "dimension",
+        "description": ""
+      },
+      "label-max": {
+        "type": "dimension",
+        "description": ""
+      }
+    },
+    "motion": {
+      "born": {
+        "type": "duration",
+        "description": ""
+      },
+      "ease-out": {
+        "type": "easing",
+        "description": ""
+      },
+      "ease-settle": {
+        "type": "easing",
+        "description": ""
+      },
+      "ease-spring": {
+        "type": "easing",
+        "description": ""
+      },
+      "fade": {
+        "type": "duration",
+        "description": ""
+      },
+      "ripple": {
+        "type": "duration",
+        "description": ""
+      },
+      "settle": {
+        "type": "duration",
+        "description": ""
+      }
+    },
+    "opacity": {
+      "faint": {
+        "type": "opacity",
+        "description": ""
+      },
+      "icon-drag": {
+        "type": "opacity",
+        "description": ""
+      },
+      "muted": {
+        "type": "opacity",
+        "description": ""
+      },
+      "seg": {
+        "type": "opacity",
+        "description": ""
+      }
+    },
+    "panel": {
+      "offset": {
+        "type": "dimension",
+        "description": ""
+      },
+      "width": {
+        "type": "dimension",
+        "description": ""
+      }
+    },
+    "radius": {
+      "button": {
+        "type": "dimension",
+        "description": ""
+      },
+      "icon": {
+        "type": "dimension",
+        "description": ""
+      },
+      "lg": {
+        "type": "dimension",
+        "description": ""
+      },
+      "md": {
+        "type": "dimension",
+        "description": ""
+      },
+      "sm": {
+        "type": "dimension",
+        "description": ""
+      }
+    },
+    "saturate": {
+      "panel": {
+        "type": "number",
+        "description": ""
+      },
+      "taskbar": {
+        "type": "number",
+        "description": ""
+      }
+    },
+    "scene": {
+      "bg-bottom": {
+        "type": "vec3",
+        "description": "背景渐变 · 地平线（微紫）"
+      },
+      "bg-top": {
+        "type": "vec3",
+        "description": "背景渐变 · 天顶（深空蓝黑）"
+      },
+      "cloud-body": {
+        "type": "vec3",
+        "description": "云主体色"
+      },
+      "cloud-hi": {
+        "type": "vec3",
+        "description": "云受光面色"
+      },
+      "cloud-shade": {
+        "type": "vec3",
+        "description": "云背光面补间色"
+      },
+      "dot-accent": {
+        "type": "vec3",
+        "description": "指针激励时的强调色（青）"
+      },
+      "dot-core": {
+        "type": "vec3",
+        "description": "点阵主色（冰蓝）"
+      },
+      "halo": {
+        "type": "vec3",
+        "description": "球体后方的径向辉光色"
+      },
+      "light-dir": {
+        "type": "vec2",
+        "description": "平行光方向（代码直接使用，无变换）"
+      },
+      "shadow-offset": {
+        "type": "vec2",
+        "description": "人物落点位移系数（非 0-1，故 vec2 不强制分量范围）"
+      }
+    },
+    "shadow": {
+      "ghost": {
+        "type": "shadow",
+        "description": ""
+      },
+      "glyph": {
+        "type": "shadow",
+        "description": ""
+      },
+      "panel": {
+        "type": "shadow",
+        "description": ""
+      }
+    },
+    "taskbar": {
+      "size": {
+        "type": "dimension",
+        "description": ""
+      }
+    },
+    "text-shadow": {
+      "label": {
+        "type": "shadow",
+        "description": ""
+      }
+    },
+    "z": {
+      "icon-drag": {
+        "type": "zindex",
+        "description": ""
+      },
+      "panel": {
+        "type": "zindex",
+        "description": ""
+      },
+      "ripple": {
+        "type": "zindex",
+        "description": ""
+      },
+      "taskbar": {
+        "type": "zindex",
+        "description": ""
+      }
+    }
+  }
+}

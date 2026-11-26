@@ -25,6 +25,10 @@ declare global {
       settle(): void;
       bench(): unknown;
       switchTheme(id: string): boolean;
+      /** 测试入口：模拟宿主钩子注入一条指针事件（x/y 为相对主屏物理像素） */
+      injectPointer(x: number, y: number, p?: string): void;
+      /** 引擎内部指针场快照（仅 orb 等有 pointer 的引擎）；否则 null */
+      ptr(): { active: boolean; down: boolean; inside: number; energy: number; x: number; y: number } | null;
     };
     __bootError?: string;
     __errors?: string[];

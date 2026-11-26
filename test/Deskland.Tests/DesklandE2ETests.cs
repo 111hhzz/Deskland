@@ -168,6 +168,44 @@ public class DesklandE2ETests : IAsyncLifetime
         await Assertions.Expect(preview).ToBeVisibleAsync();
     }
 
+    /// <summary>
+    /// orb「循环更换形态」开关（bool 参数）：设置卡片关闭 → 持久化 + 下发到壁纸引擎。
+    /// 覆盖 bool 参数全链路：Controls 渲染开关 → set 消息 → settings.json → 引擎 params（displayKeys 声明过的键才会被接受）。
+    /// </summary>
+    [Fact]
+    public async Task SettingsPage_OrbAutoCycleToggle_PersistsAndApplies()
+    {
+        await _pageSettings.Locator("#themes .theme[data-id='orb']").ClickAsync();
+        Assert.True(await WaitJsBoolAsync("() => !!window.__dbg && window.__dbg.theme === 'orb'"),
+            "壁纸未切到 orb");
+
+        var toggle = _pageSettings.Locator("#p-autoCycle input[type=checkbox]");
+        await Assertions.Expect(toggle).ToBeVisibleAsync();
+        Assert.True(await toggle.IsCheckedAsync(), "默认应开启循环更换");
+        // 自定义开关的滑块 span 覆盖在 input 上，Playwright 点击会被拦截；走 DOM click
+        await toggle.EvaluateAsync("el => el.click()");
+        Assert.False(await toggle.IsCheckedAsync());
+        Assert.Equal("关", (await _pageSettings.Locator("#v-autoCycle").InnerTextAsync()).Trim());
+
+        // 持久化：settings.json params.orb.autoCycle == false（宿主 SaveSoon 有防抖，轮询等待）
+        var path = Path.Combine(TestProfile, "settings.json");
+        System.Text.Json.Nodes.JsonValue? autoCycle = null;
+        var deadline = DateTime.Now + TimeSpan.FromSeconds(8);
+        while (DateTime.Now < deadline)
+        {
+            var probe = System.Text.Json.Nodes.JsonObject.Parse(await File.ReadAllTextAsync(path))!;
+            autoCycle = probe["params"]?["orb"]?["autoCycle"] as System.Text.Json.Nodes.JsonValue;
+            if (autoCycle is not null) break;
+            await Task.Delay(200);
+        }
+        Assert.NotNull(autoCycle);
+        Assert.False(autoCycle!.GetValue<bool>(), "autoCycle 未持久化");
+
+        // 下发：宿主把 set 应用到当前壁纸引擎
+        Assert.True(await WaitJsBoolAsync("() => !!window.__dbg.P && window.__dbg.P().autoCycle === false", 8000),
+            "autoCycle 未下发到 orb 引擎");
+    }
+
     [Fact]
     public async Task TestProbe_EventsWritten()
     {
@@ -340,6 +378,7 @@ public class DesklandE2ETests : IAsyncLifetime
             ("sky", "themes/sky/sky.html"),
             ("beach", "themes/beach/beach.html"),
             ("aurora", "themes/aurora/aurora.html"),
+            ("orb", "themes/orb/orb.html"),
         })
         {
             await _pageWallpaper.GotoAsync($"https://deskland.test/{page}?wallpaper=1");
@@ -621,7 +660,13 @@ public class DesklandE2ETests : IAsyncLifetime
             var engineSrc = await File.ReadAllTextAsync(scenePath);
 
             Assert.Contains("static override FS", engineSrc, StringComparison.Ordinal);
-            Assert.Contains("void main", engineSrc, StringComparison.Ordinal);
+            // 片元着色器入口允许落在同目录的着色器资产文件里（如 FlatEngine → flatShade.ts）：
+            // 引擎自身含 void main，或文件名包含类名主干（去 Engine 后缀）的场景文件含 void main 均可
+            var stem = Regex.Replace(cls, "Engine$", "").ToLowerInvariant();
+            var hasMain = engineSrc.Contains("void main") || Directory.EnumerateFiles(scenesDir, "*.ts")
+                .Any(f => Path.GetFileName(f).ToLowerInvariant().Contains(stem) &&
+                          File.ReadAllText(f).Contains("void main"));
+            Assert.True(hasMain, $"{cls} 缺少片元着色器入口 void main");
 
             var defaults = Regex.Match(engineSrc, @"defaultParams\(\)[^{]*\{(.*?)\}", RegexOptions.Singleline);
             Assert.True(defaults.Success, $"{cls} 缺少 defaultParams");
@@ -718,7 +763,7 @@ public class DesklandE2ETests : IAsyncLifetime
             await File.ReadAllTextAsync(Path.Combine(scenesDir, "MeadowEngine.ts")), StringComparison.Ordinal);
 
         // 着色器层红线：人物 / 小猫的 ifdef 段与 GLSL_MEADOW_EXTRA 只允许 meadow 有（其他主题曾复制回来过）
-        foreach (var src in new[] { "SkyEngine.ts", "AuroraEngine.ts", "FlatEngine.ts" })
+        foreach (var src in new[] { "SkyEngine.ts", "AuroraEngine.ts", "FlatEngine.ts", "flatShade.ts" })
         {
             var s = await File.ReadAllTextAsync(Path.Combine(scenesDir, src));
             Assert.DoesNotContain("#ifdef MEADOW_", s, StringComparison.Ordinal);
@@ -737,10 +782,12 @@ public class DesklandE2ETests : IAsyncLifetime
         Assert.DoesNotContain("waves:", flatSrc, StringComparison.Ordinal);
         Assert.DoesNotContain("numParam(P, 'waves')", flatSrc, StringComparison.Ordinal);
         // segD（点到线段距离）唯一事实来源在 common.ts：FlatEngine 曾自带一份等价的 segSD，
-        // 且必须仍被桨的绘制使用（删了调用会让桨杆消失）
+        // 且必须仍被桨的绘制使用（删了调用会让桨杆消失）。着色器资产已拆到 flatShade.ts，检查随之迁移。
         Assert.DoesNotContain("segSD", flatSrc, StringComparison.Ordinal);
-        Assert.Contains("segD(", flatSrc, StringComparison.Ordinal);
-        Assert.Contains("GLSL_SEG", flatSrc, StringComparison.Ordinal);
+        var flatShadeSrc = await File.ReadAllTextAsync(Path.Combine(scenesDir, "flatShade.ts"));
+        Assert.DoesNotContain("segSD", flatShadeSrc, StringComparison.Ordinal);
+        Assert.Contains("segD(", flatShadeSrc, StringComparison.Ordinal);
+        Assert.Contains("GLSL_SEG", flatShadeSrc, StringComparison.Ordinal);
         var commonSrc = await File.ReadAllTextAsync(Path.Combine(srcDir, "engine", "glsl", "common.ts"));
         Assert.Single(Regex.Matches(commonSrc, Regex.Escape("float segD(")));
         Assert.Contains("export const GLSL_SEG", commonSrc, StringComparison.Ordinal);
@@ -1196,6 +1243,322 @@ public class DesklandE2ETests : IAsyncLifetime
         uint ex = (uint)GetWindowLong(hwnd, GWL_EXSTYLE);
         Assert.True((ex & WS_EX_TRANSPARENT) != 0,
             "壁纸窗口应处于穿透状态（settings.json 的 clickThrough=true），GWL_EXSTYLE=0x" + ex.ToString("X8"));
+    }
+
+    // ---------- 壁纸窗口结构：挂在桌面层，且不覆盖图标层（指针交互由全局钩子注入，见 ADR 0002）----------
+
+    const uint GW_HWNDNEXT = 2;                     // 同一父窗口下 z 序更低的下一个兄弟
+    const uint GA_ROOT = 2, SPI_GETWORKAREA = 0x0030;
+
+    [StructLayout(LayoutKind.Sequential)] struct WinPoint { public int X, Y; }
+    [StructLayout(LayoutKind.Sequential)] struct WinRect { public int Left, Top, Right, Bottom; }
+
+    [DllImport("user32.dll")] static extern IntPtr GetParent(IntPtr hWnd);
+    [DllImport("user32.dll")] static extern IntPtr GetWindow(IntPtr hWnd, uint uCmd);
+    [DllImport("user32.dll")] static extern IntPtr WindowFromPoint(WinPoint point);
+    [DllImport("user32.dll")] static extern bool SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+    [DllImport("user32.dll")] static extern bool EnumChildWindows(IntPtr hWndParent, EnumWindowsProc lpEnumFunc, IntPtr lParam);
+    [DllImport("user32.dll")] static extern bool IsChild(IntPtr hWndParent, IntPtr hWnd);
+    [DllImport("user32.dll")] static extern bool IsWindow(IntPtr hWnd);
+    [DllImport("user32.dll")] static extern IntPtr GetAncestor(IntPtr hWnd, uint flags);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern IntPtr FindWindow(string lpClassName, string? lpWindowName);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern IntPtr FindWindowEx(IntPtr hwndParent, IntPtr hwndChildAfter, string? lpszClass, string? lpszWindow);
+    [DllImport("user32.dll")] static extern bool SystemParametersInfo(uint uiAction, uint uiParam, out WinRect pvParam, uint fWinIni);
+
+    /// <summary>找 SHELLDLL_DefView 及其宿主：24H2 挂在 Progman 下，经典结构挂在一个顶层 WorkerW 下。</summary>
+    static IntPtr FindDesktopRoot(out IntPtr defView)
+    {
+        defView = IntPtr.Zero;
+        IntPtr progman = FindWindow("Progman", null);
+        IntPtr dv = FindWindowEx(progman, IntPtr.Zero, "SHELLDLL_DefView", null);
+        if (dv != IntPtr.Zero) { defView = dv; return progman; }
+        IntPtr root = IntPtr.Zero, found = IntPtr.Zero;
+        EnumWindows(delegate (IntPtr h, IntPtr l)
+        {
+            IntPtr d = FindWindowEx(h, IntPtr.Zero, "SHELLDLL_DefView", null);
+            if (d != IntPtr.Zero) { root = h; found = d; return false; }
+            return true;
+        }, IntPtr.Zero);
+        defView = found;
+        return root;
+    }
+
+    static bool InSubtree(IntPtr root, IntPtr hit)
+    {
+        return hit != IntPtr.Zero && (hit == root || IsChild(root, hit));
+    }
+
+    static string RootClass(IntPtr h)
+    {
+        IntPtr root = GetAncestor(h, GA_ROOT);
+        var sb = new StringBuilder(64);
+        GetClassName(root, sb, 64);
+        return sb.ToString();
+    }
+
+    // 先撤掉整棵子树的 WS_EX_TRANSPARENT（fixture 预设了 clickThrough=true，窗口处于命中透传），
+    // 测完即恢复原样式；否则 WindowFromPoint 会穿过壁纸落到下层，观察不到真实命中。
+    static Dictionary<IntPtr, int> SaveAndClearTransparent(IntPtr root)
+    {
+        var map = new Dictionary<IntPtr, int>();
+        int rootEx = GetWindowLong(root, GWL_EXSTYLE);
+        map[root] = rootEx;
+        if (((uint)rootEx & WS_EX_TRANSPARENT) != 0) SetWindowLong(root, GWL_EXSTYLE, rootEx & ~(int)WS_EX_TRANSPARENT);
+
+        void SetTree(IntPtr parent)
+        {
+            EnumChildWindows(parent, delegate (IntPtr h, IntPtr l)
+            {
+                if (!map.ContainsKey(h))
+                {
+                    int ex = GetWindowLong(h, GWL_EXSTYLE);
+                    map[h] = ex;
+                    if (((uint)ex & WS_EX_TRANSPARENT) != 0) SetWindowLong(h, GWL_EXSTYLE, ex & ~(int)WS_EX_TRANSPARENT);
+                }
+                SetTree(h);
+                return true;
+            }, IntPtr.Zero);
+        }
+        SetTree(root);
+        return map;
+    }
+
+    static void RestoreTransparent(Dictionary<IntPtr, int> map)
+    {
+        foreach (var kv in map)
+            if (IsWindow(kv.Key)) SetWindowLong(kv.Key, GWL_EXSTYLE, kv.Value);
+    }
+
+    [Fact]
+    public void WallpaperWindow_MountedInDesktopLayer_NotAboveIconLayer()
+    {
+        IntPtr hwnd = IntPtr.Zero;
+        for (int i = 0; i < 30 && hwnd == IntPtr.Zero; i++)
+        {
+            hwnd = FindWallpaperWindow(_appProcess!.Id, TestProfile);
+            if (hwnd == IntPtr.Zero) Thread.Sleep(200);
+        }
+        Assert.NotEqual(IntPtr.Zero, hwnd);
+
+        // a) 挂载关系（ADR 0001）：挂进桌面层，且不得压住图标层。
+        //    经典结构（Win10）：Progman 下无 DefView，图标层在某个顶层 WorkerW 里；挂进它之后的
+        //    「画壁纸 WorkerW」，z 序低于图标层——输入先被图标层截获，指针交互靠全局钩子注入（ADR 0002）。
+        //    抬高的桌面（Win11 24H2+）：Progman 的分层子窗口，紧邻图标层（DefView）之下。
+        IntPtr defView;
+        IntPtr desktopRoot = FindDesktopRoot(out defView);
+        Assert.NotEqual(IntPtr.Zero, defView);
+        string root = RootClass(hwnd);
+        Assert.True(root == "Progman" || root == "WorkerW", $"壁纸窗口应挂在桌面层，实际 root={root}");
+
+        bool raised = FindWindowEx(FindWindow("Progman", null), IntPtr.Zero, "SHELLDLL_DefView", null) != IntPtr.Zero;
+        if (raised)
+        {
+            Assert.Equal(desktopRoot, GetParent(hwnd));
+            // GW_HWNDNEXT = 同一父窗口下 z 序更低的下一个兄弟；相等即紧贴图标层之下
+            Assert.Equal(defView, GetWindow(hwnd, GW_HWNDNEXT));
+        }
+        else
+        {
+            IntPtr parent = GetParent(hwnd);
+            var pc = new StringBuilder(64);
+            GetClassName(parent, pc, 64);
+            Assert.Equal("WorkerW", pc.ToString());            // 画壁纸的 WorkerW，不是图标层宿主
+            Assert.NotEqual(desktopRoot, parent);
+        }
+
+        // b) 命中可达性按结构区分：抬高的桌面窗口紧邻图标层之下，空白点命中壁纸子树；
+        //    经典结构窗口在图标层之下，空白点落到桌面 / 图标层（壁纸不挡图标，也不接输入——输入靠钩子）。
+        //    观察前先撤掉穿透，测完恢复；候选点取工作区右侧（避开任务栏与设置窗口）。
+        var saved = SaveAndClearTransparent(hwnd);
+        try
+        {
+            WinRect wa;
+            SystemParametersInfo(SPI_GETWORKAREA, 0, out wa, 0);
+            int h = wa.Bottom - wa.Top;
+            var candidates = new[]
+            {
+                new WinPoint { X = wa.Right - 40, Y = wa.Bottom - 40 },
+                new WinPoint { X = wa.Right - 200, Y = wa.Bottom - 24 },
+                new WinPoint { X = wa.Right - 60, Y = wa.Top + h / 4 },
+            };
+            int subtreeHits = 0, missed = 0;
+            foreach (var p in candidates)
+            {
+                IntPtr hit = WindowFromPoint(p);
+                if (InSubtree(hwnd, hit)) { subtreeHits++; continue; }
+                string c = RootClass(hit);
+                if (c == "Progman" || c == "WorkerW" || c == "SHELLDLL_DefView" || c == "SysListView32")
+                    missed++;                                // 壁纸没接住：仍落到桌面/图标层
+            }
+            if (raised)
+                Assert.True(subtreeHits > 0,
+                    $"抬高的桌面：候选空白点无一命中壁纸窗口子树（命中 {subtreeHits}，落到桌面 {missed}）");
+            else
+                Assert.True(subtreeHits == 0 && missed > 0,
+                    $"经典结构：空白点不应命中壁纸（否则会挡住图标），命中 {subtreeHits}，落到桌面 {missed}");
+        }
+        finally { RestoreTransparent(saved); }
+    }
+
+    // ---------- 指针注入链路（ADR 0002）----------
+    // 壁纸窗口 z 序低于图标层时收不到真实命中，指针事件由宿主全局鼠标钩子补发（host/Hooks.cs）。
+    // 用例一验证页面侧：ptr 消息 → 合成 PointerEvent → orb 引擎指针场响应；
+    // 用例二验证宿主侧：真实鼠标输入触发钩子注入，且穿透开关开启时不再注入。
+
+    [Fact]
+    public async Task Wallpaper_PointerInjection_DrivesOrbPointer()
+    {
+        await GotoOrbAsync();
+        var before = await PtrSnapshotAsync();
+        Assert.False(before.GetProperty("active").GetBoolean(), "注入前指针场不应激活");
+
+        // 屏幕中心（球心）：injectPointer 收的是物理像素，页面内按 devicePixelRatio 换算回 CSS
+        await _pageWallpaper.EvaluateAsync(
+            "() => { const k = window.devicePixelRatio || 1;" +
+            " window.__dbg.injectPointer(window.innerWidth / 2 * k, (window.innerHeight - 56) / 2 * k, 'move'); }");
+        await Task.Delay(400); // inside / energy 是指数趋近，等几帧到位
+        var moved = await PtrSnapshotAsync();
+        Assert.True(moved.GetProperty("active").GetBoolean(), "注入 pointermove 后指针场应激活");
+        Assert.True(moved.GetProperty("inside").GetDouble() > 0.5,
+            $"球心处 inside 应接近 1，实际 {moved.GetProperty("inside").GetDouble()}");
+
+        await _pageWallpaper.EvaluateAsync("() => window.__dbg.injectPointer(100, 100, 'down')");
+        await Task.Delay(250);
+        var down = await PtrSnapshotAsync();
+        Assert.True(down.GetProperty("down").GetBoolean(), "注入 pointerdown 后 downFlag 应置位");
+        Assert.True(down.GetProperty("energy").GetDouble() > 0.8, "按下时 energy 应趋近 1");
+
+        await _pageWallpaper.EvaluateAsync("() => window.__dbg.injectPointer(100, 100, 'up')");
+        await Task.Delay(250);
+        var up = await PtrSnapshotAsync();
+        Assert.False(up.GetProperty("down").GetBoolean(), "注入 pointerup 后 downFlag 应复位");
+    }
+
+    [Fact]
+    public async Task Wallpaper_GlobalHook_InjectsOnlyWhenClickThroughOff()
+    {
+        WriteSetting("clickThrough", false);
+        await RestartAppAsync();
+        await GotoOrbAsync();
+
+        int cx = GetSystemMetrics(SM_CXSCREEN), cy = GetSystemMetrics(SM_CYSCREEN);
+        SendMouseMoveTo(cx / 2, cy / 2);
+        await Task.Delay(80);
+        SendMouseMoveTo(cx / 2 + 12, cy / 2);
+        Assert.True(await WaitPtrProbeAsync(), "穿透关闭时全局钩子未注入指针（探针无 ptr 事件）");
+        Assert.True((await PtrSnapshotAsync()).GetProperty("active").GetBoolean(),
+            "钩子注入后引擎指针场应激活");
+
+        // 穿透开启：同一输入不再驱动壁纸（点击与指针都归桌面 / 图标层）
+        WriteSetting("clickThrough", true);
+        await RestartAppAsync();
+        await GotoOrbAsync();
+        var before = await PtrProbeCountAsync();
+        SendMouseMoveTo(cx / 2, cy / 2);
+        await Task.Delay(80);
+        SendMouseMoveTo(cx / 2 - 12, cy / 2);
+        await Task.Delay(800);
+        var after = await PtrProbeCountAsync();
+        Assert.True(before == after, $"穿透开启时仍注入了指针（{before} → {after}）");
+    }
+
+    // CDP 的 Input.dispatchMouseEvent 只注入浏览器窗口，不经过全局输入队列，WH_MOUSE_LL 观察不到；
+    // SendInput 的事件会进入系统输入队列，等价于真实鼠标移动（测试会短暂挪动真实指针几像素）。
+    const int SM_CXSCREEN = 0, SM_CYSCREEN = 1;
+    const uint INPUT_MOUSE = 0, MOUSEEVENTF_MOVE = 0x0001, MOUSEEVENTF_ABSOLUTE = 0x8000;
+
+    [StructLayout(LayoutKind.Sequential)] struct INPUT { public uint type; public MOUSEINPUT mi; }
+    [StructLayout(LayoutKind.Sequential)]
+    struct MOUSEINPUT
+    {
+        public int dx, dy;
+        public uint mouseData, dwFlags, time;
+        public IntPtr dwExtraInfo;
+    }
+
+    [DllImport("user32.dll")] static extern int GetSystemMetrics(int n);
+    [DllImport("user32.dll")] static extern uint SendInput(uint n, INPUT[] inputs, int size);
+
+    /// <summary>把指针绝对移动到屏幕物理坐标 (x, y)（按主监视器虚拟屏幕尺寸换算）。</summary>
+    static void SendMouseMoveTo(int x, int y)
+    {
+        int cx = GetSystemMetrics(SM_CXSCREEN), cy = GetSystemMetrics(SM_CYSCREEN);
+        var input = new INPUT
+        {
+            type = INPUT_MOUSE,
+            mi = new MOUSEINPUT
+            {
+                dx = (int)((long)x * 65535 / (cx - 1)),
+                dy = (int)((long)y * 65535 / (cy - 1)),
+                dwFlags = MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE,
+            },
+        };
+        if (SendInput(1, new[] { input }, Marshal.SizeOf<INPUT>()) != 1)
+            throw new InvalidOperationException("SendInput 失败");
+    }
+
+    private async Task<System.Text.Json.JsonElement> PtrSnapshotAsync()
+    {
+        return await _pageWallpaper.EvaluateAsync<System.Text.Json.JsonElement>("() => window.__dbg.ptr()");
+    }
+
+    private async Task GotoOrbAsync()
+    {
+        await _pageWallpaper.GotoAsync("https://deskland.test/pages/engine.html?theme=orb&wallpaper=1&ui=2");
+        var ok = await WaitJsBoolAsync(
+            "() => window.__desklandReady === true && !!window.__dbg && window.__dbg.theme === 'orb'");
+        Assert.True(ok, "orb 引擎未就绪");
+    }
+
+    private async Task<bool> WaitJsBoolAsync(string expression, int timeoutMs = 15000)
+    {
+        var start = DateTime.Now;
+        while (DateTime.Now - start < TimeSpan.FromMilliseconds(timeoutMs))
+        {
+            try
+            {
+                if (await _pageWallpaper.EvaluateAsync<bool>(expression)) return true;
+            }
+            catch (Microsoft.Playwright.PlaywrightException) { }   // 正在导航：重试
+            await Task.Delay(200);
+        }
+        return false;
+    }
+
+    private void WriteSetting(string key, System.Text.Json.Nodes.JsonNode value)
+    {
+        var path = Path.Combine(TestProfile, "settings.json");
+        var json = System.Text.Json.Nodes.JsonObject.Parse(File.ReadAllText(path))!;
+        json[key] = value;
+        File.WriteAllText(path, json.ToJsonString());
+    }
+
+    private string EventsPathFor(System.Diagnostics.Process p) =>
+        Path.Combine(TestProfile, $"test-events-{p.Id}.jsonl");
+
+    private async Task<bool> WaitPtrProbeAsync(int timeoutMs = 8000)
+    {
+        var path = EventsPathFor(_appProcess!);
+        var start = DateTime.Now;
+        while (DateTime.Now - start < TimeSpan.FromMilliseconds(timeoutMs))
+        {
+            if (File.Exists(path))
+            {
+                var lines = await File.ReadAllLinesAsync(path);
+                if (lines.Any(l => l.Contains("\"event\":\"ptr\""))) return true;
+            }
+            await Task.Delay(150);
+        }
+        return false;
+    }
+
+    private async Task<int> PtrProbeCountAsync()
+    {
+        var path = EventsPathFor(_appProcess!);
+        if (!File.Exists(path)) return 0;
+        var lines = await File.ReadAllLinesAsync(path);
+        return lines.Count(l => l.Contains("\"event\":\"ptr\""));
     }
 
     // 持久化的源码红线：默认关闭、Load 读 bool、Save 写入、StartForm 应用

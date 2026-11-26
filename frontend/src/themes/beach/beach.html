@@ -115,8 +115,8 @@
       window.__dbg = {
         P: engine.params,
         SCENE: engine.scene,
-        kayaks: engine.kayaks,
-        birds: engine.birds,
+        kayaks: engine.kayaks.list,
+        birds: engine.birds.list,
         applyLayout: (k) => app.layoutIcons(k),
         settle: () => engine.settleAndRender(), // 测试用：走完形态过渡并画一帧
         bench: () => engine.bench(),

@@ -23,6 +23,17 @@ export interface EngineStats {
 export type EngineParamValue = number | boolean;
 export type EngineParams = Record<string, EngineParamValue>;
 
+// 指针交互能力的公共快照：有指针场的主题（orb）override pointerState 返回实时状态；
+// 其余主题保持默认 null。宿主消息 / 调试脚本只读它，不再断言引擎私有结构。
+export interface PointerSnapshot {
+  active: boolean;
+  down: boolean;
+  inside: number;
+  energy: number;
+  x: number;
+  y: number;
+}
+
 // 事件回调：emit 的数据形状因事件而异（stats 对象 / 无数据），统一按 unknown 处理
 type EngineListener = (data: unknown) => void;
 
@@ -189,5 +200,10 @@ export class BaseEngine {
   // 场景时间（秒），语义同迁移前的 (now - T0) / 1000
   sceneTime(now: number): number {
     return (now - this._t0) / 1000;
+  }
+
+  // 主题可选能力：指针场快照（默认无此能力，返回 null）
+  get pointerState(): PointerSnapshot | null {
+    return null;
   }
 }

@@ -141,9 +141,18 @@ export class CloudSceneEngine extends SceneEngine {
   /* ======================================================================
      云的圆
      ====================================================================== */
+  /**
+   * 天上云层的主题化参数。默认值 = 历史行为（meadow/sky 零变化）；
+   * 子主题（如 aurora）可覆写以改变云的纵向分布、整体大小与边缘细节密度。
+   */
+  protected skyCloudTuning(): { yMin: number; yMax: number; scale: number; edgeScale: number } {
+    return { yMin: 80, yMax: this.H - SceneEngine.TASKBAR - 120, scale: 1, edgeScale: 1 };
+  }
+
   makeSkyCloud(x: number): SkyCloud {
+    const tune = this.skyCloudTuning();
     const rnd = Math.random,
-      R = 95 * 1.2; // 轮廓大一些（云厚一些，才放得下大圆）；圆的大小还是按 95 算
+      R = 95 * 1.2 * tune.scale; // 轮廓大一些（云厚一些，才放得下大圆）；圆的大小还是按 95 算
     // 1) 大致的轮廓：底下一排大圆（中间大、两边小），上面再堆几个 → 底宽上窄的一团
     const n = 3 + Math.floor(rnd() * 3),
       w = R * (1.0 + n * 0.5);
@@ -205,20 +214,20 @@ export class CloudSceneEngine extends SceneEngine {
     // 云的深处圆之间不能有缝：轮廓的大圆缩一点垫在底下
     for (const [cx, cy, r] of body) if (r > 0.75 * Rm) circles.push([cx, cy, r - 0.75 * Rm, rnd()]);
     layer(
-      34 * 0.85,
+      34 * 0.85 * tune.edgeScale,
       [0.5, 0.9],
       -1.0 * Rm,
       (ci) => sstep(-0.05 * Rm, -0.35 * Rm, ci) * (1 - sstep(-0.7 * Rm, -1.0 * Rm, ci)),
       true,
     );
     layer(
-      24 * 0.85,
+      24 * 0.85 * tune.edgeScale,
       [0.45, 0.8],
       -0.6 * Rm,
       (ci) => sstep(0, -0.2 * Rm, ci) * (1 - sstep(-0.4 * Rm, -0.6 * Rm, ci)),
       true,
     );
-    const y = 80 + rnd() * (this.H - SceneEngine.TASKBAR - 120);
+    const y = tune.yMin + rnd() * Math.max(20, tune.yMax - tune.yMin);
     return { x, y, circles, v: 0.7 + rnd() * 0.6, grow: 0, hw: Math.max(-x0, x1) + 20, dying: false };
   }
 

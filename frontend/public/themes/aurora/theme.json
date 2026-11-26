@@ -26,7 +26,7 @@
           "min": 0,
           "max": 1,
           "step": 0.01,
-          "default": 0.3,
+          "default": 0.12,
           "format": "percent"
         },
         {
@@ -334,7 +334,7 @@
       },
       "cloud-hi": {
         "type": "vec3",
-        "description": "云亮部（反射极光，覆盖 core）"
+        "description": "云亮部（低饱和月白偏青，去薄荷荧光；覆盖 core）"
       },
       "cloud-shade": {
         "type": "vec3",
@@ -342,7 +342,7 @@
       },
       "cloud-shadow": {
         "type": "vec3",
-        "description": "云影"
+        "description": "云影（大幅调亮，避免硬边脏灰斜带）"
       },
       "light-dir": {
         "type": "vec2",
@@ -354,7 +354,7 @@
       },
       "shadow-offset": {
         "type": "vec2",
-        "description": "人物落点位移系数（非 0-1，故 vec2 不强制分量范围）"
+        "description": "云影偏移（aurora 覆盖 core，减小斜带）"
       },
       "sky-bottom": {
         "type": "vec3",

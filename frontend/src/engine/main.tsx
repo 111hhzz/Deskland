@@ -7,6 +7,7 @@ import { MeadowEngine } from '../scenes/MeadowEngine.js';
 import { SkyEngine } from '../scenes/SkyEngine.js';
 import { FlatEngine } from '../scenes/FlatEngine.js';
 import { AuroraEngine } from '../scenes/AuroraEngine.js';
+import { OrbEngine } from '../scenes/OrbEngine.js';
 import { DeskApp } from './DeskApp.js';
 import { loadTheme as loadThemeTokens } from './tokenRuntime.js';
 import type { DeskEngine } from './DeskApp.js';
@@ -35,6 +36,7 @@ const ENGINES: Record<string, () => EngineCtor> = {
   sky: () => SkyEngine,
   beach: () => FlatEngine,
   aurora: () => AuroraEngine,
+  orb: () => OrbEngine,
 };
 const THEME_STYLE = (id: string) => '/themes/' + id + '/theme.css'; // 绝对路径：主题样式在 public，运行时按站点根解析
 
@@ -120,6 +122,12 @@ window.__dbg = {
     if (engine) engine.settleAndRender();
   },
   bench: () => (engine ? engine.bench() : null), // 调试：10 帧中位耗时（含每帧 readPixels 同步）
+  // 宿主钩子指针注入的测试入口（ADR 0002）：与 _handle 的 ptr 分支同一函数，供 E2E 绕过全局输入验证链路。
+  injectPointer: (x: number, y: number, p = 'move') => {
+    if (app) app.injectPointer(x, y, p as 'move' | 'down' | 'up');
+  },
+  // 引擎内部指针场快照（有指针能力的主题返回实时状态，其余主题返回 null）
+  ptr: () => (engine ? engine.pointerState : null),
   switchTheme: (id: string) => {
     if (!ENGINES[id]) return false; // 不支持（如海滩旧脚本）→ 交由宿主回退整页导航
     clearTimeout(switchTimer);

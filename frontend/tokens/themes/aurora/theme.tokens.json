@@ -28,28 +28,34 @@
       "$extensions": { "deskland.v1": { "uniform": "uAurB" } }
     },
     "cloud-hi": {
-      "$value": [0.75, 0.92, 0.86],
+      "$value": [0.55, 0.66, 0.7],
       "$type": "vec3",
-      "$description": "云亮部（反射极光，覆盖 core）",
+      "$description": "云亮部（低饱和月白偏青，去薄荷荧光；覆盖 core）",
       "$extensions": { "deskland.v1": { "uniform": "uCloudHi" } }
     },
     "cloud-body": {
-      "$value": [0.3, 0.42, 0.62],
+      "$value": [0.22, 0.3, 0.48],
       "$type": "vec3",
       "$description": "云主体（覆盖 core）",
       "$extensions": { "deskland.v1": { "uniform": "uCloudBody" } }
     },
     "cloud-shade": {
-      "$value": [0.2, 0.28, 0.46],
+      "$value": [0.13, 0.19, 0.34],
       "$type": "vec3",
       "$description": "云暗部（覆盖 core）",
       "$extensions": { "deskland.v1": { "uniform": "uCloudSh" } }
     },
     "cloud-shadow": {
-      "$value": [0.16, 0.22, 0.4],
+      "$value": [0.5, 0.56, 0.68],
       "$type": "vec3",
-      "$description": "云影",
+      "$description": "云影（大幅调亮，避免硬边脏灰斜带）",
       "$extensions": { "deskland.v1": { "uniform": "uCloudShadow" } }
+    },
+    "shadow-offset": {
+      "$value": [60.0, 80.0],
+      "$type": "vec2",
+      "$description": "云影偏移（aurora 覆盖 core，减小斜带）",
+      "$extensions": { "deskland.v1": { "uniform": "uShadowOff" } }
     },
     "moon": {
       "$value": [0.91, 0.89, 0.82],

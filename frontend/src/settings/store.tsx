@@ -49,7 +49,7 @@ type Action =
   | { type: 'lang'; lang: LangCode; langSys: LangCode; langSetting: LangSetting }
   | { type: 'themeMode'; v: ThemeMode }
   | { type: 'theme'; id: string }
-  | { type: 'param'; theme: string; key: string; value: number }
+  | { type: 'param'; theme: string; key: string; value: number | boolean }
   | { type: 'autostart'; v: boolean }
   | { type: 'autostartWarnOff' }
   | { type: 'update'; update: UpdateState }
@@ -146,7 +146,7 @@ export interface SettingsContextValue {
   t: (key: string, vars?: Record<string, string | number>) => string;
   selectTheme: (id: string) => void;
   reseed: () => void;
-  setParam: (key: string, value: number) => void;
+  setParam: (key: string, value: number | boolean) => void;
   setAdaptive: (checked: boolean) => void;
   setAutostart: (checked: boolean) => void;
   dismissAutostartWarn: () => void;
@@ -168,7 +168,7 @@ export function SettingsProvider({ host, children }: { host: HostBridge | null; 
   const [state, dispatch] = useReducer(reducer, initialState());
   // 主题清单由宿主下发（init / themes 消息），这里留一份供消息回调读取（effect 只依赖 host，不随清单重跑）
   const registryRef = useRef<ThemeRegistry>({ themes: [] });
-  const pending = useRef<Record<string, { theme: string; v: number }>>({});
+  const pending = useRef<Record<string, { theme: string; v: number | boolean }>>({});
   const scheduled = useRef(false);
   const stageTimer = useRef(0);
   const savedTimer = useRef(0);
@@ -281,7 +281,7 @@ export function SettingsProvider({ host, children }: { host: HostBridge | null; 
     }, 700);
   };
 
-  const setParam = (key: string, value: number) => {
+  const setParam = (key: string, value: number | boolean) => {
     if (key === 'adaptive') {
       const th = themes.find((x) => x.id === state.theme);
       if (!th?.adaptive || (value !== 0 && value !== 1)) return;

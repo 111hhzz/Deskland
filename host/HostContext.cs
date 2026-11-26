@@ -25,7 +25,7 @@ class HostContext : ApplicationContext
     readonly EventWaitHandle exitEvent, menuEvent, settingsEvent;
     readonly HotkeyWindow hotkey = new HotkeyWindow();
     readonly Queue<DateTime> restarts = new Queue<DateTime>();
-    readonly DesktopClickHook clickHook;
+    readonly DesktopPointerHook pointerHook;
     WallpaperForm form, dead;
     public WallpaperForm WallpaperForm { get { return form; } }
     SettingsForm settingsWin;
@@ -64,6 +64,7 @@ class HostContext : ApplicationContext
         {
             bool on = !clickThroughItem.Checked;
             if (form != null) form.SetClickThrough(on);
+            pointerHook.InjectPointer = !on;              // 指针注入与命中透传同一个开关：开 = 点击全归桌面
             clickThroughItem.Checked = on;
             Settings.ClickThrough = on;
             SaveSoon();                                  // 走 watch 的延迟保存
@@ -103,7 +104,7 @@ class HostContext : ApplicationContext
         tray.DoubleClick += delegate { OpenSettings(); };   // 双击托盘图标：直接打开设置
         tray.Visible = true;
         ShowWelcomeOnce(hotkeyOk);
-        clickHook = new DesktopClickHook();
+        pointerHook = new DesktopPointerHook { InjectPointer = !Settings.ClickThrough };
 
         watch = new System.Windows.Forms.Timer();
         watch.Interval = 500;
@@ -420,7 +421,8 @@ class HostContext : ApplicationContext
         }
         form = new WallpaperForm(pageDir, page, Settings.Theme, manualPause);
         form.SettingsJson = SettingsMessage;
-        clickHook.Wallpaper = form;
+        pointerHook.Wallpaper = form;
+        pointerHook.InjectPointer = !Settings.ClickThrough;   // form 重建后对齐当前开关
         form.HandleDestroyed += OnFormGone;
         form.Show();
         form.SetClickThrough(Settings.ClickThrough);   // 恢复上次的穿透开关（handle 已建；资源管理器重建窗口后也靠这里）
@@ -431,7 +433,7 @@ class HostContext : ApplicationContext
         var f = (WallpaperForm)sender;
         if (f != form) return;
         form = null;
-        clickHook.Wallpaper = null;
+        pointerHook.Wallpaper = null;
         dead = f;                                        // 稍后在计时器里释放，避免在销毁回调里重入
         if (exiting) return;
         if (f.Fatal) { Exit(); return; }
@@ -468,7 +470,7 @@ class HostContext : ApplicationContext
         if (saveDue != DateTime.MaxValue) Settings.Save();
         if (settingsWin != null) { try { settingsWin.Close(); } catch { /* 设置窗关闭竞争（正在 Dispose）忽略 */ } }
         hotkey.Dispose();
-        clickHook.Stop();
+        pointerHook.Stop();
         tray.Visible = false;
         if (form != null) form.Shutdown();
         Log.Write("退出");

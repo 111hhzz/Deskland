@@ -74,13 +74,13 @@
   /* ---- scene ---- */
   --scene-aurora-a: 0.24 0.86 0.59;
   --scene-aurora-b: 0.48 0.38 1;
-  --scene-cloud-body: 0.3 0.42 0.62;
-  --scene-cloud-hi: 0.75 0.92 0.86;
-  --scene-cloud-shade: 0.2 0.28 0.46;
-  --scene-cloud-shadow: 0.16 0.22 0.4;
+  --scene-cloud-body: 0.22 0.3 0.48;
+  --scene-cloud-hi: 0.55 0.66 0.7;
+  --scene-cloud-shade: 0.13 0.19 0.34;
+  --scene-cloud-shadow: 0.5 0.56 0.68;
   --scene-light-dir: -0.6 -0.8;
   --scene-moon: 0.91 0.89 0.82;
-  --scene-shadow-offset: 115 156;
+  --scene-shadow-offset: 60 80;
   --scene-sky-bottom: 0.08 0.12 0.26;
   --scene-sky-top: 0.03 0.05 0.14;
   /* ---- shadow ---- */

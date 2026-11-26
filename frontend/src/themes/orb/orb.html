@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Deskland · 星尘点阵球</title>
+    <!--
+  Deskland · 星尘 · 点阵球主题（WebGL2 gl.POINTS）
+  屏幕中央的点云球：随指针旋转、被磁场推开，点击泛起涟漪；五种形态（球体 / 环面 / 双旋臂 / 星轨盘 / 晶格壳）。
+  本文件只是引导壳：渲染逻辑在 scenes/OrbEngine.js，应用层在 engine/DeskApp.js。
+-->
+    <link rel="stylesheet" href="/themes/base.css" />
+    <link rel="stylesheet" href="/themes/orb/theme.css" />
+  </head>
+  <body data-theme="orb">
+    <canvas id="art"></canvas>
+    <div id="desktop"></div>
+
+    <div id="taskbar">
+      <div class="apps">
+        <div class="app">
+          <svg viewBox="0 0 24 24">
+            <rect x="2" y="2" width="9.5" height="9.5" fill="#7fb2ff" />
+            <rect x="12.5" y="2" width="9.5" height="9.5" fill="#7fb2ff" />
+            <rect x="2" y="12.5" width="9.5" height="9.5" fill="#7fb2ff" />
+            <rect x="12.5" y="12.5" width="9.5" height="9.5" fill="#7fb2ff" />
+          </svg>
+        </div>
+        <div class="app">
+          <svg viewBox="0 0 24 24">
+            <circle cx="10.5" cy="10.5" r="6" fill="none" stroke="#fff" stroke-width="2" />
+            <path d="M15 15l5 5" stroke="#fff" stroke-width="2.2" stroke-linecap="round" />
+          </svg>
+        </div>
+        <div class="app">
+          <svg viewBox="0 0 24 24">
+            <path d="M2 6a2 2 0 0 1 2-2h5l2 2h9a2 2 0 0 1 2 2v1H2z" fill="#e09b1d" />
+            <path d="M2 9h20v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z" fill="#ffc83d" />
+          </svg>
+        </div>
+        <div class="app">
+          <svg viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" fill="#1b8fd6" />
+            <path d="M6 13c1-5 11-6 12 0-3-2-8-2-9 2 0 2 2 3 4 3-4 1-7-1-7-5z" fill="#6fe37a" opacity=".9" />
+          </svg>
+        </div>
+        <div class="app">
+          <svg viewBox="0 0 24 24">
+            <rect x="2" y="4" width="20" height="16" rx="2.5" fill="#2b2b2b" stroke="#777" />
+            <path d="M6 9l3 3-3 3M11 15h6" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round" />
+          </svg>
+        </div>
+      </div>
+      <div id="clock"></div>
+    </div>
+
+    <aside id="panel">
+      <header>
+        <div><b>Deskland</b><span>星尘 · 点阵球</span></div>
+        <div><button class="ibtn" id="collapse" title="折叠">–</button></div>
+      </header>
+      <div class="body">
+        <div class="sec">
+          <div class="t">桌面布局</div>
+          <div class="seg">
+            <button data-v="mine">仿你的桌面</button><button data-v="arranged">自动排列</button
+            ><button data-v="messy">杂乱</button><button data-v="minimal">极简</button>
+          </div>
+        </div>
+        <div class="sec" id="sliders"></div>
+        <div class="sec toggles">
+          <label><input type="checkbox" data-key="debug" />显示调试圈</label>
+          <label><input type="checkbox" data-key="autoCycle" />循环更换形态</label>
+          <label><input type="checkbox" data-key="snap" />对齐网格</label>
+          <label><input type="checkbox" data-key="cap30" />限帧 30fps</label>
+        </div>
+        <div class="sec btns">
+          <button id="btnAdd">＋ 新建文件</button>
+          <button id="btnSeed">换一种星空</button>
+        </div>
+        <div id="stats"></div>
+        <div class="hint">移动指针：球面随你旋转、被磁场推开；点击球面泛起涟漪<br />Del 删除 · H 隐藏面板</div>
+      </div>
+    </aside>
+    <div id="nogl">当前浏览器不支持 WebGL2，无法运行原型。</div>
+
+    <script type="module">
+      import { OrbEngine } from '../../scenes/OrbEngine.js';
+      import { DeskApp } from '../../engine/DeskApp.js';
+      import { loadTheme } from '../../engine/tokenRuntime.js';
+      import '../../lib/ripple.js'; // 桌面点击涟漪（只读鼠标钩子），import 即装
+
+      const QS = new URLSearchParams(location.search);
+      loadTheme('orb');
+      const engine = new OrbEngine(document.getElementById('art'), {
+        wallpaper: QS.has('wallpaper'),
+        preview: QS.has('preview'),
+      });
+      const app = new DeskApp(engine);
+
+      window.__dbg = {
+        P: engine.params,
+        SCENE: engine.scene,
+        get seed() {
+          return engine.seed;
+        },
+        applyLayout: (k) => app.layoutIcons(k),
+        settle: () => engine.settleAndRender(),
+        bench: () => engine.bench(),
+      };
+
+      engine.init().then((ok) => {
+        if (!ok) return;
+        app.start();
+        engine.start();
+        requestAnimationFrame(() => {
+          window.__desklandReady = true;
+          const host = window.chrome && window.chrome.webview;
+          if (host) host.postMessage(JSON.stringify({ t: 'firstframe' }));
+        });
+      });
+    </script>
+  </body>
+</html>
