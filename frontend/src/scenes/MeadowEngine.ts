@@ -6,6 +6,8 @@
 
 import { ActorSceneEngine } from '../engine/ActorSceneEngine.js';
 import type { EngineOpts, EngineParams } from '../engine/BaseEngine.js';
+import { paramDefaults } from '../engine/paramDefs.js';
+import { assertParamCoverage, paramDisplays, paramSliders } from '../engine/paramSchema.js';
 import type { ScenePalette, SceneDraw, Uniforms } from '../engine/SceneEngine.js';
 import { GLSL_COMMON, GLSL_CLOUD, GLSL_MEADOW_EXTRA, withDefines } from '../engine/glsl/common.js';
 import type { LegacyHost } from '../engine/LegacyHost.js';
@@ -176,35 +178,28 @@ export class MeadowEngine extends ActorSceneEngine {
     super(canvas, opts);
     this._actor = null;
     this._cat = null;
-    // 面板配置：应用层 DeskApp 直接读取（主题只加配置，不改宿主代码）
-    this.sliders = [
-      { key: 'sigma', label: '云团大小', min: 40, max: 200, step: 1, fmt: (v) => v + ' px', act: 'field' },
-      { key: 'cover', label: '草地上的云', min: 0, max: 1, step: 0.01, fmt: (v) => Math.round(v * 100) + '%' },
-      { key: 'flow', label: '流动速度', min: 0, max: 3, step: 0.05, fmt: (v) => '×' + v.toFixed(2) },
-    ];
-    this.displayKeys = [
-      { key: 'adaptive', min: 0, max: 1 },
-      { key: 'showBoy', min: 0, max: 1 },
-      { key: 'showCat', min: 0, max: 1 },
-    ];
+    // 面板配置：数据面（范围 / 默认值 / 文案）来自 PARAM_DEFS（theme.json.groups），此处只给 fmt / act
+    this.sliders = paramSliders('meadow', {
+      sigma: { fmt: (v) => v + ' px', act: 'field' },
+      cover: { fmt: (v) => Math.round(v * 100) + '%' },
+      flow: { fmt: (v) => '×' + v.toFixed(2) },
+    });
+    this.displayKeys = paramDisplays('meadow', ['adaptive', 'showBoy', 'showCat']);
+    assertParamCoverage('meadow', this.sliders, this.displayKeys);
   }
 
   override defaultParams(): EngineParams {
-    // 默认值要和 themes/meadow/theme.json 里草地主题的 default 保持一致；grain、quality 不开放调节
+    // 开放参数默认值来自 PARAM_DEFS（= theme.json.groups）；warp/edge/grain/quality/snap/cap30 不开放调节
     return {
-      sigma: 72,
+      ...paramDefaults('meadow'),
       warp: 40,
       edge: 10,
-      cover: 0.3,
-      flow: 1,
       grain: 1,
       quality: 2, // quality 2：按屏幕的实际像素画（150% 缩放时不再放大发糊）
       debug: false,
       snap: true,
       cap30: true,
-      showBoy: 1,
-      showCat: 1,
-      adaptive: 1,
+      adaptive: 1, // 内置显示键：沿用数值 1/0（与宿主下发同型；`?:` 判断下与布尔等价）
     };
   }
 

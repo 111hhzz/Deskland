@@ -94,6 +94,7 @@
       const engine = new AuroraEngine(document.getElementById('art'), {
         wallpaper: QS.has('wallpaper'),
         preview: QS.has('preview'),
+        themeId: 'aurora', // 参数数据面（PARAM_DEFS）索引
       });
       const app = new DeskApp(engine);
 

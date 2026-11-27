@@ -13,6 +13,8 @@ export interface EngineOpts {
   wallpaper?: boolean;
   preview?: boolean;
   themeId?: string;
+  /** 媒体主题（image/video）的素材地址（相对站点根，如 /u/<id>/a.mp4）；其它主题忽略 */
+  mediaSrc?: string;
 }
 
 // 每 10 帧发给应用外壳的统计

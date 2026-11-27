@@ -61,6 +61,7 @@ export function connectHost(deps: HostBridgeDeps): HostHandle {
   const handle = (m: HostMessage): void => {
     if (m.t === 'pause') {
       engine.paused = preview ? false : m.v;
+      engine.onPausedChange?.(engine.paused);
       if (!engine.paused) engine.resume();
       return;
     }

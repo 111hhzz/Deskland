@@ -12,6 +12,8 @@
 import { PARAM_DEFS } from './paramDefs.js';
 import type { ParamMeta } from './paramDefs.js';
 
+export type { ParamMeta } from './paramDefs.js';
+
 /** 主题构造器给单个参数叠加的表现层：格式化函数与变化后的动作（'field' / 'size' / 自定义 act） */
 export interface SliderView {
   fmt?: (v: number) => string;
@@ -36,10 +38,28 @@ export const BUILTIN_DISPLAYS: Record<string, ParamMeta> = {
 
 const DEFS = PARAM_DEFS as Record<string, Record<string, ParamMeta>>;
 
+/**
+ * 运行时参数声明：用户导入的主题不在构建期扫描范围内，其 theme.json.groups 由页面
+ * 启动时注册（见 main.tsx / M1b）。resolve 顺序：内置生成物 → 运行时注册 → 内置显示键。
+ */
+const RUNTIME_DEFS: Record<string, Record<string, ParamMeta>> = {};
+export function registerRuntimeDefs(id: string, defs: Record<string, ParamMeta>): void {
+  RUNTIME_DEFS[id] = defs;
+}
+
 function resolve(id: string, key: string): ParamMeta {
-  const m = DEFS[id]?.[key] ?? BUILTIN_DISPLAYS[key];
+  const m = DEFS[id]?.[key] ?? RUNTIME_DEFS[id]?.[key] ?? BUILTIN_DISPLAYS[key];
   if (!m) throw new Error(`参数声明缺失：${id}/${key}（theme.json.groups 或 BUILTIN_DISPLAYS）`);
   return m;
+}
+
+/** 运行时注册主题的默认值表（与 paramDefaults 对称，源 = registerRuntimeDefs） */
+export function runtimeDefaults(id: string): Record<string, number | boolean> {
+  const defs = RUNTIME_DEFS[id];
+  if (!defs) return {};
+  const out: Record<string, number | boolean> = {};
+  for (const [k, m] of Object.entries(defs)) out[k] = m.default;
+  return out;
 }
 
 /** 按构造器声明的视图装配面板滑杆 / 选项；键必须已在 theme.json.groups 声明（缺声明即抛错，漂移不可静默） */
