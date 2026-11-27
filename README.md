@@ -42,7 +42,7 @@ Currently Deskland+ renders on the **primary monitor**.
 
 ## Install
 
-Grab the latest Windows installer (or portable ZIP) from the [GitHub Releases page](https://github.com/111hhzz/Deskland/releases/latest).
+Grab the latest Windows installer (or portable ZIP) from the [GitHub Releases page](https://github.com/111hhzz/Desklandplus/releases/latest).
 
 The installer targets `Programs\Deskland+` under the current user profile and does not require administrator rights. If WebView2 is missing, its bootstrapper needs an internet connection. Uninstalling keeps your settings.
 
@@ -181,7 +181,7 @@ Issues and suggestions are welcome through GitHub Issues. This is an unofficial 
 
 ### 安装
 
-从 [GitHub Releases](https://github.com/111hhzz/Deskland/releases/latest) 下载最新 Windows 安装包（或便携 ZIP）。
+从 [GitHub Releases](https://github.com/111hhzz/Desklandplus/releases/latest) 下载最新 Windows 安装包（或便携 ZIP）。
 
 安装到当前用户的 `Programs\Deskland+` 目录，无需管理员权限；缺少 WebView2 时会联网安装引导程序；卸载保留用户设置。
 

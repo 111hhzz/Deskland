@@ -3,13 +3,13 @@
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $cache = Join-Path (Join-Path $script:DesklandLocal 'dist') 'installer-tools'
 New-Item -ItemType Directory -Force $cache | Out-Null
-$proxy = 'http://127.0.0.1:7890'
+$proxyParam = if ($env:HTTPS_PROXY) { @{ Proxy = $env:HTTPS_PROXY } } else { @{} }
 
 $nsis = Join-Path $cache 'nsis-3.13-setup.exe'
 $nsisUrl = 'https://prdownloads.sourceforge.net/nsis/nsis-3.13-setup.exe?download'
 if (-not (Test-Path -LiteralPath $nsis)) {
     Write-Host 'Downloading NSIS 3.13 setup ...'
-    Invoke-WebRequest -Uri $nsisUrl -OutFile $nsis -UseBasicParsing -Proxy $proxy -MaximumRedirection 10
+    Invoke-WebRequest -Uri $nsisUrl -OutFile $nsis -UseBasicParsing @proxyParam -MaximumRedirection 10
 }
 Write-Host ("NSIS setup size: " + (Get-Item -LiteralPath $nsis).Length)
 Write-Host ("NSIS setup sha256: " + (Get-FileHash -LiteralPath $nsis -Algorithm SHA256).Hash)
@@ -20,6 +20,6 @@ $boot = Join-Path $cache 'MicrosoftEdgeWebview2Setup.exe'
 if (-not (Test-Path -LiteralPath $boot)) {
     Write-Host 'Downloading WebView2 bootstrapper ...'
     Invoke-WebRequest -Uri 'https://go.microsoft.com/fwlink/p/?LinkId=2124703' `
-        -OutFile $boot -UseBasicParsing -Proxy $proxy
+        -OutFile $boot -UseBasicParsing @proxyParam
 }
 Write-Host ("Bootstrapper size: " + (Get-Item -LiteralPath $boot).Length)
