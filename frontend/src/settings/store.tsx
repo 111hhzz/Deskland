@@ -196,6 +196,13 @@ export function SettingsProvider({ host, children }: { host: HostBridge | null; 
   const savedTimer = useRef(0);
   const savedHideTimer = useRef(0);
   const refreshTimer = useRef(0);
+  const noticeTimer = useRef(0);
+  // 反馈提示：5s 后自动消失（导入结果 / 删除确认等）
+  const notify = useCallback((notice: { key: string; vars?: Record<string, string | number> } | null) => {
+    dispatch({ type: 'notice', notice });
+    window.clearTimeout(noticeTimer.current);
+    if (notice) noticeTimer.current = window.setTimeout(() => dispatch({ type: 'notice', notice: null }), 5000);
+  }, []);
 
   const themes = useMemo(() => localizeRegistry(state.registry0, state.lang), [state.registry0, state.lang]);
   const t = useCallback(
@@ -268,14 +275,11 @@ export function SettingsProvider({ host, children }: { host: HostBridge | null; 
             io: 'importErrIO',
             // .dlp 包：pkg_too_large / pkg_entries / entry_path / nested_zip / asset_type / pkg_total / no_manifest / bad_json / bad_manifest
           };
-          dispatch({
-            type: 'notice',
-            notice: m.error ? { key: codeMap[m.error] ?? 'importErrPkg' } : { key: 'importOk', vars: { name } },
-          });
+          notify(m.error ? { key: codeMap[m.error] ?? 'importErrPkg' } : { key: 'importOk', vars: { name } });
           break;
         }
         case 'themeDeleted':
-          dispatch({ type: 'notice', notice: { key: 'deleteOk' } });
+          notify({ key: 'deleteOk' });
           break;
         case 'updateState': {
           const version = String(m.version ?? '').trim();
@@ -376,7 +380,7 @@ export function SettingsProvider({ host, children }: { host: HostBridge | null; 
   // 导入：选择文件由宿主弹原生对话框（路径通道，无大小限制）
   const importPick = () => {
     if (!host) {
-      dispatch({ type: 'notice', notice: { key: 'importNeedsHost' } });
+      notify({ key: 'importNeedsHost' });
       return;
     }
     host.send({ t: 'importPick' });
@@ -385,18 +389,18 @@ export function SettingsProvider({ host, children }: { host: HostBridge | null; 
   // 拖拽通道：File → base64 直传（限 20MB；超限引导改用「选择文件」）
   const importFiles = (files: File[]) => {
     if (!host) {
-      dispatch({ type: 'notice', notice: { key: 'importNeedsHost' } });
+      notify({ key: 'importNeedsHost' });
       return;
     }
     for (const f of files) {
       const ext = (f.name.split('.').pop() ?? '').toLowerCase();
       const okType = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'avif', 'mp4', 'webm', 'dlp', 'zip'].includes(ext);
       if (!okType) {
-        dispatch({ type: 'notice', notice: { key: 'importErrFormat' } });
+        notify({ key: 'importErrFormat' });
         continue;
       }
       if (f.size > 20 * 1024 * 1024) {
-        dispatch({ type: 'notice', notice: { key: 'importDragTooLarge' } });
+        notify({ key: 'importDragTooLarge' });
         continue;
       }
       void fileToBase64(f).then((data) => host.send({ t: 'importFile', name: f.name, data }));
@@ -407,6 +411,9 @@ export function SettingsProvider({ host, children }: { host: HostBridge | null; 
     if (!host) return;
     host.send({ t: 'deleteTheme', id });
   };
+
+  // 卸载时清掉提示定时器，避免泄漏到下一个实例
+  useEffect(() => () => window.clearTimeout(noticeTimer.current), []);
 
   const value: SettingsContextValue = {
     state,

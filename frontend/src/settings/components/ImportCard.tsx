@@ -1,7 +1,8 @@
-// 导入卡片：把本地图片 / 视频变成壁纸主题。
+// 导入入口（紧凑单行）：把本地图片 / 视频变成壁纸主题。
 // 两条通道（与计划文档 §4.3 一致）：
 //   - 「选择文件…」→ 宿主原生对话框（路径通道，无大小限制，批量）
-//   - 拖拽到虚线区 → File 读 base64 直传（限 20MB，超限引导改用选择）
+//   - 拖拽到这一行 → File 读 base64 直传（限 20MB，超限引导改用选择）
+// 视觉上保持辅助功能定位：一行工具条，不与「选一片风景」的主体争夺注意力。
 import { useRef, useState } from 'react';
 import type { DragEvent } from 'react';
 import { useSettings } from '../store.js';
@@ -21,36 +22,22 @@ export function ImportCard() {
   };
 
   return (
-    <section className="card import-card" id="importCard">
-      <div className="import-head">
-        <h2>{t('importTitle')}</h2>
-        <p>{t('importDesc')}</p>
-      </div>
+    <section
+      className={`import-bar${over ? ' over' : ''}`}
+      id="importCard"
+      onDragOver={(e) => {
+        e.preventDefault();
+        setOver(true);
+      }}
+      onDragLeave={() => setOver(false)}
+      onDrop={onDrop}
+    >
       <button type="button" className="ghost-btn import-pick" id="importPick" onClick={importPick}>
-        {t('importPick')}
+        + {t('importPick')}
       </button>
-      <div
-        className={`dropzone${over ? ' over' : ''}`}
-        id="importDrop"
-        role="button"
-        tabIndex={0}
-        aria-label={t('importDrop')}
-        onClick={() => inputRef.current?.click()}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            inputRef.current?.click();
-          }
-        }}
-        onDragOver={(e) => {
-          e.preventDefault();
-          setOver(true);
-        }}
-        onDragLeave={() => setOver(false)}
-        onDrop={onDrop}
-      >
+      <span className="import-drop-hint" id="importDrop">
         {t('importDrop')}
-      </div>
+      </span>
       <input
         ref={inputRef}
         type="file"

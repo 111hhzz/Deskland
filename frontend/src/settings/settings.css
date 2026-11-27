@@ -117,20 +117,16 @@
 
   /* ---------- 主题 ---------- */
   .themes { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
-  /* 左栏：导入卡片 + 主题列表 */
+  /* 左栏：导入工具条 + 主题列表 */
   .themes-col { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
-  .import-card { flex: none; margin: 2px 4px 18px; padding: 16px 16px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; }
-  .import-head h2 { font-size: 14px; font-weight: 650; letter-spacing: -.02em; }
-  .import-head p { margin-top: 4px; color: var(--muted); font-size: 12px; line-height: 1.5; }
-  .import-pick { margin-top: 12px; width: 100%; justify-content: center; }
-  .dropzone {
-    margin-top: 10px; padding: 14px 12px; border: 1.5px dashed var(--line); border-radius: 12px;
-    color: var(--muted); font-size: 12px; text-align: center; cursor: pointer; user-select: none;
-    transition: border-color .15s ease, background .15s ease, color .15s ease;
-  }
-  .dropzone:hover, .dropzone:focus-visible { border-color: var(--accent); color: var(--text); outline: none; }
-  .dropzone.over { border-color: var(--accent); background: var(--accent-soft); color: var(--text); }
-  .import-notice { margin: 10px 0 0; font-size: 12px; color: var(--muted); line-height: 1.5; }
+  /* 导入入口保持辅助定位：一行紧凑工具条，不与主体争夺注意力 */
+  .import-bar { flex: none; display: flex; align-items: center; gap: 10px; margin: 2px 4px 12px;
+    padding: 6px 8px 6px 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    transition: border-color .15s ease, background .15s ease; }
+  .import-bar.over { border-color: var(--accent); background: var(--accent-soft); }
+  .import-pick { padding: 7px 14px; font-size: 13px; }
+  .import-drop-hint { flex: 1; color: var(--muted); font-size: 12px; text-align: right; user-select: none; }
+  .import-notice { flex-basis: 100%; margin: 2px 0 0; font-size: 12px; color: var(--muted); line-height: 1.4; }
   .collection-head { flex: none; padding: 2px 4px 22px; }
   .collection-head h1 { font-size: clamp(26px, 2.8vw, 36px); font-weight: 650; letter-spacing: -.05em; line-height: 1.25; }
   .collection-head p { color: var(--muted); font-size: 12px; margin-top: 8px; }
