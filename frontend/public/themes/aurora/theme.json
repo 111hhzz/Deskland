@@ -3,7 +3,7 @@
   "name": "夜航 · 极光",
   "desc": "夜空下流动的极光，图标浮在发光的云原上；星星闪烁、偶有流星",
   "page": "themes/aurora/aurora.html",
-  "thumb": "url(/thumbs/aurora.webp?v=aurora) center / cover no-repeat, linear-gradient(180deg, #0a1430 0%, #071026 100%)",
+  "thumb": "url(/thumbs/aurora.webp?v=54bd97f3e1) center / cover no-repeat, linear-gradient(180deg, #0a1430 0%, #071026 100%)",
   "thumbSource": "custom",
   "groups": [
     {

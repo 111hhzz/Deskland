@@ -1,14 +1,16 @@
+// 设置页布局：顶栏（产品名 + 语言 / 外观）→ 左右两栏（主题选择 | 预览 + 参数）→ 底栏（保存状态 / 开机自启 / 帮助）。
+// 布局本身承担解释：卡片缩略图即主题内容，选中态靠描边；说明文字只在 hover / focus 的 tooltip 里出现。
+
 import { useEffect } from 'react';
 import { useSettings } from './store.js';
 import { TopBar } from './components/TopBar.js';
 import { ThemeList } from './components/ThemeList.js';
-import { ImportCard } from './components/ImportCard.js';
 import { PreviewCard } from './components/PreviewCard.js';
 import { Controls } from './components/Controls.js';
 import { HelpModal, PurchaseModal } from './components/Overlays.js';
 
 export function SettingsApp() {
-  const { state, t, openHelp, closeHelp, closePurchase } = useSettings();
+  const { state, t, setAutostart, setPure, openHelp, closeHelp, closePurchase } = useSettings();
 
   // 语言与主题模式写在 <html> 上，CSS 变量随之切换
   useEffect(() => {
@@ -45,39 +47,45 @@ export function SettingsApp() {
       <TopBar />
       <main className="layout">
         <div className="themes-col">
-          <ImportCard />
           <ThemeList />
         </div>
-        <div className="side">
+        <aside className="side">
           <PreviewCard />
           <Controls />
-        </div>
+        </aside>
       </main>
       <footer className="bottom">
-        <span className={`saved${state.savedFlash ? ' flash' : ''}`} id="saved">
-          {t(state.savedFlash ? 'saved' : 'autosave')}
-        </span>
-        <button
-          type="button"
-          className="ghost-btn help-button"
-          id="helpOpen"
-          aria-label={t('helpButtonTitle')}
-          title={t('helpButtonTitle')}
-          onClick={openHelp}
-        >
-          <svg
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            aria-hidden="true"
+        <div className="bottom-left">
+          <span className={'saved' + (state.savedFlash ? ' flash' : '')} id="savedTick">
+            {t('saved')}
+          </span>
+          <label className="switch-row" title={t('autostartTitle')}>
+            <span>{t('autostart')}</span>
+            <input
+              type="checkbox"
+              id="autostart"
+              checked={state.autostart}
+              onChange={(e) => setAutostart(e.target.checked)}
+            />
+            <i className="switch" />
+          </label>
+          <label className="switch-row" title={t('pureDesktopTitle')}>
+            <span>{t('pureDesktop')}</span>
+            <input type="checkbox" id="pureToggle" checked={state.pure} onChange={(e) => setPure(e.target.checked)} />
+            <i className="switch" />
+          </label>
+        </div>
+        <div className="bottom-actions">
+          <button
+            type="button"
+            id="helpOpen"
+            className="ghost-btn help-button"
+            onClick={openHelp}
+            title={t('helpButtonTitle')}
           >
-            <circle cx="8" cy="8" r="6.4" />
-            <path d="M6.3 6.2A1.8 1.8 0 0 1 9.7 7c0 1.1-1.5 1.4-1.5 2.4" />
-            <path d="M8 11.2v.1" />
-          </svg>
-        </button>
+            ?
+          </button>
+        </div>
       </footer>
       <PurchaseModal />
       <HelpModal />

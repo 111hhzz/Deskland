@@ -104,7 +104,7 @@ function PillMenu({ wrapId, btnId, menuId, lblId, icon, label, items, selected, 
 }
 
 export function TopBar() {
-  const { state, t, pickLang, pickThemeMode, setAutostart } = useSettings();
+  const { state, t, pickLang, pickThemeMode } = useSettings();
   const langLbl = state.langSetting === 'auto' ? t('langAuto') : LANGS[state.langSetting] || 'English';
   const modeLbl = t(
     state.themeMode === 'auto' ? 'themeModeAuto' : state.themeMode === 'light' ? 'themeModeLight' : 'themeModeDark',
@@ -113,7 +113,6 @@ export function TopBar() {
     <header className="top">
       <div className="top-left">
         <div className="brand">Deskland+</div>
-        <div className="section-title">{t('themes')}</div>
       </div>
       <div className="spacer" aria-hidden="true" />
       <div className="top-right">
@@ -158,16 +157,6 @@ export function TopBar() {
           ]}
           onPick={(v) => pickThemeMode(v as ThemeMode)}
         />
-        <label className="switch-row" title={t('autostartTitle')}>
-          <span>{t('autostart')}</span>
-          <input
-            type="checkbox"
-            id="autostart"
-            checked={state.autostart}
-            onChange={(e) => setAutostart(e.target.checked)}
-          />
-          <i className="switch" />
-        </label>
       </div>
     </header>
   );
