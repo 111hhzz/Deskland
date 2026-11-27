@@ -3,30 +3,25 @@ name: CI
 # Deskland+ 硬门禁：让 AI 可以犯错，但错误不能合入 main。
 #
 # 只有一个 job：gates = L0 确定性检查（前端 check / dotnet format / deslop / 两处 --warnaserror 构建），
-# 在 branch ruleset（#28082234）中设为 required，是唯一「拦住合并」的检查。
+# 在 branch ruleset（#28082234）中设为 required，是**唯一**「拦住合并」的云端检查。
 #
-# L1（E2E 非视觉）与 L2（视觉基线像素 diff）**不在云端跑**，只在本地 hook 的全量中执行
-# （pre-commit / pre-push 都调 tools/ci/run-gates.ps1 -Stage All）：
+# L1（E2E 非视觉）与 L2（视觉基线像素 diff）**不在云端跑**，只在本地执行
+# （pre-push 推主干时 / 手动 tools/ci/run-gates.ps1 -Stage All）：
 #   - L2 依赖分辨率 / GPU / 字体：托管 runner 上连基线尺寸都对不上（实测 actual 1028x749 vs baseline 1400x1000）；
 #   - L1 在无 GPU runner 上单轮约 30 分钟且 CDP 端口易 30s 超时（实测 42/45）。
-#   两者上云只会长期飘红、稀释信号，所以定位为本地质量建议层（可被 --no-verify 绕过，故本就不该拦人）。
-#   需要时仍可手动跑：pwsh -File tools/ci/run-gates.ps1 -Stage L1|L2
+#   两者上云只会长期飘红、稀释信号，定位为本地质量建议层，不承担拦截职责（口径以此为准）。
 #
-# 详见工作区 docs/specs/2026-11-25-ci-hardening-spec.md。
+# 【不设 paths-ignore】曾经忽略 **.md / .githooks/** / media/**，导致纯文档/媒体/hook 的 PR
+# 永不触发本 workflow，而 ruleset 又要求 gates → check 长期 Expected、合并被自己卡死。
+# 质量优先：任何改动都触发 gates，宁可多花几分钟，不留 Expected 死角。
+#
+# 详见工作区 docs/specs/2026-11-25-ci-hardening-spec.md 与 2026-11-27-hardening-remediation-spec.md。
 
 on:
   push:
     branches: [main]
-    paths-ignore:
-      - '**.md'
-      - '.githooks/**'
-      - 'media/**'
   pull_request:
     branches: [main]
-    paths-ignore:
-      - '**.md'
-      - '.githooks/**'
-      - 'media/**'
 
 concurrency:
   # 同一分支的新提交直接取消旧 run，省 Windows runner 分钟数
@@ -37,7 +32,7 @@ permissions:
   contents: read
 
 env:
-  # 测试 profile / WebView2 用户数据放在工作区内，不写到仓库外
+  # 测试 profile / WebView2 用户数据放在工作区内，不写到仓库外（L1 若启用时使用；L0 用不到但无害）
   DESKLAND_LOCAL: ${{ github.workspace }}\.deskland-local
 
 jobs:
