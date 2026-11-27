@@ -3,7 +3,7 @@
   "name": "星尘 · 点阵球",
   "desc": "光点构成的思考球：随指针旋转、被磁场推开，点击泛起涟漪",
   "page": "themes/orb/orb.html",
-  "thumb": "url(/thumbs/orb.webp?v=orb) center / cover no-repeat, linear-gradient(135deg, #0b1030 0%, #1a1440 100%)",
+  "thumb": "url(/thumbs/orb.webp?v=102eca0789) center / cover no-repeat, linear-gradient(135deg, #0b1030 0%, #1a1440 100%)",
   "groups": [
     {
       "name": "点阵球",

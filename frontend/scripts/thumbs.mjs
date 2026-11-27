@@ -1,13 +1,14 @@
-// 缩略图重编码：src/thumbs/*.webp → 同尺寸、quality 78，覆盖写回。
-// 用途：缩略图卡片实际显示宽度很小（~300px），源图 294×168 却要 40—80KB，
-// 重编码后每张约 8—15KB，首屏图片体积约降到 1/4。
-// 运行：npm run thumbs   （需要先 npm install，仅在新增/替换缩略图时执行）
+// 缩略图重编码：public/thumbs/*.webp → 同尺寸、quality 78，覆盖写回。
+// 规格：卡片/预览显示宽约 200—300 CSS px，源图统一 588×336（≈2x，适配高 DPI），
+// 单张约 5—8KB；改动主题视觉后需重新出图并同步 theme.json 的 ?v=（内容 hash）。
+// 重新出图：sharp 从 test/baselines/wallpaper-<id>.png 缩至 588×336（cover），再跑本脚本压缩。
+// 运行：pnpm thumbs   （需要先 pnpm install，仅在新增/替换缩略图时执行）
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 
-const dir = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'src', 'thumbs');
+const dir = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public', 'thumbs');
 const files = (await readdir(dir)).filter((f) => f.toLowerCase().endsWith('.webp'));
 if (!files.length) {
   console.log('没有找到 .webp 缩略图');

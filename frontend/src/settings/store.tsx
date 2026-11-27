@@ -31,6 +31,7 @@ export interface SettingsState {
   autostart: boolean;
   autostartWarn: boolean;
   autostartSw: string;
+  pure: boolean;
   update: UpdateState;
   ready: boolean;
   search: string;
@@ -53,6 +54,7 @@ type Action =
   | { type: 'theme'; id: string }
   | { type: 'param'; theme: string; key: string; value: number | boolean }
   | { type: 'autostart'; v: boolean }
+  | { type: 'pure'; v: boolean }
   | { type: 'autostartWarnOff' }
   | { type: 'update'; update: UpdateState }
   | { type: 'search'; q: string }
@@ -83,6 +85,7 @@ function reducer(s: SettingsState, a: Action): SettingsState {
         autostart: a.payload.autostart,
         autostartWarn: a.payload.autostartWarn,
         autostartSw: a.payload.autostartSw,
+        pure: a.payload.pure === true,
       };
     }
     case 'registry':
@@ -99,6 +102,8 @@ function reducer(s: SettingsState, a: Action): SettingsState {
       return { ...s, params: { ...s.params, [a.theme]: { ...s.params[a.theme], [a.key]: a.value } } };
     case 'autostart':
       return { ...s, autostart: a.v };
+    case 'pure':
+      return { ...s, pure: a.v };
     case 'autostartWarnOff':
       return { ...s, autostartWarn: false };
     case 'update':
@@ -146,6 +151,7 @@ function initialState(): SettingsState {
     autostart: false,
     autostartWarn: false,
     autostartSw: '',
+    pure: false,
     update: { version: '', status: '', progress: -1, error: '' },
     ready: false,
     search: '',
@@ -168,6 +174,7 @@ export interface SettingsContextValue {
   setParam: (key: string, value: number | boolean) => void;
   setAdaptive: (checked: boolean) => void;
   setAutostart: (checked: boolean) => void;
+  setPure: (checked: boolean) => void;
   dismissAutostartWarn: () => void;
   runUpdate: () => void;
   openPurchase: (id: string) => void;
@@ -303,6 +310,9 @@ export function SettingsProvider({ host, children }: { host: HostBridge | null; 
         case 'autostart':
           dispatch({ type: 'autostart', v: m.v });
           break;
+        case 'pure':
+          dispatch({ type: 'pure', v: m.v });
+          break;
       }
     });
     host.send({ t: 'hello' });
@@ -426,6 +436,10 @@ export function SettingsProvider({ host, children }: { host: HostBridge | null; 
     setAutostart: (checked) => {
       dispatch({ type: 'autostart', v: checked });
       host?.send({ t: 'autostart', v: checked });
+    },
+    setPure: (checked) => {
+      dispatch({ type: 'pure', v: checked });
+      host?.send({ t: 'setPure', v: checked });
     },
     dismissAutostartWarn: () => {
       dispatch({ type: 'autostartWarnOff' });

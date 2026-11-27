@@ -58,6 +58,7 @@ export interface InitPayload {
   autostart: boolean;
   autostartWarn: boolean;
   autostartSw: string;
+  pure: boolean;
   lang: LangSetting;
   themeMode: ThemeMode;
   langEff: LangCode;
@@ -78,6 +79,7 @@ export type OutMessage =
   | { t: 'set'; theme: string; key: string; value: number | boolean }
   | { t: 'theme'; id: string }
   | { t: 'autostart'; v: boolean }
+  | { t: 'setPure'; v: boolean }
   | { t: 'autostartWarnSeen' }
   | { t: 'lang'; v: LangSetting }
   | { t: 'themeMode'; v: ThemeMode }
@@ -100,4 +102,5 @@ export type InMessage =
   | { t: 'updateState'; version?: string; status?: string; progress?: number; error?: string }
   | { t: 'themeMode'; v: ThemeMode }
   | { t: 'lang'; v: LangSetting; eff: LangCode; sys: LangCode }
-  | { t: 'autostart'; v: boolean };
+  | { t: 'autostart'; v: boolean }
+  | { t: 'pure'; v: boolean };

@@ -13,6 +13,7 @@ static class Settings
     public static string ThemeMode = "auto";            // 设置窗口主题模式：auto / light / dark
     public static Dictionary<string, Dictionary<string, object>> Params = new Dictionary<string, Dictionary<string, object>>();
     public static bool ClickThrough = false;            // 鼠标穿透（托盘勾选状态，重启后恢复）
+    public static bool PureDesktop = false;             // 纯净显示桌面：隐藏任务栏 + 桌面图标（重启后恢复）
 
     public static void Load()
     {
@@ -26,6 +27,7 @@ static class Settings
             if (root.TryGetValue("lang", out v) && v is string) Lang = (string)v;
             if (root.TryGetValue("themeMode", out v) && v is string) ThemeMode = (string)v;
             if (root.TryGetValue("clickThrough", out v) && v is bool) ClickThrough = (bool)v;
+            if (root.TryGetValue("pureDesktop", out v) && v is bool) PureDesktop = (bool)v;
             if (root.TryGetValue("params", out v) && v is Dictionary<string, object>)
                 foreach (var kv in (Dictionary<string, object>)v)
                 {
@@ -42,7 +44,7 @@ static class Settings
         try
         {
             Directory.CreateDirectory(Log.DataDir);
-            File.WriteAllText(FilePath, Json.Stringify(Json.Obj("version", 1, "theme", Theme, "lang", Lang, "themeMode", ThemeMode, "clickThrough", ClickThrough, "params", Params)), new UTF8Encoding(false));
+            File.WriteAllText(FilePath, Json.Stringify(Json.Obj("version", 1, "theme", Theme, "lang", Lang, "themeMode", ThemeMode, "clickThrough", ClickThrough, "pureDesktop", PureDesktop, "params", Params)), new UTF8Encoding(false));
         }
         catch (Exception ex) { Log.Write("保存设置失败：" + ex.Message); }
     }

@@ -59,6 +59,8 @@ static class Program
         Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
         Application.ThreadException += delegate (object s, ThreadExceptionEventArgs e) { Log.Write("未处理的异常：" + e.Exception); };
         AppDomain.CurrentDomain.UnhandledException += delegate (object s, UnhandledExceptionEventArgs e) { Log.Write("致命异常：" + e.ExceptionObject); };
+        // 纯净模式兜底：任何正常退出路径都恢复任务栏 / 桌面图标（被杀进程由 Explorer 自愈，此处覆盖常规退出）
+        Application.ApplicationExit += delegate { PureDesktop.Restore(); };
         string exeDir = AppDomain.CurrentDomain.BaseDirectory;
         string pageDir = Path.GetFullPath(Path.Combine(exeDir, "prototype"));
         // 24H2+ 的挂法：默认做 Progman 的分层子窗口（换系统壁纸时会闪一下）；

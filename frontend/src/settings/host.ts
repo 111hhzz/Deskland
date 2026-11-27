@@ -60,6 +60,7 @@ export async function mockInit(): Promise<InitPayload> {
     autostart: false,
     autostartWarn: false,
     autostartSw: '',
+    pure: false,
     lang: 'auto',
     themeMode: 'auto',
     langEff: bl,

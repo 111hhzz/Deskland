@@ -55,6 +55,9 @@ class DesktopPointerHook
     /// <summary>是否向页面注入指针事件。鼠标穿透开启时置 false（点击不再驱动壁纸）。</summary>
     public bool InjectPointer { get; set; }
 
+    /// <summary>纯净模式期间点击真桌面（任务栏被隐藏后的紧急出口）。</summary>
+    public event Action PureExit;
+
     public DesktopPointerHook()
     {
         proc = OnMouse;
@@ -98,6 +101,12 @@ class DesktopPointerHook
             if (!OnDesktopRoot(data.pt)) return next;
             if (msg == Native.WM_LBUTTONDOWN)
             {
+                // 纯净模式的紧急出口：点一下桌面立即退出（此时任务栏/开始菜单都不可达）
+                if (PureDesktop.On)
+                {
+                    PureExit?.Invoke();
+                    return next;                     // 退出意图优先：不再触发涟漪 / 指针注入
+                }
                 wallpaper.Post(Json.Stringify(Json.Obj("t", "ripple", "x", x, "y", y)));
                 if (InjectPointer) Inject("down", x, y);
             }

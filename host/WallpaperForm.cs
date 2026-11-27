@@ -375,7 +375,7 @@ class WallpaperForm : Form
     int zFixes;
     void EnsureZOrder()
     {
-        if (!raised || zAnchor == IntPtr.Zero || !Native.IsWindow(zAnchor)) return;
+        if (!raised || zAnchor == IntPtr.Zero || !Native.IsWindow(zAnchor) || overlay) return;
         bool fixedAny = false;
         if (Native.GetWindow(zAnchor, 2 /* GW_HWNDNEXT */) != Handle)
         {
@@ -450,6 +450,52 @@ class WallpaperForm : Form
         lastPause = p;
         Post("{\"t\":\"pause\",\"v\":" + (pause ? "true" : "false") + "}");
         Log.Write(pause ? "暂停（有窗口最大化 / 全屏，或手动暂停）" + (pauseBy == "" ? "" : "，前台窗口类 " + pauseBy) : "继续播放");
+    }
+
+    // ---------------------------------------------------------------- 纯净模式：置顶盖住桌面
+    bool overlay;
+    int styleBefore, exBefore;
+
+    /// <summary>
+    /// 纯净模式：壁纸窗临时脱离 Explorer 桌面层并置顶（盖住桌面图标与系统壁纸，供截图）。
+    /// 刻意不隐藏 SHELLDLL_DefView——它是父层，藏了它壁纸窗会一起消失。
+    /// </summary>
+    public void SetOverlay(bool on)
+    {
+        if (!IsHandleCreated || overlay == on) return;
+        overlay = on;
+        if (on)
+        {
+            styleBefore = Native.GetWindowLong(Handle, Native.GWL_STYLE);
+            exBefore = Native.GetWindowLong(Handle, Native.GWL_EXSTYLE);
+            Native.SetWindowLong(Handle, Native.GWL_STYLE, (styleBefore & ~Native.WS_CHILD) | Native.WS_POPUP | Native.WS_VISIBLE);
+            // TRANSPARENT：点击穿透到下面的 Explorer 桌面层——这样「点一下桌面退出纯净模式」才点得到桌面
+            Native.SetWindowLong(Handle, Native.GWL_EXSTYLE, exBefore | Native.WS_EX_TOPMOST | Native.WS_EX_TOOLWINDOW | Native.WS_EX_TRANSPARENT);
+            Native.SetParent(Handle, IntPtr.Zero);
+            Native.SetWindowPos(Handle, new IntPtr(-1) /* HWND_TOPMOST */, screen.X, screen.Y, screen.Width, screen.Height,
+                Native.SWP_NOACTIVATE | Native.SWP_SHOWWINDOW | Native.SWP_FRAMECHANGED);
+            Log.Write("纯净模式：壁纸已脱离桌面层并置顶");
+        }
+        else
+        {
+            Native.SetWindowLong(Handle, Native.GWL_EXSTYLE, exBefore);
+            Native.SetWindowLong(Handle, Native.GWL_STYLE, styleBefore);
+            if (parentHwnd != IntPtr.Zero && Native.IsWindow(parentHwnd))
+            {
+                Native.SetParent(Handle, parentHwnd);
+                var pt = new Native.POINT { X = screen.X, Y = screen.Y };
+                Native.ScreenToClient(parentHwnd, ref pt);
+                Native.SetWindowPos(Handle, insertAfter, pt.X, pt.Y, screen.Width, screen.Height,
+                    Native.SWP_NOACTIVATE | Native.SWP_SHOWWINDOW | Native.SWP_FRAMECHANGED);
+            }
+            else
+            {
+                Log.Write("纯净模式恢复：原桌面层已失效，重新挂载");
+                if (!AttachToDesktop()) { Hide(); return; }
+            }
+            EnsureZOrder();
+            Log.Write("纯净模式：壁纸已挂回桌面层");
+        }
     }
 
     // ---------------------------------------------------------------- 鼠标穿透开关

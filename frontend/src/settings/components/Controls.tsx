@@ -3,6 +3,24 @@ import { useSettings } from '../store.js';
 import { fmtParam, themeById, valuesOf } from '../domain.js';
 import type { ParamDef } from '../types.js';
 
+// 参数说明收进 ⓘ：hover / 聚焦触发的原生 tooltip（controls 是滚动容器，自定义气泡会被裁剪）
+function ParamLabel({ p }: { p: ParamDef }) {
+  return (
+    <span className="label">
+      {p.label}
+      {p.hint ? (
+        <button type="button" className="info" title={p.hint} aria-label={p.hint}>
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <circle cx="8" cy="8" r="6.6" fill="none" stroke="currentColor" strokeWidth="1.1" />
+            <path d="M8 7.4v3.8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+            <circle cx="8" cy="4.9" r=".95" fill="currentColor" />
+          </svg>
+        </button>
+      ) : null}
+    </span>
+  );
+}
+
 function ParamRow({ p, value }: { p: ParamDef; value: number | boolean }) {
   const { setParam, t } = useSettings();
   const changed = value !== p.default;
@@ -12,10 +30,7 @@ function ParamRow({ p, value }: { p: ParamDef; value: number | boolean }) {
     return (
       <div className={`param${changed ? ' changed' : ''}`} id={`p-${p.key}`}>
         <div className="row">
-          <span className="label">
-            {p.label}
-            {p.hint ? <span className="hint">{p.hint}</span> : null}
-          </span>
+          <ParamLabel p={p} />
           <span className="right">
             <button
               type="button"
@@ -51,10 +66,7 @@ function ParamRow({ p, value }: { p: ParamDef; value: number | boolean }) {
   return (
     <div className={`param${changed ? ' changed' : ''}`} id={`p-${p.key}`}>
       <div className="row">
-        <span className="label">
-          {p.label}
-          {p.hint ? <span className="hint">{p.hint}</span> : null}
-        </span>
+        <ParamLabel p={p} />
         <span className="right">
           <button
             type="button"
@@ -121,11 +133,13 @@ export function Controls() {
     );
   }
   const vals = valuesOf(th, state.params);
+  const singleGroup = th.groups.length === 1;
   return (
     <section className="card controls" id="controls">
       {th.groups.map((g) => (
         <details className="group" open key={g.name}>
-          <summary>{g.name}</summary>
+          {/* 只有一组时分组名没有区分作用，折叠标题反而抬高参数、削弱归属 */}
+          {singleGroup ? null : <summary>{g.name}</summary>}
           {g.params.map((p) => (
             <ParamRow key={p.key} p={p} value={vals[p.key] ?? p.default} />
           ))}

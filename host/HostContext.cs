@@ -43,6 +43,7 @@ class HostContext : ApplicationContext
         Rename.MigratePreview();
         Settings.Load();
         I18n.Load(pageDir, Settings.Lang);
+        PureDesktop.Set(Settings.PureDesktop);   // 持久化的纯净模式（启动即恢复上次状态）
         UserThemes.SyncMirrors(pageDir);  // /u/<id>/ 镜像（硬链接到 user-themes 主拷贝）：导入主题的素材通道
         exitEvent = new EventWaitHandle(false, EventResetMode.AutoReset, Program.ExitEventName);
         menuEvent = new EventWaitHandle(false, EventResetMode.AutoReset, Program.MenuEventName);
@@ -106,6 +107,7 @@ class HostContext : ApplicationContext
         tray.Visible = true;
         ShowWelcomeOnce(hotkeyOk);
         pointerHook = new DesktopPointerHook { InjectPointer = !Settings.ClickThrough };
+        pointerHook.PureExit += RestorePure;   // 纯净模式期间点击桌面 = 立即退出
 
         watch = new System.Windows.Forms.Timer();
         watch.Interval = 500;
@@ -256,6 +258,7 @@ class HostContext : ApplicationContext
                     "themes", Themes.List(pageDir),
                     "screen", Json.Obj("w", scr.Width, "h", scr.Height), "autostart", IsAutoStart(),
                     "autostartWarn", autoStartSw != null, "autostartSw", autoStartSw ?? "",
+                    "pure", Settings.PureDesktop,
                     "lang", Settings.Lang, "themeMode", Settings.ThemeMode, "langEff", I18n.Code, "langSys", I18n.Sys)));
                 if (updateVersion != null) PostUpdateState();
                 break;
@@ -353,6 +356,9 @@ class HostContext : ApplicationContext
             case "autostart":
                 SetAutoStart(m["v"] is bool && (bool)m["v"]);
                 settingsWin.Post(Json.Stringify(Json.Obj("t", "autostart", "v", IsAutoStart())));
+                break;
+            case "setPure":                                 // 纯净显示桌面：壁纸置顶（可点穿）+ 隐藏任务栏（截图用，不碰 Explorer 图层）
+                ApplyPure(m["v"] is bool && (bool)m["v"]);
                 break;
         }
     }
@@ -461,6 +467,30 @@ class HostContext : ApplicationContext
             || AutoStartValue().IndexOf(Application.ExecutablePath, StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
+    // 纯净显示桌面：开启 = 壁纸置顶（WS_EX_TRANSPARENT，点击穿透回桌面层）+ 隐藏任务栏；
+    // 关闭 = 恢复任务栏 + 壁纸挂回 Explorer 桌面层。状态持久化，退出时另有兜底。
+    void ApplyPure(bool on)
+    {
+        Settings.PureDesktop = on;
+        SaveSoon();
+        if (on) { WallpaperForm?.SetOverlay(true); PureDesktop.Set(true); }
+        else { PureDesktop.Set(false); WallpaperForm?.SetOverlay(false); }
+        settingsWin?.Post(Json.Stringify(Json.Obj("t", "pure", "v", Settings.PureDesktop)));
+        Log.Write("纯净显示桌面：" + (on ? "开" : "关"));
+    }
+
+    // 钩子在全局线程触发：切回 UI 线程执行窗口操作
+    void RestorePure()
+    {
+        var w = WallpaperForm;
+        try
+        {
+            if (w != null && !w.IsDisposed && w.IsHandleCreated) w.BeginInvoke(new Action(() => ApplyPure(false)));
+            else ApplyPure(false);
+        }
+        catch { }   // 退出竞态：钩子回调不得抛出
+    }
+
     void SetAutoStart(bool on)
     {
         if (InstallProfile.Isolated) return;
@@ -505,6 +535,7 @@ class HostContext : ApplicationContext
         form.HandleDestroyed += OnFormGone;
         form.Show();
         form.SetClickThrough(Settings.ClickThrough);   // 恢复上次的穿透开关（handle 已建；资源管理器重建窗口后也靠这里）
+        form.SetOverlay(PureDesktop.On);               // 纯净模式（form 重建后恢复置顶态）
     }
 
     void OnFormGone(object sender, EventArgs e)
