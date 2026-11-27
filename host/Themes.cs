@@ -17,6 +17,8 @@ static class Themes
     public static List<Dictionary<string, object>> List(string pageDir)
     {
         if (cache != null && dir == pageDir) return cache;
+        // 清单与 /u/ 镜像强绑定：扫描前先同步（新增 / 删除 / 改动都会反映）
+        UserThemes.SyncMirrors(pageDir);
         cache = Scan(pageDir);
         dir = pageDir;
         return cache;

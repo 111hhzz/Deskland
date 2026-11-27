@@ -153,7 +153,8 @@ window.__dbg = {
   // 引擎内部指针场快照（有指针能力的主题返回实时状态，其余主题返回 null）
   ptr: () => (engine ? engine.pointerState : null),
   switchTheme: (id: string) => {
-    if (!ENGINES[id]) return false; // 不支持（如海滩旧脚本）→ 交由宿主回退整页导航
+    // 不预先按 ENGINES 拦截：用户导入主题的引擎类型由 manifest.engine 解析（boot 内 fetch）；
+    // 真失败由 failSwitch 回执，宿主回退整页导航（带 theme 参数）
     clearTimeout(switchTimer);
     // 正常会在 boot 的首帧回执里清掉；一直不回执（脚本挂起、init 卡住）就按失败处理
     switchTimer = window.setTimeout(

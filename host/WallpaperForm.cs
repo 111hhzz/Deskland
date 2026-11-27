@@ -115,7 +115,11 @@ class WallpaperForm : Form
         themeId = newId;
         LastLoadPageTime = DateTime.Now;
         if (web.CoreWebView2 == null) return;
-        try { web.CoreWebView2.Navigate(PageUrl); }
+        try
+        {
+            // engine.html 必须带 ?theme=<id>：热切换失败 / 未就绪的回退都是整页导航，漏了会静默落到默认 meadow
+            web.CoreWebView2.Navigate(newPage == "pages/engine.html" ? EngineUrl(newId) : PageUrl);
+        }
         catch (InvalidOperationException ex) { WebDead(ex); }
         catch (COMException ex) { WebDead(ex); }
     }

@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -54,31 +55,55 @@ static class UserThemes
     }
 
     /* ---- /u/<id>/<file> 资源可达性 ----
-       WebView2 的虚拟域映射是「主机 → 文件夹」粒度，net48 版 SDK 又没有 CreateWebResponse
-       这类自建响应的 API，因此按 id 的独立只读路由用目录联接实现：pageDir/u --junction--> Root。
-       页面 URL 统一 /u/<id>/<file>（同源 deskland.test）。
-       暴露面：同机同用户自己的导入内容（无多租户场景）；P2 若要更严格隔离需换方案，见计划文档 §5.1 注。 */
+   WebView2 虚拟域映射是「主机 → 文件夹」粒度，实测对目录联接（junction）不提供服务；
+   net48 版 SDK 又没有 CreateWebResponse 这类自建响应 API。因此采用镜像目录：
+   pageDir/u/<id>/ ← 硬链接（同卷零额外空间；跨卷回退复制）→ 用户主题主拷贝
+   （%LOCALAPPDATA%\DesklandPlus\user-themes\<id>\）。镜像由 SyncMirrors 维护，
+   随清单扫描同步；升级重装丢失 pageDir 也无损（主拷贝在数据目录，可重建）。 */
 
-    /// <summary>确保 pageDir/u 联接到用户主题根（幂等；构建清页目录后重启自动重建）</summary>
-    public static void EnsureLink(string pageDir)
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    static extern bool CreateHardLinkW(string lpFileName, string lpExistingFileName, IntPtr lpSecurityAttributes);
+
+    /// <summary>同步镜像：把用户主题（含 assets 子目录）以硬链接复制进 pageDir/u/&lt;id&gt;/（幂等）。</summary>
+    public static void SyncMirrors(string pageDir)
     {
         try
         {
-            var link = Path.Combine(pageDir, "u");
-            if (Directory.Exists(link) || File.Exists(link)) return;
-            Directory.CreateDirectory(Root);
-            var psi = new ProcessStartInfo("cmd.exe", "/c mklink /j \"" + link + "\" \"" + Root + "\"")
+            if (!Directory.Exists(Root)) return;
+            var mirror = Path.Combine(pageDir, "u");
+            Directory.CreateDirectory(mirror);
+            var keep = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var d in Directory.GetDirectories(Root))
             {
-                CreateNoWindow = true,
-                UseShellExecute = false,
-            };
-            using (var p = Process.Start(psi))
-            {
-                p.WaitForExit();
-                if (p.ExitCode != 0) Log.Write("创建用户主题联接失败（mklink /j）：" + link);
+                var id = Path.GetFileName(d);
+                if (!IsValidId(id)) continue;
+                keep.Add(id);
+                MirrorTree(d, Path.Combine(mirror, id));
             }
+            foreach (var d in Directory.GetDirectories(mirror))
+                if (!keep.Contains(Path.GetFileName(d))) Directory.Delete(d, true);
         }
-        catch (Exception ex) { Log.Write("创建用户主题联接异常：" + ex.Message); }
+        catch (Exception ex) { Log.Write("同步用户主题镜像失败：" + ex.Message); }
+    }
+
+    static void MirrorTree(string srcDir, string dstDir)
+    {
+        Directory.CreateDirectory(dstDir);
+        foreach (var f in Directory.GetFiles(srcDir)) MirrorFile(f, Path.Combine(dstDir, Path.GetFileName(f)));
+        foreach (var sub in Directory.GetDirectories(srcDir)) MirrorTree(sub, Path.Combine(dstDir, Path.GetFileName(sub)));
+    }
+
+    static void MirrorFile(string src, string dst)
+    {
+        var si = new FileInfo(src);
+        var di = new FileInfo(dst);
+        if (di.Exists && di.Length == si.Length && Math.Abs((di.LastWriteTimeUtc - si.LastWriteTimeUtc).TotalSeconds) < 2) return;
+        if (di.Exists) di.Delete();
+        if (!CreateHardLinkW(dst, src, IntPtr.Zero))
+        {
+            // 跨卷 / 硬链接不可用：回退复制（镜像仍是派生物，可重建）
+            File.Copy(src, dst, false);
+        }
     }
 
     /** id 是否为用户目录下的主题（防误删内置：内置在 pageDir，不在本根下） */

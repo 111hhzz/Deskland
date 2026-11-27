@@ -882,6 +882,101 @@ public class DesklandE2ETests : IAsyncLifetime
     }
 
     /// <summary>
+    /// 用户导入图片主题全链路：往 test-profile/user-themes/&lt;id&gt;/ 投放 theme.json + 素材（模拟导入产物），
+    /// 点「刷新主题」后设置页应出现该条目；点击切换到它应热切换成功、背景层图片真的加载
+    /// （经 pageDir/u/<id>/ 镜像可达）、token 覆盖注入 :root、运行时参数声明装配完成。结束还原。
+    /// </summary>
+    [Fact]
+    public async Task MediaTheme_UserThemeHotSwitchAndRender()
+    {
+        var original = await CurrentThemeAsync();
+        var id = "img-e2e";
+        var dir = Path.Combine(TestProfile, "user-themes", id);
+        // 1x1 真实 PNG（可解码；宿主导入的 magic bytes 校验走单测，此处验证渲染链路）
+        var png = Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==");
+        try
+        {
+            Directory.CreateDirectory(dir);
+            File.WriteAllBytes(Path.Combine(dir, "a.png"), png);
+            File.WriteAllText(Path.Combine(dir, "theme.json"),
+                "{\"id\":\"" + id + "\",\"name\":\"E2E 导入图\",\"desc\":\"e2e\",\"page\":\"pages/engine.html\"," +
+                "\"engine\":\"image\",\"mediaSrc\":\"/u/" + id + "/a.png\"," +
+                "\"thumb\":\"url(/u/" + id + "/a.png) center / cover no-repeat, linear-gradient(135deg,#223,#445)\"," +
+                "\"tokens\":{\"--color-surface\":\"#ffeeee\"}," +
+                "\"groups\":[{\"name\":\"媒体\",\"params\":[" +
+                "{\"key\":\"fit\",\"label\":\"填充方式\",\"options\":[\"cover\",\"contain\"],\"default\":0}," +
+                "{\"key\":\"veil\",\"label\":\"暗色遮罩\",\"min\":0,\"max\":0.8,\"step\":0.01,\"default\":0}]}]}");
+
+            await _pageSettings.WaitForSelectorAsync("#refreshThemes",
+                new PageWaitForSelectorOptions { Timeout = 20000 });
+            await _pageSettings.Locator("#refreshThemes").ClickAsync();
+            await _pageSettings.WaitForSelectorAsync(
+                $".theme[data-id='{id}']",
+                new PageWaitForSelectorOptions { Timeout = 15000 });
+
+            // /u/<id>/ 镜像就绪（Themes.List 内 SyncMirrors；硬链接到用户主题主拷贝）
+            var fetchState = await _pageSettings.EvaluateAsync<string>(
+                "fetch('/u/" + id + "/theme.json').then(r => 'status=' + r.status).catch(e => 'err=' + String(e))");
+            Assert.True(fetchState.Contains("status=200"), $"清单资源不可达：{fetchState}");
+
+            await _pageSettings.Locator($".theme[data-id='{id}']").ClickAsync();
+            var deadline = DateTime.Now + TimeSpan.FromSeconds(20);
+            while (DateTime.Now < deadline)
+            {
+                if (await CurrentThemeAsync() == id) break;
+                await Task.Delay(200);
+            }
+            var diagTheme = await CurrentThemeAsync(1000);
+            Assert.True(diagTheme == id, $"切换未生效：theme={diagTheme} url={_pageWallpaper.Url}");
+
+            // 背景层图片经 /u/<id>/ 联接真实加载（naturalWidth>0）；运行时参数装配完成
+            try
+            {
+                await _pageWallpaper.WaitForSelectorAsync(".media-layer img",
+                    new PageWaitForSelectorOptions { Timeout = 6000 });
+            }
+            catch (Exception)
+            {
+                var st = "?";
+                try
+                {
+                    st = await _pageWallpaper.EvaluateAsync<string>(
+                        "() => JSON.stringify({ theme: window.__dbg && window.__dbg.theme, ready: !!window.__desklandReady," +
+                        " P: window.__dbg && window.__dbg.P ? Object.keys(window.__dbg.P()) : null," +
+                        " layers: document.querySelectorAll('.media-layer').length, url: location.href })");
+                }
+                catch { }
+                Assert.Fail($"媒体层未出现：{st}");
+            }
+            var imgOk = await _pageWallpaper.EvaluateAsync<bool>(
+                "() => { const i = document.querySelector('.media-layer img'); return !!i && i.naturalWidth > 0; }");
+            Assert.True(imgOk, "媒体图片未加载（/u/<id>/ 不可达或 src 错误）");
+            var hasParams = await _pageWallpaper.EvaluateAsync<bool>(
+                "() => { const P = window.__dbg && window.__dbg.P(); return !!P && typeof P.fit === 'number' && typeof P.veil === 'number'; }");
+            Assert.True(hasParams, "运行时参数声明（registerRuntimeDefs）未装配");
+
+            // token 覆盖注入 :root（registerUserTheme）
+            var surface = await _pageWallpaper.EvaluateAsync<string>(
+                "() => getComputedStyle(document.documentElement).getPropertyValue('--color-surface').trim()");
+            Assert.Contains("ffeeee", surface);
+
+            await _pageSettings.Locator($".theme[data-id='{original}']").ClickAsync();
+            await Task.Delay(1500);
+        }
+        finally
+        {
+            if (Directory.Exists(dir)) Directory.Delete(dir, true);
+            await _pageSettings.WaitForSelectorAsync("#refreshThemes",
+                new PageWaitForSelectorOptions { Timeout = 20000 });
+            await _pageSettings.Locator("#refreshThemes").ClickAsync();
+            await _pageSettings.WaitForFunctionAsync(
+                "!document.querySelector('#refreshThemes').disabled",
+                null, new PageWaitForFunctionOptions { Timeout = 15000 });
+        }
+    }
+
+    /// <summary>
     /// 切换主题：只应多一条 theme_switch 埋点，且回执主题与目标一致（旧实现会把 ready 也当首帧，重复打点）。
     /// </summary>
     [Fact]

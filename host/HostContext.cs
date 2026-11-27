@@ -43,7 +43,7 @@ class HostContext : ApplicationContext
         Rename.MigratePreview();
         Settings.Load();
         I18n.Load(pageDir, Settings.Lang);
-        UserThemes.EnsureLink(pageDir);   // /u/<id>/ → %LOCALAPPDATA%\DesklandPlus\user-themes（导入主题的素材通道）
+        UserThemes.SyncMirrors(pageDir);  // /u/<id>/ 镜像（硬链接到 user-themes 主拷贝）：导入主题的素材通道
         exitEvent = new EventWaitHandle(false, EventResetMode.AutoReset, Program.ExitEventName);
         menuEvent = new EventWaitHandle(false, EventResetMode.AutoReset, Program.MenuEventName);
         settingsEvent = new EventWaitHandle(false, EventResetMode.AutoReset, Program.SettingsEventName);
