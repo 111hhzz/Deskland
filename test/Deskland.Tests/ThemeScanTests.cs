@@ -110,7 +110,7 @@ public class ThemeScanTests
             { "min", 40 }, { "max", 200 }, { "step", 1 }, { "default", 72 },
             { "unit", "px" }, { "format", "percent" },
             { "options", new List<object> { "隐藏", "显示" } },
-            { "soon", true }, { "junk", "不该出现" },
+            { "soon", new List<object> { "grain", "warp" } }, { "junk", "不该出现" },
         };
         var group = new Dictionary<string, object> { { "name", "云" }, { "params", new List<object> { param } } };
         var groups = new List<object> { group };
@@ -125,7 +125,7 @@ public class ThemeScanTests
         Assert.Equal("sigma", p["key"]);
         Assert.Equal("云团大小", p["label"]);
         Assert.Equal(72d, p["default"]);
-        Assert.True((bool)p["soon"]);
+        Assert.Equal(new List<string> { "grain", "warp" }, (List<string>)p["soon"]);
         Assert.Equal(new List<string> { "隐藏", "显示" }, (List<string>)p["options"]);
         Assert.False(p.ContainsKey("junk"), "白名单外的参数字段不应外发");
         Assert.False(list[0].ContainsKey("tokens"), "tokens 是主题内部约定，不应外发");

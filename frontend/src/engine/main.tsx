@@ -28,7 +28,10 @@ if (uiHost) {
 // start / destroy / setSeed / settleAndRender / bench）由 DeskEngine 描述，DeskApp 也按它取值。
 export type EngineInstance = DeskEngine;
 
-type EngineCtor = new (canvas: HTMLCanvasElement, opts: { wallpaper: boolean; preview: boolean }) => EngineInstance;
+type EngineCtor = new (
+  canvas: HTMLCanvasElement,
+  opts: { wallpaper: boolean; preview: boolean; themeId: string },
+) => EngineInstance;
 
 // 注册表以主题的 id 为键（宿主传来的 ?theme=<id>，与 _products.json / theme.json 的 id 一致）；主题样式统一 /themes/<id>/theme.css（在 public，绝对路径）。
 const ENGINES: Record<string, () => EngineCtor> = {
@@ -69,7 +72,7 @@ async function loadTheme(id: string): Promise<EngineInstance> {
   const themeId = known ? id : 'meadow';
   (document.getElementById('themeCss') as HTMLLinkElement).href = THEME_STYLE(themeId);
   loadThemeTokens(themeId);
-  return new Cls(canvas, { wallpaper: QS.has('wallpaper'), preview: QS.has('preview') });
+  return new Cls(canvas, { wallpaper: QS.has('wallpaper'), preview: QS.has('preview'), themeId });
 }
 
 async function boot(id: string) {

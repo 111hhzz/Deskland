@@ -109,8 +109,15 @@ static class ThemeScan
                         }
                         else if (k == "soon")
                         {
-                            bool soon;
-                            if (TryBool(v, out soon) && soon) p[k] = true;
+                            // 未开放参数预告：键名列表（与设置页 ParamGroup.soon: string[] 同型）
+                            var soonList = new List<string>();
+                            if (v is IEnumerable)
+                                foreach (var s in (IEnumerable)v)
+                                {
+                                    var str = s as string;
+                                    if (str != null) soonList.Add(str);
+                                }
+                            if (soonList.Count > 0) p[k] = soonList;
                         }
                     }
                     if (p.ContainsKey("key")) ps.Add(p);

@@ -668,15 +668,20 @@ public class DesklandE2ETests : IAsyncLifetime
                           File.ReadAllText(f).Contains("void main"));
             Assert.True(hasMain, $"{cls} 缺少片元着色器入口 void main");
 
-            var defaults = Regex.Match(engineSrc, @"defaultParams\(\)[^{]*\{(.*?)\}", RegexOptions.Singleline);
+            // 参数数据面单一真相 = theme.json.groups → scripts/build-params.mjs 生成的 paramDefs.ts；
+            // 引擎只经 paramDefaults / paramSliders / paramDisplays 引用它（见 engine/paramSchema.ts）。
+            // 这里挡两类静默故障：主题加了却忘接入引擎、theme.json 加了参数却没进生成物（params:check 同步门禁）。
+            var defaults = Regex.Match(engineSrc, @"defaultParams\(\)");
             Assert.True(defaults.Success, $"{cls} 缺少 defaultParams");
+            Assert.Contains($"paramDefaults('{id}')", engineSrc, StringComparison.Ordinal);
+            var paramDefsSrc = await File.ReadAllTextAsync(Path.Combine(srcDir, "engine", "paramDefs.ts"));
             using var manifest = System.Text.Json.JsonDocument.Parse(
                 File.ReadAllText(Path.Combine(themesDir, id, "theme.json")));
             foreach (var group in manifest.RootElement.GetProperty("groups").EnumerateArray())
                 foreach (var param in group.GetProperty("params").EnumerateArray())
                 {
                     var key = param.GetProperty("key").GetString()!;
-                    Assert.Contains(key + ":", defaults.Groups[1].Value, StringComparison.Ordinal);
+                    Assert.Contains("\"" + key + "\":", paramDefsSrc, StringComparison.Ordinal);
                 }
         }
 

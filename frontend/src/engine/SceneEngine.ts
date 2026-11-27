@@ -18,7 +18,9 @@ import { BaseEngine } from './BaseEngine.js';
 import type { EngineOpts, EngineParams, EngineStats } from './BaseEngine.js';
 import { GLSL_VS } from './glsl/common.js';
 import { buildParamRules } from './paramSchema.js';
-import type { ParamRule } from './paramSchema.js';
+import type { ParamRule, SliderDef, DisplayKeyDef } from './paramSchema.js';
+
+export type { SliderDef, DisplayKeyDef } from './paramSchema.js';
 
 const STEP = 5; // 陆地场的格子大小（px）
 const MORPH_MS = 1800; // 图标挪动时、场在新旧两张之间过渡的时长
@@ -62,22 +64,8 @@ export interface NoiseField {
 }
 // 场景调色板：从 tokens.ts 取当前主题的 --scene-*（0-1 三元组 / vec2），键由各主题自己定；缺失为 null
 export type ScenePalette = Record<string, number[] | null>;
-// 面板配置（应用层 DeskApp 渲染与绑定）
-export interface SliderDef {
-  key: string;
-  label: string;
-  min: number;
-  max: number;
-  step: number;
-  fmt: (v: number) => string;
-  act?: string;
-}
-export interface DisplayKeyDef {
-  key: string;
-  min: number;
-  max: number;
-}
-// 绘制编排回调：renderer 为要画的程序，withCat 表示是否带上小猫
+// 面板配置（应用层 DeskApp 渲染与绑定）。数据面由构造器经 paramSliders / paramDisplays
+// 从 PARAM_DEFS 装配（见 paramSchema.ts），本处只持有结果。
 export type SceneDraw = (renderer: Program, withCat: boolean) => void;
 export interface SceneStats extends EngineStats {
   field: number;
