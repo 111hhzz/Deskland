@@ -15,6 +15,8 @@ name: CI
 # 永不触发本 workflow，而 ruleset 又要求 gates → check 长期 Expected、合并被自己卡死。
 # 质量优先：任何改动都触发 gates，宁可多花几分钟，不留 Expected 死角。
 #
+# action 全部钉到精确 commit SHA（行尾注释标 major）；升级时显式改 SHA，避免 tag 静默漂移。
+#
 # 详见工作区 docs/specs/2026-11-25-ci-hardening-spec.md 与 2026-11-27-hardening-remediation-spec.md。
 
 on:
@@ -42,10 +44,10 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: 还原 .NET SDK（按 global.json）
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           global-json-file: global.json
           # 不用 NuGet 缓存：setup-dotnet 在未指定 cache-dependency-path 时只认 packages.lock.json，
@@ -53,7 +55,7 @@ jobs:
           cache: false
 
       - name: 还原 Node（按 .nvmrc）
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version-file: .nvmrc
           # 不设 cache：恢复缓存要在 PATH 中找到 pnpm，而 corepack 在本步之后才启用；
