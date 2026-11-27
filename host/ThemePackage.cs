@@ -44,6 +44,8 @@ static class ThemePackage
                     s.CopyTo(ms);
                     jsonText = Encoding.UTF8.GetString(ms.ToArray());
                 }
+                // 外部打包工具（含 PowerShell Set-Content）常写入带 BOM 的 JSON；解析前剥掉
+                if (!string.IsNullOrEmpty(jsonText) && jsonText[0] == '\uFEFF') jsonText = jsonText.Substring(1);
                 var t = Json.Parse(jsonText) as Dictionary<string, object>;
                 if (t == null) { r.Error = "bad_json"; return r; }
                 verdict = ThemePackageCore.ValidateManifest(t);
