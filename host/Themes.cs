@@ -17,6 +17,8 @@ static class Themes
     public static List<Dictionary<string, object>> List(string pageDir)
     {
         if (cache != null && dir == pageDir) return cache;
+        // 清单与 /u/ 镜像强绑定：扫描前先同步（新增 / 删除 / 改动都会反映）
+        UserThemes.SyncMirrors(pageDir);
         cache = Scan(pageDir);
         dir = pageDir;
         return cache;
@@ -74,6 +76,15 @@ static class Themes
             }
         }
         catch (Exception ex) { Log.Write("扫描 themes 目录失败：" + ex.Message); }
+
+        // 用户导入主题合并进清单（product 固定 user；撞名跳过）
+        var existing = new HashSet<string>();
+        foreach (var t in list) existing.Add((string)t["id"]);
+        try
+        {
+            list.AddRange(UserThemes.Scan(existing));
+        }
+        catch (Exception ex) { Log.Write("合并用户主题失败：" + ex.Message); }
         return list;
     }
 
@@ -125,7 +136,7 @@ static class Themes
     {
         if (PageFor(pageDir, id) == null) return false;
         string product = ProductFor(pageDir, id);
-        if (product == "free") return true;
+        if (product == "free" || product == "user") return true;   // 用户导入主题无需授权
         return product != null && owns != null && owns(product);
     }
 }

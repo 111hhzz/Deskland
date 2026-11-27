@@ -6,6 +6,8 @@
 import { CloudSceneEngine } from '../engine/CloudSceneEngine.js';
 import { SceneEngine, numParam } from '../engine/SceneEngine.js';
 import type { EngineOpts, EngineParams } from '../engine/BaseEngine.js';
+import { paramDefaults } from '../engine/paramDefs.js';
+import { assertParamCoverage, paramDisplays, paramSliders } from '../engine/paramSchema.js';
 import type { ScenePalette, Uniforms } from '../engine/SceneEngine.js';
 import { GLSL_COMMON, GLSL_CLOUD } from '../engine/glsl/common.js';
 
@@ -124,14 +126,16 @@ export class AuroraEngine extends CloudSceneEngine {
 
   constructor(canvas: HTMLCanvasElement, opts: EngineOpts = {}) {
     super(canvas, opts);
-    this.sliders = [
-      { key: 'sigma', label: '云团大小', min: 40, max: 200, step: 1, fmt: (v) => v + ' px', act: 'field' },
-      { key: 'cover', label: '云量', min: 0, max: 1, step: 0.01, fmt: (v) => Math.round(v * 100) + '%' },
-      { key: 'flow', label: '流动速度', min: 0, max: 3, step: 0.05, fmt: (v) => '×' + v.toFixed(2) },
-      { key: 'aurora', label: '极光强度', min: 0, max: 1.5, step: 0.01, fmt: (v) => Math.round(v * 100) + '%' },
-      { key: 'stars', label: '星星密度', min: 0, max: 1, step: 0.01, fmt: (v) => Math.round(v * 100) + '%' },
-    ];
-    this.displayKeys = [{ key: 'adaptive', min: 0, max: 1 }];
+    // 面板配置：数据面来自 PARAM_DEFS（theme.json.groups），此处只给 fmt / act
+    this.sliders = paramSliders('aurora', {
+      sigma: { fmt: (v) => v + ' px', act: 'field' },
+      cover: { fmt: (v) => Math.round(v * 100) + '%' },
+      flow: { fmt: (v) => '×' + v.toFixed(2) },
+      aurora: { fmt: (v) => Math.round(v * 100) + '%' },
+      stars: { fmt: (v) => Math.round(v * 100) + '%' },
+    });
+    this.displayKeys = paramDisplays('aurora', ['adaptive']);
+    assertParamCoverage('aurora', this.sliders, this.displayKeys);
   }
 
   // 云的分布与形态：只在中下部、更小、边缘碎圆更少（去“鱼鳞”感）
@@ -145,20 +149,17 @@ export class AuroraEngine extends CloudSceneEngine {
   }
 
   override defaultParams(): EngineParams {
+    // 开放参数默认值来自 PARAM_DEFS（= theme.json.groups）；warp/edge/grain/quality/snap/cap30 不开放调节
     return {
-      sigma: 72,
+      ...paramDefaults('aurora'),
       warp: 40,
       edge: 10,
-      cover: 0.12,
-      flow: 1,
-      aurora: 0.9,
-      stars: 0.55,
       grain: 1,
       quality: 2,
       debug: false,
       snap: true,
       cap30: true,
-      adaptive: 1,
+      adaptive: 1, // 内置显示键：沿用数值 1/0（与宿主下发同型；`?:` 判断下与布尔等价）
     };
   }
 

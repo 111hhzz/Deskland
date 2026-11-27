@@ -1,6 +1,6 @@
 // tokenRuntime 纯逻辑单测：主题切换、覆盖优先、core 回退、未知主题与非法值。
 import { describe, expect, it } from 'vitest';
-import { currentThemeId, loadTheme, resolveToken, sceneToken } from './tokenRuntime.js';
+import { currentThemeId, loadTheme, registerUserTheme, resolveToken, sceneToken } from './tokenRuntime.js';
 
 describe('tokenRuntime', () => {
   it('默认 meadow：主题覆盖优先，core 作为回退', () => {
@@ -33,5 +33,17 @@ describe('tokenRuntime', () => {
     expect(sceneToken('--no-such-token')).toBeNull();
     // 字符串型 token（字体栈）不是数值向量
     expect(sceneToken('--font-main')).toBeNull();
+  });
+
+  it('用户主题：注册后取值走覆盖（含路径式键），scene token 同效', () => {
+    registerUserTheme('user-demo', { 'color.bg': '#101010', '--scene-dot-core': [0.1, 0.2, 0.3] });
+    loadTheme('user-demo');
+    expect(currentThemeId()).toBe('user-demo');
+    expect(resolveToken('--color-bg')).toBe('#101010'); // 路径式键归一为变量名
+    expect(sceneToken('--scene-dot-core')).toEqual([0.1, 0.2, 0.3]);
+    // 未覆盖项回落 core
+    expect(String(resolveToken('--font-main'))).toContain('system-ui');
+    loadTheme('meadow'); // 离开后不再串值
+    expect(resolveToken('--color-bg')).toBe('#a6c46e');
   });
 });

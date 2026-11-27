@@ -16,12 +16,9 @@ function Write-Step($text) { Write-Host "`n==== $text ====" -ForegroundColor Cya
 # 1) 前端门禁与打包（token 同步 → Vite+：src + public → frontend/dist）
 Write-Step '前端 token 同步门禁'
 $pnpm = Get-Command pnpm -ErrorAction SilentlyContinue
-if ($pnpm) {
-    & $pnpm.Source --dir (Join-Path $root 'frontend') run tokens:check
-    if ($LASTEXITCODE -ne 0) { throw 'token 产物与源不一致（先跑 pnpm tokens）' }
-} else {
-    Write-Host '未找到 pnpm，跳过 token 同步门禁' -ForegroundColor Yellow
-}
+if (-not $pnpm) { throw '未找到 pnpm：请先 corepack enable / 安装 pnpm（版本见 frontend/package.json 的 packageManager）。' }
+& $pnpm.Source --dir (Join-Path $root 'frontend') run tokens:check
+if ($LASTEXITCODE -ne 0) { throw 'token 产物与源不一致（先跑 pnpm tokens）' }
 
 Write-Step '前端打包'
 & (Join-Path $root 'frontend\scripts\build.ps1')

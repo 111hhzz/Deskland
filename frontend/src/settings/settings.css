@@ -117,6 +117,16 @@
 
   /* ---------- 主题 ---------- */
   .themes { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+  /* 左栏：导入工具条 + 主题列表 */
+  .themes-col { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+  /* 导入入口保持辅助定位：一行紧凑工具条，不与主体争夺注意力 */
+  .import-bar { flex: none; display: flex; align-items: center; gap: 10px; margin: 2px 4px 12px;
+    padding: 6px 8px 6px 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    transition: border-color .15s ease, background .15s ease; }
+  .import-bar.over { border-color: var(--accent); background: var(--accent-soft); }
+  .import-pick { padding: 7px 14px; font-size: 13px; }
+  .import-drop-hint { flex: 1; color: var(--muted); font-size: 12px; text-align: right; user-select: none; }
+  .import-notice { flex-basis: 100%; margin: 2px 0 0; font-size: 12px; color: var(--muted); line-height: 1.4; }
   .collection-head { flex: none; padding: 2px 4px 22px; }
   .collection-head h1 { font-size: clamp(26px, 2.8vw, 36px); font-weight: 650; letter-spacing: -.05em; line-height: 1.25; }
   .collection-head p { color: var(--muted); font-size: 12px; margin-top: 8px; }
@@ -164,6 +174,12 @@
   .theme .lock-mark { position: absolute; right: 12px; bottom: 12px; display: grid; place-items: center; width: 30px; height: 30px;
     border-radius: 50%; background: rgba(255, 255, 255, .94); color: #252a28; box-shadow: 0 2px 10px rgba(0, 0, 0, .14); }
   .theme .lock-mark svg { width: 15px; height: 15px; }
+  /* 用户导入主题的删除按钮（缩略图右下角；正在使用的主题禁用） */
+  .theme .del-mark { position: absolute; right: 12px; bottom: 12px; display: grid; place-items: center; width: 30px; height: 30px;
+    border-radius: 50%; background: rgba(255, 255, 255, .94); color: #252a28; box-shadow: 0 2px 10px rgba(0, 0, 0, .14);
+    cursor: pointer; transition: transform .15s ease; }
+  .theme .del-mark:hover { transform: scale(1.08); }
+  .theme .del-mark svg { width: 13px; height: 13px; }
   .theme.ongoing-card { border-color: var(--line); border-style: dashed; }
   .theme.ongoing-card:disabled .thumb { filter: none; opacity: 1; }
   .ongoing-art { display: grid; place-items: center; background: var(--panel-2); color: var(--muted); }

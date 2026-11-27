@@ -110,7 +110,7 @@ public class ThemeScanTests
             { "min", 40 }, { "max", 200 }, { "step", 1 }, { "default", 72 },
             { "unit", "px" }, { "format", "percent" },
             { "options", new List<object> { "隐藏", "显示" } },
-            { "soon", true }, { "junk", "不该出现" },
+            { "soon", new List<object> { "grain", "warp" } }, { "junk", "不该出现" },
         };
         var group = new Dictionary<string, object> { { "name", "云" }, { "params", new List<object> { param } } };
         var groups = new List<object> { group };
@@ -125,7 +125,7 @@ public class ThemeScanTests
         Assert.Equal("sigma", p["key"]);
         Assert.Equal("云团大小", p["label"]);
         Assert.Equal(72d, p["default"]);
-        Assert.True((bool)p["soon"]);
+        Assert.Equal(new List<string> { "grain", "warp" }, (List<string>)p["soon"]);
         Assert.Equal(new List<string> { "隐藏", "显示" }, (List<string>)p["options"]);
         Assert.False(p.ContainsKey("junk"), "白名单外的参数字段不应外发");
         Assert.False(list[0].ContainsKey("tokens"), "tokens 是主题内部约定，不应外发");
@@ -207,5 +207,40 @@ public class ThemeScanTests
         Assert.Equal("bool", ps[0]["type"]);
         Assert.True((bool)ps[0]["default"], "布尔参数默认值应保留");
         Assert.False(ps[1].ContainsKey("type"), "非 bool 的 type 值不应外发");
+    }
+
+    [Fact]
+    public void ParseUserTheme_FixedUserProductAndSynthesizedPage()
+    {
+        // 用户主题：product 固定 user（包内声明一律不信任）、page 合成 engine.html、status ready
+        var t = new Dictionary<string, object>
+        {
+            { "name", "我的图" },
+            { "desc", "d" },
+            { "thumb", "url(/u/img-ab12cd34/a.png) center/cover" },
+            { "product", "pro" }, { "status", "locked" }, { "page", "themes/evil/evil.html" },
+            { "groups", new List<object> { new Dictionary<string, object>
+                {
+                    { "name", "媒体" },
+                    { "params", new List<object> { new Dictionary<string, object>
+                        { { "key", "veil" }, { "label", "遮罩" }, { "min", 0 }, { "max", 0.8 }, { "step", 0.01 }, { "default", 0 } } } },
+                } } },
+        };
+        var d = ThemeScan.ParseUserTheme("img-ab12cd34", t);
+        Assert.NotNull(d);
+        Assert.Equal("user", (string)d["product"]);
+        Assert.Equal("ready", (string)d["status"]);
+        Assert.Equal("pages/engine.html", (string)d["page"]);
+        Assert.False(d.ContainsKey("tokens"));
+        var ps = (List<Dictionary<string, object>>)((List<Dictionary<string, object>>)d["groups"])[0]["params"];
+        Assert.Equal(0d, ps[0]["default"]);
+    }
+
+    [Fact]
+    public void ParseUserTheme_MissingNameOrThumb_ReturnsNull()
+    {
+        Assert.Null(ThemeScan.ParseUserTheme("img-x", new Dictionary<string, object> { { "thumb", "x" } }));
+        Assert.Null(ThemeScan.ParseUserTheme("img-x", new Dictionary<string, object> { { "name", "n" } }));
+        Assert.Null(ThemeScan.ParseUserTheme("img-x", null!));
     }
 }

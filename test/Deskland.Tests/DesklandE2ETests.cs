@@ -41,6 +41,7 @@ public class DesklandE2ETests : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
+        RestoreDesktopShell();   // 上一轮强杀可能残留纯净模式（图标/任务栏隐藏）
         KillProcess("Deskland");
         KillWebView2ForProfile(TestProfile);
         await Task.Delay(1000);
@@ -100,6 +101,7 @@ public class DesklandE2ETests : IAsyncLifetime
             // 初始化失败时 _playwright 仍是 null；无论是否连上，都要把宿主收掉，
             // 否则残留的 Deskland.exe 会一直占着 9222/9223，下一轮测试就连不上
             if (_playwright != null) _playwright.Dispose();
+            RestoreDesktopShell();   // 兜底：宿主被强杀时未走 ApplicationExit
             KillProcess("Deskland");
             KillWebView2ForProfile(TestProfile);
         }
@@ -159,6 +161,42 @@ public class DesklandE2ETests : IAsyncLifetime
     {
         var autostart = _pageSettings.Locator("#autostart");
         await Assertions.Expect(autostart).ToBeVisibleAsync();
+    }
+
+    /// <summary>
+    /// 「纯净桌面」开关：开启后隐藏任务栏、壁纸置顶；设置持久化。
+    /// 关闭有两条路径：设置页开关；以及纯净模式下点击真桌面（任务栏不可达时的紧急出口）。
+    /// 自定义开关的滑块 span 覆盖在 input 上，Playwright 点击会被拦截，走 DOM click。
+    /// </summary>
+    [Fact]
+    public async Task SettingsPage_PureDesktopRoundTrip()
+    {
+        var toggle = _pageSettings.Locator("#pureToggle");
+        await Assertions.Expect(toggle).ToBeVisibleAsync();
+        Assert.False(TaskbarHidden(), "初始状态任务栏应可见");
+        Assert.True(DesktopIconsVisible(), "初始状态桌面图标层应可见");
+
+        // ① 开关开启：任务栏隐藏 + 壁纸置顶（Explorer 图层不动）
+        await toggle.EvaluateAsync("el => el.click()");
+        var path = Path.Combine(TestProfile, "settings.json");
+        Assert.True(await WaitPurePersistedAsync(path, true), "开启后 settings.json 应有 pureDesktop=true");
+        await Task.Delay(400);                       // ShowWindow / 置顶同步生效，稍等再断言
+        Assert.True(TaskbarHidden(), "开启后任务栏应被隐藏");
+        Assert.True(DesktopIconsVisible(), "纯净模式不得动 Explorer 图标层（否则壁纸会被一起隐藏）");
+        Assert.True(await WaitLogContainsAsync(Path.Combine(TestProfile, "host.log"), "已脱离桌面层并置顶"), "宿主应执行壁纸置顶");
+
+        // ② 点击真桌面 → 立即退出（合成左键点击屏幕左上角，命中 WorkerW/Progman）
+        ClickDesktop();
+        Assert.True(await WaitPurePersistedAsync(path, false), "点击桌面后应自动退出纯净模式（settings.json=false）");
+        Assert.True(await WaitTaskbarVisibleAsync(), "点击桌面后任务栏应恢复显示");
+        Assert.True(await WaitLogContainsAsync(Path.Combine(TestProfile, "host.log"), "已挂回桌面层"), "宿主应将壁纸挂回桌面层");
+
+        // ③ 开关仍可正常往返（恢复入口没坏）
+        await toggle.EvaluateAsync("el => el.click()");
+        Assert.True(await WaitPurePersistedAsync(path, true), "再次开启后 settings.json 应有 pureDesktop=true");
+        await toggle.EvaluateAsync("el => el.click()");
+        Assert.True(await WaitPurePersistedAsync(path, false), "再次关闭后 settings.json 应有 pureDesktop=false");
+        Assert.True(await WaitTaskbarVisibleAsync(), "关闭后任务栏应恢复显示");
     }
 
     [Fact]
@@ -668,15 +706,20 @@ public class DesklandE2ETests : IAsyncLifetime
                           File.ReadAllText(f).Contains("void main"));
             Assert.True(hasMain, $"{cls} 缺少片元着色器入口 void main");
 
-            var defaults = Regex.Match(engineSrc, @"defaultParams\(\)[^{]*\{(.*?)\}", RegexOptions.Singleline);
+            // 参数数据面单一真相 = theme.json.groups → scripts/build-params.mjs 生成的 paramDefs.ts；
+            // 引擎只经 paramDefaults / paramSliders / paramDisplays 引用它（见 engine/paramSchema.ts）。
+            // 这里挡两类静默故障：主题加了却忘接入引擎、theme.json 加了参数却没进生成物（params:check 同步门禁）。
+            var defaults = Regex.Match(engineSrc, @"defaultParams\(\)");
             Assert.True(defaults.Success, $"{cls} 缺少 defaultParams");
+            Assert.Contains($"paramDefaults('{id}')", engineSrc, StringComparison.Ordinal);
+            var paramDefsSrc = await File.ReadAllTextAsync(Path.Combine(srcDir, "engine", "paramDefs.ts"));
             using var manifest = System.Text.Json.JsonDocument.Parse(
                 File.ReadAllText(Path.Combine(themesDir, id, "theme.json")));
             foreach (var group in manifest.RootElement.GetProperty("groups").EnumerateArray())
                 foreach (var param in group.GetProperty("params").EnumerateArray())
                 {
                     var key = param.GetProperty("key").GetString()!;
-                    Assert.Contains(key + ":", defaults.Groups[1].Value, StringComparison.Ordinal);
+                    Assert.Contains("\"" + key + "\":", paramDefsSrc, StringComparison.Ordinal);
                 }
         }
 
@@ -877,6 +920,101 @@ public class DesklandE2ETests : IAsyncLifetime
     }
 
     /// <summary>
+    /// 用户导入图片主题全链路：往 test-profile/user-themes/&lt;id&gt;/ 投放 theme.json + 素材（模拟导入产物），
+    /// 点「刷新主题」后设置页应出现该条目；点击切换到它应热切换成功、背景层图片真的加载
+    /// （经 pageDir/u/<id>/ 镜像可达）、token 覆盖注入 :root、运行时参数声明装配完成。结束还原。
+    /// </summary>
+    [Fact]
+    public async Task MediaTheme_UserThemeHotSwitchAndRender()
+    {
+        var original = await CurrentThemeAsync();
+        var id = "img-e2e";
+        var dir = Path.Combine(TestProfile, "user-themes", id);
+        // 1x1 真实 PNG（可解码；宿主导入的 magic bytes 校验走单测，此处验证渲染链路）
+        var png = Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==");
+        try
+        {
+            Directory.CreateDirectory(dir);
+            File.WriteAllBytes(Path.Combine(dir, "a.png"), png);
+            File.WriteAllText(Path.Combine(dir, "theme.json"),
+                "{\"id\":\"" + id + "\",\"name\":\"E2E 导入图\",\"desc\":\"e2e\",\"page\":\"pages/engine.html\"," +
+                "\"engine\":\"image\",\"mediaSrc\":\"/u/" + id + "/a.png\"," +
+                "\"thumb\":\"url(/u/" + id + "/a.png) center / cover no-repeat, linear-gradient(135deg,#223,#445)\"," +
+                "\"tokens\":{\"--color-surface\":\"#ffeeee\"}," +
+                "\"groups\":[{\"name\":\"媒体\",\"params\":[" +
+                "{\"key\":\"fit\",\"label\":\"填充方式\",\"options\":[\"cover\",\"contain\"],\"default\":0}," +
+                "{\"key\":\"veil\",\"label\":\"暗色遮罩\",\"min\":0,\"max\":0.8,\"step\":0.01,\"default\":0}]}]}");
+
+            await _pageSettings.WaitForSelectorAsync("#refreshThemes",
+                new PageWaitForSelectorOptions { Timeout = 20000 });
+            await _pageSettings.Locator("#refreshThemes").ClickAsync();
+            await _pageSettings.WaitForSelectorAsync(
+                $".theme[data-id='{id}']",
+                new PageWaitForSelectorOptions { Timeout = 15000 });
+
+            // /u/<id>/ 镜像就绪（Themes.List 内 SyncMirrors；硬链接到用户主题主拷贝）
+            var fetchState = await _pageSettings.EvaluateAsync<string>(
+                "fetch('/u/" + id + "/theme.json').then(r => 'status=' + r.status).catch(e => 'err=' + String(e))");
+            Assert.True(fetchState.Contains("status=200"), $"清单资源不可达：{fetchState}");
+
+            await _pageSettings.Locator($".theme[data-id='{id}']").ClickAsync();
+            var deadline = DateTime.Now + TimeSpan.FromSeconds(20);
+            while (DateTime.Now < deadline)
+            {
+                if (await CurrentThemeAsync() == id) break;
+                await Task.Delay(200);
+            }
+            var diagTheme = await CurrentThemeAsync(1000);
+            Assert.True(diagTheme == id, $"切换未生效：theme={diagTheme} url={_pageWallpaper.Url}");
+
+            // 背景层图片经 /u/<id>/ 联接真实加载（naturalWidth>0）；运行时参数装配完成
+            try
+            {
+                await _pageWallpaper.WaitForSelectorAsync(".media-layer img",
+                    new PageWaitForSelectorOptions { Timeout = 6000 });
+            }
+            catch (Exception)
+            {
+                var st = "?";
+                try
+                {
+                    st = await _pageWallpaper.EvaluateAsync<string>(
+                        "() => JSON.stringify({ theme: window.__dbg && window.__dbg.theme, ready: !!window.__desklandReady," +
+                        " P: window.__dbg && window.__dbg.P ? Object.keys(window.__dbg.P()) : null," +
+                        " layers: document.querySelectorAll('.media-layer').length, url: location.href })");
+                }
+                catch { }
+                Assert.Fail($"媒体层未出现：{st}");
+            }
+            var imgOk = await _pageWallpaper.EvaluateAsync<bool>(
+                "() => { const i = document.querySelector('.media-layer img'); return !!i && i.naturalWidth > 0; }");
+            Assert.True(imgOk, "媒体图片未加载（/u/<id>/ 不可达或 src 错误）");
+            var hasParams = await _pageWallpaper.EvaluateAsync<bool>(
+                "() => { const P = window.__dbg && window.__dbg.P(); return !!P && typeof P.fit === 'number' && typeof P.veil === 'number'; }");
+            Assert.True(hasParams, "运行时参数声明（registerRuntimeDefs）未装配");
+
+            // token 覆盖注入 :root（registerUserTheme）
+            var surface = await _pageWallpaper.EvaluateAsync<string>(
+                "() => getComputedStyle(document.documentElement).getPropertyValue('--color-surface').trim()");
+            Assert.Contains("ffeeee", surface);
+
+            await _pageSettings.Locator($".theme[data-id='{original}']").ClickAsync();
+            await Task.Delay(1500);
+        }
+        finally
+        {
+            if (Directory.Exists(dir)) Directory.Delete(dir, true);
+            await _pageSettings.WaitForSelectorAsync("#refreshThemes",
+                new PageWaitForSelectorOptions { Timeout = 20000 });
+            await _pageSettings.Locator("#refreshThemes").ClickAsync();
+            await _pageSettings.WaitForFunctionAsync(
+                "!document.querySelector('#refreshThemes').disabled",
+                null, new PageWaitForFunctionOptions { Timeout = 15000 });
+        }
+    }
+
+    /// <summary>
     /// 切换主题：只应多一条 theme_switch 埋点，且回执主题与目标一致（旧实现会把 ready 也当首帧，重复打点）。
     /// </summary>
     [Fact]
@@ -1052,6 +1190,100 @@ public class DesklandE2ETests : IAsyncLifetime
         public double Ratio { get; set; }
     }
 
+    // ---- 「纯净桌面」外壳窗口辅助（任务栏 / 多屏副任务栏 / 桌面图标层）----
+    [DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr h);
+    [DllImport("user32.dll")] private static extern bool ShowWindow(IntPtr h, int cmd);
+    [DllImport("user32.dll")] private static extern bool SetCursorPos(int x, int y);
+    [DllImport("user32.dll")] private static extern void mouse_event(uint flags, uint dx, uint dy, uint data, UIntPtr extra);
+    private const int SW_SHOW = 5;
+    private const uint MOUSEEVENTF_LEFTDOWN = 0x0002, MOUSEEVENTF_LEFTUP = 0x0004;
+
+    private static bool TaskbarHidden()
+    {
+        IntPtr tray = FindWindow("Shell_TrayWnd", null);
+        return tray != IntPtr.Zero && !IsWindowVisible(tray);
+    }
+
+    // 合成一次真桌面左键点击（屏幕左上角，命中 WorkerW/Progman）——验证「点桌面退出纯净模式」
+    private static void ClickDesktop()
+    {
+        SetCursorPos(8, 8);
+        mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, UIntPtr.Zero);
+        Thread.Sleep(40);
+        mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, UIntPtr.Zero);
+    }
+
+    private static async Task<bool> WaitTaskbarVisibleAsync()
+    {
+        var deadline = DateTime.Now + TimeSpan.FromSeconds(8);
+        while (DateTime.Now < deadline)
+        {
+            if (!TaskbarHidden()) return true;
+            await Task.Delay(150);
+        }
+        return false;
+    }
+
+    private static bool DesktopIconsVisible()
+    {
+        IntPtr defView;
+        FindDesktopRoot(out defView);
+        return defView != IntPtr.Zero && IsWindow(defView) && IsWindowVisible(defView);
+    }
+
+    // 轮询宿主日志，直到出现指定文本
+    private static async Task<bool> WaitLogContainsAsync(string path, string needle)
+    {
+        var deadline = DateTime.Now + TimeSpan.FromSeconds(8);
+        while (DateTime.Now < deadline)
+        {
+            try { if (File.Exists(path) && File.ReadAllText(path).Contains(needle)) return true; } catch { }
+            await Task.Delay(200);
+        }
+        return false;
+    }
+
+    // 轮询 settings.json，直到 pureDesktop 与期望一致（宿主 SaveSoon 有防抖）
+    private static async Task<bool> WaitPurePersistedAsync(string path, bool expect)
+    {
+        var deadline = DateTime.Now + TimeSpan.FromSeconds(8);
+        while (DateTime.Now < deadline)
+        {
+            try
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(File.ReadAllText(path));
+                if (doc.RootElement.TryGetProperty("pureDesktop", out var v) &&
+                    v.ValueKind == (expect ? System.Text.Json.JsonValueKind.True : System.Text.Json.JsonValueKind.False))
+                    return true;
+            }
+            catch { }
+            await Task.Delay(200);
+        }
+        return false;
+    }
+
+    /// 测试侧兜底：强杀宿主不会走 ApplicationExit，这里直接 ShowWindow 恢复所有外壳窗口
+    private static void RestoreDesktopShell()
+    {
+        ShowIfValid(FindWindow("Shell_TrayWnd", null));
+        EnumWindows(delegate (IntPtr h, IntPtr l)
+        {
+            var sb = new StringBuilder(64);
+            GetClassName(h, sb, 64);
+            if (sb.ToString() == "Shell_SecondaryTrayWnd") ShowIfValid(h);
+            return true;
+        }, IntPtr.Zero);
+        // 桌面图标层（SHELLDLL_DefView）：复用现有查找（Progman 或 WorkerW 下）
+        IntPtr defView;
+        FindDesktopRoot(out defView);
+        ShowIfValid(defView);
+    }
+
+    private static void ShowIfValid(IntPtr h)
+    {
+        if (h != IntPtr.Zero) ShowWindow(h, SW_SHOW);
+    }
+
     private static List<string> ReadyThemeIds()
     {
         using var doc = System.Text.Json.JsonDocument.Parse(
@@ -1083,6 +1315,7 @@ public class DesklandE2ETests : IAsyncLifetime
     {
         try { if (_wallpaperBrowser != null) await _wallpaperBrowser.CloseAsync(); } catch { }
         try { if (_settingsBrowser != null) await _settingsBrowser.CloseAsync(); } catch { }
+        RestoreDesktopShell();   // 重启前兜底恢复外壳窗口
         KillProcess("Deskland");
         KillWebView2ForProfile(TestProfile);
         await Task.Delay(1500);

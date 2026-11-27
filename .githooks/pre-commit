@@ -1,5 +1,8 @@
 #!/bin/sh
-# pre-commit：提交前全量门禁。
+# pre-commit：提交前确定性门禁（L0）。
+# 只做静态 / 构建类检查（前端 check / dotnet format / deslop / 两处 --warnaserror），分钟级以内。
+# E2E(L1) 与视觉基线(L2) 刻意不放进提交路径：提交粒度细、单轮数十分钟，会训练 --no-verify 绕行。
+# 它们由 pre-push（推主干时）或手动 `run-gates -Stage All` 覆盖。
 # 逻辑统一收敛在 tools/ci/run-gates.ps1（GitHub Actions 调用同一份，避免两套漂移）。
 # 安装：pwsh -File tools/setup-hooks.ps1   （core.hooksPath=.githooks，无需再手动 cp 到 .git/hooks）
 
@@ -12,4 +15,4 @@ fi
 
 # git 输出 Windows 形式路径（D:/...），PowerShell 可直接解析
 ROOT=$(git rev-parse --show-toplevel)
-exec pwsh -NoProfile -ExecutionPolicy Bypass -File "$ROOT/tools/ci/run-gates.ps1" -Stage All
+exec pwsh -NoProfile -ExecutionPolicy Bypass -File "$ROOT/tools/ci/run-gates.ps1" -Stage L0

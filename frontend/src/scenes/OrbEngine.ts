@@ -15,6 +15,8 @@
 
 import { SceneEngine, numParam } from '../engine/SceneEngine.js';
 import type { EngineOpts, EngineParams, PointerSnapshot } from '../engine/BaseEngine.js';
+import { paramDefaults } from '../engine/paramDefs.js';
+import { assertParamCoverage, paramDisplays, paramSliders } from '../engine/paramSchema.js';
 import type { Program, ScenePalette, Uniforms } from '../engine/SceneEngine.js';
 import { ORB_DESIGNS, buildOrbCloud } from './orb/designs.js';
 import type { OrbCloud } from './orb/designs.js';
@@ -183,34 +185,26 @@ export class OrbEngine extends SceneEngine {
 
   constructor(canvas: HTMLCanvasElement, opts: EngineOpts = {}) {
     super(canvas, opts);
-    this.sliders = [
-      { key: 'sigma', label: '球体大小', min: 0.5, max: 1.5, step: 0.01, fmt: (v) => '×' + v.toFixed(2) },
-      {
-        key: 'orbDesign',
-        label: '形态',
-        min: 0,
-        max: ORB_DESIGNS.length - 1,
-        step: 1,
+    // 面板配置：数据面来自 PARAM_DEFS（theme.json.groups），此处只给 fmt / act
+    this.sliders = paramSliders('orb', {
+      sigma: { fmt: (v) => '×' + v.toFixed(2) },
+      orbDesign: {
         fmt: (v) => ORB_DESIGNS[v]?.name ?? String(v),
         act: 'design',
       },
-      { key: 'density', label: '点密度', min: 0.3, max: 2, step: 0.05, fmt: (v) => '×' + v.toFixed(2), act: 'rebuild' },
-      { key: 'speed', label: '旋转速度', min: 0, max: 3, step: 0.05, fmt: (v) => '×' + v.toFixed(2) },
-      { key: 'hoverReaction', label: '指针响应', min: 0, max: 2, step: 0.05, fmt: (v) => '×' + v.toFixed(2) },
-      { key: 'glow', label: '辉光强度', min: 0, max: 1.5, step: 0.05, fmt: (v) => Math.round(v * 100) + '%' },
-    ];
-    this.displayKeys = [{ key: 'autoCycle', min: 0, max: 1 }]; // 循环更换形态：设置项（theme.json）＋ orb.html 预览开关共用
+      density: { fmt: (v) => '×' + v.toFixed(2), act: 'rebuild' },
+      speed: { fmt: (v) => '×' + v.toFixed(2) },
+      hoverReaction: { fmt: (v) => '×' + v.toFixed(2) },
+      glow: { fmt: (v) => Math.round(v * 100) + '%' },
+    });
+    this.displayKeys = paramDisplays('orb', ['autoCycle']); // 循环更换形态：设置项（theme.json）＋ orb.html 预览开关共用
+    assertParamCoverage('orb', this.sliders, this.displayKeys);
   }
 
   override defaultParams(): EngineParams {
+    // 开放参数默认值来自 PARAM_DEFS（= theme.json.groups）
     return {
-      sigma: 1,
-      orbDesign: 0,
-      density: 1,
-      speed: 1,
-      hoverReaction: 1,
-      glow: 0.8,
-      autoCycle: true, // 循环更换形态：默认开，可在设置卡片关闭（也可由 orb.html 预览开关直接写）
+      ...paramDefaults('orb'),
       quality: 2,
       debug: false,
       snap: true,

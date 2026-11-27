@@ -1,6 +1,9 @@
 #!/bin/sh
-# pre-push：推送前再次跑全量门禁（与提交时同一份，防止 --no-verify 后漏检）。
-# 安装：pwsh -File tools/setup-hooks.ps1   （core.hooksPath=.githooks）
+# pre-push：按推送目标分流门禁，避免「推任何分支都陪跑全套 E2E」。
+#   主干（main / master）      → -Stage All（进主干前全量：L0 + E2E + 视觉基线）
+#   其他分支（feat/*、存档等） → -Stage L0 （只确定性快检，分钟级）
+# 逻辑统一收敛在 tools/ci/run-gates.ps1（GitHub Actions 调用同一份，避免两套漂移）。
+# 安装：pwsh -File tools/setup-hooks.ps1   （core.hooksPath=.githooks，无需再手动 cp 到 .git/hooks）
 
 set -e
 
@@ -10,4 +13,19 @@ if ! command -v pwsh >/dev/null 2>&1; then
 fi
 
 ROOT=$(git rev-parse --show-toplevel)
-exec pwsh -NoProfile -ExecutionPolicy Bypass -File "$ROOT/tools/ci/run-gates.ps1" -Stage All
+
+# pre-push 从 stdin 逐行给出：<local ref> <local sha> <remote ref> <remote sha>
+STAGE=L0
+TARGET='<unknown>'
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+    TARGET="$remote_ref"
+    case "$remote_ref" in
+        refs/heads/main | refs/heads/master)
+            STAGE=All
+            break
+            ;;
+    esac
+done
+
+printf 'pre-push 门禁级别：%s（目标 %s）\n' "$STAGE" "$TARGET"
+exec pwsh -NoProfile -ExecutionPolicy Bypass -File "$ROOT/tools/ci/run-gates.ps1" -Stage "$STAGE"

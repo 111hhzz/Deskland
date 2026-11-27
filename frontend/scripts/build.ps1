@@ -1,6 +1,6 @@
 ﻿# 前端产物：Vite 构建（root=src，public=../public 原样拷贝，产物 ../dist，固定名无哈希）。
 # 由 host/build.ps1 调用；也可单独 `powershell frontend\scripts\build.ps1`。
-# 需要 Node（本机已装 LTS）；未装则跳过（宿主会因缺 dist 报错提示）。
+# 需要 Node（本机已装 LTS）；缺失直接失败——否则调用方会复制陈旧 dist，造成「源码改了也过门」的假绿。
 $ErrorActionPreference = 'Stop'
 
 $here = $PSScriptRoot                              # frontend/scripts
@@ -9,8 +9,7 @@ $dist = Join-Path $front 'dist'
 $versionTxt = Join-Path $dist 'version.txt'
 
 if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
-    Write-Host '未找到 node，跳过前端构建（安装 Node LTS 后重试）'
-    exit 0
+    throw '未找到 node：请安装 Node LTS（版本见 .nvmrc）后重试；拒绝在无前端产物的情况下继续构建。'
 }
 
 Push-Location $front

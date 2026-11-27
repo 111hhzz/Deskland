@@ -8,9 +8,13 @@
 import { sceneToken as sceneTokenFromTokens } from './tokenRuntime.js';
 
 // 构造选项：wallpaper / preview 决定画布缩放与布局（SceneEngine 读取）
+// themeId：参数数据面（PARAM_DEFS）的索引；引擎构造器经 paramSliders / paramDisplays 使用，缺失会抛错。
 export interface EngineOpts {
   wallpaper?: boolean;
   preview?: boolean;
+  themeId?: string;
+  /** 媒体主题（image/video）的素材地址（相对站点根，如 /u/<id>/a.mp4）；其它主题忽略 */
+  mediaSrc?: string;
 }
 
 // 每 10 帧发给应用外壳的统计

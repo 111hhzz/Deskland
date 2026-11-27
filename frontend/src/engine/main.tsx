@@ -8,10 +8,14 @@ import { SkyEngine } from '../scenes/SkyEngine.js';
 import { FlatEngine } from '../scenes/FlatEngine.js';
 import { AuroraEngine } from '../scenes/AuroraEngine.js';
 import { OrbEngine } from '../scenes/OrbEngine.js';
+import { ImageEngine } from '../scenes/media/ImageEngine.js';
+import { VideoEngine } from '../scenes/media/VideoEngine.js';
 import { DeskApp } from './DeskApp.js';
-import { loadTheme as loadThemeTokens } from './tokenRuntime.js';
+import { loadTheme as loadThemeTokens, registerUserTheme } from './tokenRuntime.js';
 import type { DeskEngine } from './DeskApp.js';
 import { installLegacyFor } from './legacyInstall.js';
+import { registerRuntimeDefs } from './paramSchema.js';
+import { loadThemeManifest, normalizeGroups } from './themeManifest.js';
 import '../lib/ripple.js'; // 桌面点击涟漪（只读鼠标钩子），import 即装
 import { WallShell } from './ui.js';
 
@@ -28,15 +32,21 @@ if (uiHost) {
 // start / destroy / setSeed / settleAndRender / bench）由 DeskEngine 描述，DeskApp 也按它取值。
 export type EngineInstance = DeskEngine;
 
-type EngineCtor = new (canvas: HTMLCanvasElement, opts: { wallpaper: boolean; preview: boolean }) => EngineInstance;
+type EngineCtor = new (
+  canvas: HTMLCanvasElement,
+  opts: { wallpaper: boolean; preview: boolean; themeId: string; mediaSrc?: string },
+) => EngineInstance;
 
-// 注册表以主题的 id 为键（宿主传来的 ?theme=<id>，与 _products.json / theme.json 的 id 一致）；主题样式统一 /themes/<id>/theme.css（在 public，绝对路径）。
+// 注册表以主题的 id 为键（宿主传来的 ?theme=<id>）；用户导入的主题不在表里，
+// 由 manifest.engine 指到类型键（image / video）——与内置主题共用同一张表。
 const ENGINES: Record<string, () => EngineCtor> = {
   meadow: () => MeadowEngine,
   sky: () => SkyEngine,
   beach: () => FlatEngine,
   aurora: () => AuroraEngine,
   orb: () => OrbEngine,
+  image: () => ImageEngine,
+  video: () => VideoEngine,
 };
 const THEME_STYLE = (id: string) => '/themes/' + id + '/theme.css'; // 绝对路径：主题样式在 public，运行时按站点根解析
 
@@ -63,13 +73,27 @@ function failSwitch(id: string, why: string) {
 
 async function loadTheme(id: string): Promise<EngineInstance> {
   const factory = ENGINES[id];
-  const known = !!factory;
-  const Cls = factory ? factory() : MeadowEngine;
+  // 用户导入主题：清单里读引擎类型 + 媒体源 + 参数声明（缺 manifest 则退回按 id 直查）
+  const m = factory ? null : await loadThemeManifest('/themes/' + id + '/theme.json', '/u/' + id + '/theme.json');
+  const typeKey = factory ? id : m?.engine;
+  const Cls = (typeKey && ENGINES[typeKey] ? ENGINES[typeKey]!() : MeadowEngine) as EngineCtor;
+  const known = !!factory || !!(typeKey && ENGINES[typeKey]);
+  if (m?.groups) {
+    const defs = normalizeGroups(m.groups);
+    if (Object.keys(defs).length) registerRuntimeDefs(id, defs);
+  }
+  // 用户主题 token 覆盖：必须在 loadThemeTokens 之前（引擎构造期 sceneToken 即取它）
+  if (known && m?.tokens) registerUserTheme(id, m.tokens);
   // 主题样式（热切换时换掉）+ 切换 token 表（引擎的 --scene-* 取值来自它）
   const themeId = known ? id : 'meadow';
   (document.getElementById('themeCss') as HTMLLinkElement).href = THEME_STYLE(themeId);
   loadThemeTokens(themeId);
-  return new Cls(canvas, { wallpaper: QS.has('wallpaper'), preview: QS.has('preview') });
+  return new Cls(canvas, {
+    wallpaper: QS.has('wallpaper'),
+    preview: QS.has('preview'),
+    themeId,
+    ...(m?.mediaSrc ? { mediaSrc: m.mediaSrc } : {}),
+  });
 }
 
 async function boot(id: string) {
@@ -129,7 +153,8 @@ window.__dbg = {
   // 引擎内部指针场快照（有指针能力的主题返回实时状态，其余主题返回 null）
   ptr: () => (engine ? engine.pointerState : null),
   switchTheme: (id: string) => {
-    if (!ENGINES[id]) return false; // 不支持（如海滩旧脚本）→ 交由宿主回退整页导航
+    // 不预先按 ENGINES 拦截：用户导入主题的引擎类型由 manifest.engine 解析（boot 内 fetch）；
+    // 真失败由 failSwitch 回执，宿主回退整页导航（带 theme 参数）
     clearTimeout(switchTimer);
     // 正常会在 boot 的首帧回执里清掉；一直不回执（脚本挂起、init 卡住）就按失败处理
     switchTimer = window.setTimeout(

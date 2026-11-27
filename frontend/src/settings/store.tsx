@@ -40,6 +40,8 @@ export interface SettingsState {
   savedFlash: boolean;
   refreshing: boolean;
   t0: number;
+  /** 导入 / 删除的反馈（i18n key + 变量；null = 不显示） */
+  notice: { key: string; vars?: Record<string, string | number> } | null;
 }
 
 type Action =
@@ -58,7 +60,8 @@ type Action =
   | { type: 'help'; open: boolean }
   | { type: 'stageLoading'; v: boolean }
   | { type: 'savedFlash'; v: boolean }
-  | { type: 'refreshing'; v: boolean };
+  | { type: 'refreshing'; v: boolean }
+  | { type: 'notice'; notice: { key: string; vars?: Record<string, string | number> } | null };
 
 function reducer(s: SettingsState, a: Action): SettingsState {
   switch (a.type) {
@@ -112,7 +115,22 @@ function reducer(s: SettingsState, a: Action): SettingsState {
       return { ...s, savedFlash: a.v };
     case 'refreshing':
       return { ...s, refreshing: a.v };
+    case 'notice':
+      return { ...s, notice: a.notice };
   }
+}
+
+// File → base64（分块拼 Uint8 再 btoa，避免大字符串参数爆栈）
+function fileToBase64(f: File): Promise<string> {
+  return f.arrayBuffer().then((buf) => {
+    const bytes = new Uint8Array(buf);
+    let bin = '';
+    const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk) {
+      bin += String.fromCharCode(...bytes.subarray(i, i + chunk));
+    }
+    return btoa(bin);
+  });
 }
 
 function initialState(): SettingsState {
@@ -137,6 +155,7 @@ function initialState(): SettingsState {
     savedFlash: false,
     refreshing: false,
     t0: 0,
+    notice: null,
   };
 }
 
@@ -160,6 +179,9 @@ export interface SettingsContextValue {
   pickLang: (v: LangSetting) => void;
   pickThemeMode: (v: ThemeMode) => void;
   openWebsite: () => void;
+  importPick: () => void;
+  importFiles: (files: File[]) => void;
+  deleteTheme: (id: string) => void;
 }
 
 const SettingsContext = createContext<SettingsContextValue | null>(null);
@@ -174,6 +196,13 @@ export function SettingsProvider({ host, children }: { host: HostBridge | null; 
   const savedTimer = useRef(0);
   const savedHideTimer = useRef(0);
   const refreshTimer = useRef(0);
+  const noticeTimer = useRef(0);
+  // 反馈提示：5s 后自动消失（导入结果 / 删除确认等）
+  const notify = useCallback((notice: { key: string; vars?: Record<string, string | number> } | null) => {
+    dispatch({ type: 'notice', notice });
+    window.clearTimeout(noticeTimer.current);
+    if (notice) noticeTimer.current = window.setTimeout(() => dispatch({ type: 'notice', notice: null }), 5000);
+  }, []);
 
   const themes = useMemo(() => localizeRegistry(state.registry0, state.lang), [state.registry0, state.lang]);
   const t = useCallback(
@@ -234,6 +263,23 @@ export function SettingsProvider({ host, children }: { host: HostBridge | null; 
           if (registryRef.current.themes.some((x) => x.id === m.id && x.status === 'ready')) {
             dispatch({ type: 'theme', id: m.id });
           }
+          break;
+        case 'themeImported': {
+          // id 成功 / error 错误码（文案映射在 i18n importErr*）
+          const name = m.id ? (registryRef.current.themes.find((x) => x.id === m.id)?.name ?? m.id) : '';
+          const codeMap: Record<string, string> = {
+            too_large: 'importErrTooLarge',
+            bad_ext: 'importErrFormat',
+            sniff_mismatch: 'importErrContent',
+            missing: 'importErrIO',
+            io: 'importErrIO',
+            // .dlp 包：pkg_too_large / pkg_entries / entry_path / nested_zip / asset_type / pkg_total / no_manifest / bad_json / bad_manifest
+          };
+          notify(m.error ? { key: codeMap[m.error] ?? 'importErrPkg' } : { key: 'importOk', vars: { name } });
+          break;
+        }
+        case 'themeDeleted':
+          notify({ key: 'deleteOk' });
           break;
         case 'updateState': {
           const version = String(m.version ?? '').trim();
@@ -331,6 +377,44 @@ export function SettingsProvider({ host, children }: { host: HostBridge | null; 
     refreshTimer.current = window.setTimeout(() => dispatch({ type: 'refreshing', v: false }), 4000);
   };
 
+  // 导入：选择文件由宿主弹原生对话框（路径通道，无大小限制）
+  const importPick = () => {
+    if (!host) {
+      notify({ key: 'importNeedsHost' });
+      return;
+    }
+    host.send({ t: 'importPick' });
+  };
+
+  // 拖拽通道：File → base64 直传（限 20MB；超限引导改用「选择文件」）
+  const importFiles = (files: File[]) => {
+    if (!host) {
+      notify({ key: 'importNeedsHost' });
+      return;
+    }
+    for (const f of files) {
+      const ext = (f.name.split('.').pop() ?? '').toLowerCase();
+      const okType = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'avif', 'mp4', 'webm', 'dlp', 'zip'].includes(ext);
+      if (!okType) {
+        notify({ key: 'importErrFormat' });
+        continue;
+      }
+      if (f.size > 20 * 1024 * 1024) {
+        notify({ key: 'importDragTooLarge' });
+        continue;
+      }
+      void fileToBase64(f).then((data) => host.send({ t: 'importFile', name: f.name, data }));
+    }
+  };
+
+  const deleteTheme = (id: string) => {
+    if (!host) return;
+    host.send({ t: 'deleteTheme', id });
+  };
+
+  // 卸载时清掉提示定时器，避免泄漏到下一个实例
+  useEffect(() => () => window.clearTimeout(noticeTimer.current), []);
+
   const value: SettingsContextValue = {
     state,
     themes,
@@ -360,6 +444,9 @@ export function SettingsProvider({ host, children }: { host: HostBridge | null; 
     openHelp: () => dispatch({ type: 'help', open: true }),
     closeHelp: () => dispatch({ type: 'help', open: false }),
     refreshThemes,
+    importPick,
+    importFiles,
+    deleteTheme,
     setSearch: (q) => dispatch({ type: 'search', q }),
     pickLang: (v) => {
       dispatch({ type: 'langSetting', v });

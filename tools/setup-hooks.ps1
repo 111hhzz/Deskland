@@ -26,8 +26,19 @@ try {
         }
     }
 
+    # 旧副本漂移防护：core.hooksPath 一旦被改回 .git/hooks，残留的旧脚本会接管门禁。
     Write-Host ''
-    Write-Host '提示：.git/hooks 下的旧副本已被忽略（core.hooksPath 优先），可自行删除。' -ForegroundColor DarkGray
+    $stale = @()
+    foreach ($name in @('pre-commit', 'pre-push')) {
+        $legacy = Join-Path $root (Join-Path '.git/hooks' $name)
+        if (Test-Path -LiteralPath $legacy) { $stale += $name }
+    }
+    if ($stale.Count -gt 0) {
+        Write-Host ("⚠️  .git/hooks 下存在旧副本：" + ($stale -join ', ')) -ForegroundColor Yellow
+        Write-Host '   它们不被 core.hooksPath 使用，但若配置失效会接管；建议删除以免漂移。' -ForegroundColor DarkGray
+    } else {
+        Write-Host '未发现 .git/hooks 旧副本。' -ForegroundColor DarkGray
+    }
 } finally {
     Pop-Location
 }

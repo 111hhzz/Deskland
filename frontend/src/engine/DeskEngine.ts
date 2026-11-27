@@ -6,4 +6,6 @@ export interface DeskEngine extends SceneEngine {
   addRipple?(x: number, y: number, str?: number): void; // 主题自己的着色器涟漪（海滩）
   onSliderAction?(act: string): void;
   onSceneChanged?(kind: string): void;
+  /** 宿主暂停 / 恢复（hostBridge）：视频等有声媒体据此停播音画 */
+  onPausedChange?(paused: boolean): void;
 }

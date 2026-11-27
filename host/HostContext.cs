@@ -43,6 +43,7 @@ class HostContext : ApplicationContext
         Rename.MigratePreview();
         Settings.Load();
         I18n.Load(pageDir, Settings.Lang);
+        UserThemes.SyncMirrors(pageDir);  // /u/<id>/ 镜像（硬链接到 user-themes 主拷贝）：导入主题的素材通道
         exitEvent = new EventWaitHandle(false, EventResetMode.AutoReset, Program.ExitEventName);
         menuEvent = new EventWaitHandle(false, EventResetMode.AutoReset, Program.MenuEventName);
         settingsEvent = new EventWaitHandle(false, EventResetMode.AutoReset, Program.SettingsEventName);
@@ -177,6 +178,64 @@ class HostContext : ApplicationContext
 
     void SaveSoon() { saveDue = DateTime.Now.AddMilliseconds(600); }
 
+    // 选择文件导入：原生 OpenFileDialog（宿主路径通道，无大小限制；前端只发 importPick）
+    void ImportPicker()
+    {
+        using (var dlg = new OpenFileDialog())
+        {
+            dlg.Title = "导入图片或视频作为壁纸";
+            dlg.Filter = "主题包|*.dlp;*.zip|图片与视频|*.png;*.jpg;*.jpeg;*.webp;*.gif;*.avif;*.mp4;*.webm|图片|*.png;*.jpg;*.jpeg;*.webp;*.gif;*.avif|视频|*.mp4;*.webm|全部文件|*.*";
+            dlg.Multiselect = true;
+            if (dlg.ShowDialog() != DialogResult.OK) return;
+            var results = new List<UserThemes.ImportResult>();
+            foreach (var path in dlg.FileNames) results.Add(UserThemes.ImportFile(path, pageDir));
+            AfterImport(results);
+        }
+    }
+
+    // 拖拽导入：页面把 File 读成 base64 传来（≤20MB 由前端拦截）；宿主写临时文件走同一导入逻辑
+    void ImportFromPage(Dictionary<string, object> m)
+    {
+        string name = m.ContainsKey("name") ? m["name"] as string : null;
+        string data = m.ContainsKey("data") ? m["data"] as string : null;
+        if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(data)) return;
+        string tmp = null;
+        try
+        {
+            byte[] bytes = Convert.FromBase64String(data);
+            if (bytes.Length > UserThemes.MaxMediaBytes) { PostImport(null, "too_large"); return; }
+            tmp = Path.Combine(Path.GetTempPath(), "deskland-import-" + Guid.NewGuid().ToString("N") + Path.GetExtension(name));
+            File.WriteAllBytes(tmp, bytes);
+            PostImport(UserThemes.ImportFile(tmp, pageDir), null);
+        }
+        catch (Exception ex) { Log.Write("处理页面导入数据失败：" + ex.Message); PostImport(null, "io"); }
+        finally
+        {
+            if (tmp != null) { try { File.Delete(tmp); } catch { /* 临时文件删不掉不影响结果 */ } }
+        }
+    }
+
+    void PostImport(UserThemes.ImportResult r, string fallbackCode)
+    {
+        if (r == null) r = new UserThemes.ImportResult { Error = fallbackCode };
+        settingsWin.Post(Json.Stringify(r.Error == null || r.Error.Length == 0
+            ? Json.Obj("t", "themeImported", "id", r.Id ?? "")
+            : Json.Obj("t", "themeImported", "error", r.Error)));
+    }
+
+    void AfterImport(List<UserThemes.ImportResult> results)
+    {
+        Themes.Invalidate();
+        foreach (var r in results) PostImport(r, null);
+        settingsWin.Post(Json.Stringify(Json.Obj("t", "themes", "themes", Themes.List(pageDir))));
+    }
+
+    bool DeleteUserTheme(string id)
+    {
+        // 只允许删用户级主题：内置主题目录在 pageDir，不在此列
+        return UserThemes.IsValidId(id) && UserThemes.IsUserTheme(id) && UserThemes.Delete(id);
+    }
+
     bool ThemeAllowed(string id)
     {
         return Themes.Allowed(pageDir, id, delegate (string product) { return false; });
@@ -205,6 +264,26 @@ class HostContext : ApplicationContext
                 settingsWin.Post(Json.Stringify(Json.Obj("t", "themes", "themes", Themes.List(pageDir))));
                 Log.Write("已重新扫描主题文件夹");
                 break;
+            case "importPick":                             // 选择文件通道：原生对话框（无大小限制），宿主直接落盘
+                ImportPicker();
+                break;
+            case "importFile":                             // 拖拽通道：JS 传 base64（限 20MB，前端已拦）
+                ImportFromPage(m);
+                break;
+            case "deleteTheme":
+                {
+                    string id = m["id"] as string;
+                    if (id != null && DeleteUserTheme(id))
+                    {
+                        Dictionary<string, object> pd;
+                        if (Settings.Params.TryGetValue(id, out pd)) { Settings.Params.Remove(id); SaveSoon(); }
+                        Themes.Invalidate();
+                        settingsWin.Post(Json.Stringify(Json.Obj("t", "themes", "themes", Themes.List(pageDir))));
+                        settingsWin.Post(Json.Stringify(Json.Obj("t", "themeDeleted", "id", id)));
+                        Log.Write("设置页请求删除用户主题：" + id);
+                    }
+                    break;
+                }
             case "set":
                 {
                     string theme = m["theme"] as string, key = m["key"] as string;

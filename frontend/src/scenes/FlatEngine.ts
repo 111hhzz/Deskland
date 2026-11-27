@@ -8,6 +8,8 @@
 
 import { SceneEngine, numParam } from '../engine/SceneEngine.js';
 import type { EngineOpts, EngineParams } from '../engine/BaseEngine.js';
+import { paramDefaults } from '../engine/paramDefs.js';
+import { assertParamCoverage, paramDisplays, paramSliders } from '../engine/paramSchema.js';
 import type { Program, ScenePalette, Uniforms } from '../engine/SceneEngine.js';
 import type { LegacyHost } from '../engine/LegacyHost.js';
 import type { MaldivesPalmsScene } from '../themes/beach/legacy/palms.js';
@@ -60,17 +62,18 @@ export class FlatEngine extends SceneEngine {
 
   constructor(canvas: HTMLCanvasElement, opts: EngineOpts = {}) {
     super(canvas, opts);
-    // 面板配置：应用层 DeskApp 直接读取（主题只加配置，不改宿主代码）
-    this.sliders = [
-      { key: 'palms', label: '椰子树数量', min: 0, max: 10, step: 1, fmt: (v) => v + ' 棵' },
-      { key: 'sigma', label: '离岸距离', min: 40, max: 200, step: 1, fmt: (v) => v + ' px', act: 'field' },
-      { key: 'warp', label: '海岸曲折', min: 0, max: 80, step: 1, fmt: (v) => String(v), act: 'field' },
-      { key: 'shoal', label: '透明浅滩', min: 0, max: 300, step: 1, fmt: (v) => v + ' px' },
-      { key: 'shallow', label: '浅海宽度', min: 120, max: 700, step: 1, fmt: (v) => v + ' px' },
-      { key: 'kayaks', label: '皮划艇', min: 0, max: 4, step: 1, fmt: (v) => v + ' 艘', act: 'kayaks' },
-      { key: 'birds', label: '海鸟', min: 0, max: 8, step: 1, fmt: (v) => v + ' 只', act: 'birds' },
-    ];
-    this.displayKeys = [];
+    // 面板配置：数据面来自 PARAM_DEFS（theme.json.groups），此处只给 fmt / act
+    this.sliders = paramSliders('beach', {
+      palms: { fmt: (v) => v + ' 棵' },
+      sigma: { fmt: (v) => v + ' px', act: 'field' },
+      warp: { fmt: (v) => String(v), act: 'field' },
+      shoal: { fmt: (v) => v + ' px' },
+      shallow: { fmt: (v) => v + ' px' },
+      kayaks: { fmt: (v) => v + ' 艘', act: 'kayaks' },
+      birds: { fmt: (v) => v + ' 只', act: 'birds' },
+    });
+    this.displayKeys = paramDisplays('beach', []);
+    assertParamCoverage('beach', this.sliders, this.displayKeys);
     // 皮划艇 / 海鸟 / 涟漪
     this.kayaks = new KayakFlock(this);
     this.birds = new BirdFlock(this);
@@ -82,26 +85,20 @@ export class FlatEngine extends SceneEngine {
   }
 
   override defaultParams(): EngineParams {
-    // 默认值要和 themes/beach/theme.json 里海边主题的 default 保持一致
-    // 海浪（speed、runup、wave、spacing）和 grain、quality 不再开放调节，固定为这里的值
+    // 开放参数默认值来自 PARAM_DEFS（= theme.json.groups）
+    // 海浪（speed、runup、wave、spacing）和 grain、quality、snap/cap30 不再开放调节，固定为这里的值
     return {
-      sigma: 85,
-      warp: 34,
-      shallow: 260,
-      shoal: 110,
+      ...paramDefaults('beach'),
       speed: 22,
       runup: 120,
       wave: 1.6,
       spacing: 70,
       grain: 1,
       quality: 2, // quality 2：按屏幕的实际像素画（150% 缩放时不再放大发糊）
-      kayaks: 2,
-      birds: 3,
-      palms: 4,
       debug: false,
       snap: true,
       cap30: true,
-      adaptive: 1, // 基类 commit/refresh 用它判断是否把图标矩形计入陆地场（海滩始终要计）
+      adaptive: 1, // 基类 commit/refresh 用它判断是否把图标矩形计入陆地场（沿用数值 1/0）
     };
   }
 

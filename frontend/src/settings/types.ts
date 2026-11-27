@@ -84,6 +84,10 @@ export type OutMessage =
   | { t: 'updateCheck' }
   | { t: 'updateProgram' }
   | { t: 'refreshThemes' }
+  // 导入：选择文件由宿主弹原生对话框（无大小限制）；拖拽走 base64（限 20MB）
+  | { t: 'importPick' }
+  | { t: 'importFile'; name: string; data: string }
+  | { t: 'deleteTheme'; id: string }
   | { t: 'openWebsite' };
 
 // 宿主 → 设置页
@@ -91,6 +95,8 @@ export type InMessage =
   | InitPayload
   | { t: 'themes'; themes: ThemeDef[] }
   | { t: 'themeChanged'; id: string }
+  | { t: 'themeImported'; id?: string; error?: string }
+  | { t: 'themeDeleted'; id: string }
   | { t: 'updateState'; version?: string; status?: string; progress?: number; error?: string }
   | { t: 'themeMode'; v: ThemeMode }
   | { t: 'lang'; v: LangSetting; eff: LangCode; sys: LangCode }

@@ -107,6 +107,7 @@
       const engine = new FlatEngine(document.getElementById('art'), {
         wallpaper: QS.has('wallpaper'), // 壁纸模式：桌面宿主加载，图标 / 暂停等消息来自宿主
         preview: QS.has('preview'), // 预览模式：设置窗口里的缩略预览（iframe），消息来自父页面
+        themeId: 'beach', // 参数数据面（PARAM_DEFS）索引
       });
       const app = new DeskApp(engine);
       installLegacyFor('beach', app, engine); // 椰子树模块注入（必须在 init 之前）

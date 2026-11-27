@@ -21,19 +21,20 @@ if [ -n "$DESLOP_HITS" ]; then
 fi
 
 # 检查调试输出 Console.WriteLine / System.Diagnostics.Debug.WriteLine
-# 排除测试项目和 Probe（它们用 Console.WriteLine 输出报告是正常的）
+# 排除测试项目和 Probe（它们用 Console.WriteLine 输出报告是正常的）。
+# 只排除「以 Log. 开头」的合法日志行；不再用 `grep -v "Log."`（会吞掉同一行里含 Log. 的真阳性）。
 echo "   检查调试输出..."
 DEBUG_HITS=$(grep -rn --include="*.cs" \
     --exclude-dir="bin" --exclude-dir="obj" --exclude-dir=".playwright" \
     -E "(Console\.WriteLine|System\.Diagnostics\.Debug\.WriteLine)" \
-    host/ 2>/dev/null | grep -v "Log\." || true)
+    host/ 2>/dev/null | grep -vE '^[[:space:]]*Log\.' || true)
 if [ -n "$DEBUG_HITS" ]; then
     echo "   ⚠️  发现调试输出："
     echo "$DEBUG_HITS" | head -5 | sed 's/^/      /'
     DESLOP_FOUND=1
 fi
 
-# 检查空 catch 块：catch 的 {} 内只有空白即违规（// 理由注释豁免）。
+# 检查空 catch 块：catch 的 {} 内只有空白即违规（// 理由注释豁免，含块尾同行注释）。
 # 检测器 = tools/deslop-catch.awk（词法状态机跳过字符串/注释后配平花括号）。
 # 老实现 grep -A1 "catch" | grep -B1 '^\s*}$' 只匹配多行写法，对本仓库通行的单行 `catch { }` 完全无效。
 echo "   检查空 catch 块..."
@@ -42,9 +43,7 @@ if ! command -v awk >/dev/null 2>&1; then
     DESLOP_FOUND=1
 else
     EMPTY_CATCH=""
-    for f in host/*.cs; do
-        [ -f "$f" ] || continue
-        case "$f" in */bin/* | */obj/*) continue ;; esac
+    for f in $(find host -type f -name '*.cs' -not -path '*/bin/*' -not -path '*/obj/*'); do
         EMPTY_CATCH="$EMPTY_CATCH$(awk -f tools/deslop-catch.awk "$f")"
     done
 fi
@@ -54,11 +53,11 @@ if [ -n "$EMPTY_CATCH" ]; then
     DESLOP_FOUND=1
 fi
 
-# 检查硬编码敏感信息
+# 检查硬编码敏感信息（大小写不敏感，避免漏掉 Password= / Token= / Secret= 等大写写法）
 echo "   检查敏感信息泄露..."
-SECRET_HITS=$(grep -rn --include="*.cs" --include="*.json" --include="*.html" --include="*.js" \
+SECRET_HITS=$(grep -rni --include="*.cs" --include="*.json" --include="*.html" --include="*.js" \
     -E "(password\s*=\s*[\"'][^\"']+[\"']|secret\s*=\s*[\"'][^\"']+[\"']|token\s*=\s*[\"'][^\"']+[\"'])" \
-    host/ frontend/src/ test/ 2>/dev/null | grep -v "example\|placeholder\|sample\|\.md" || true)
+    host/ frontend/src/ test/ 2>/dev/null | grep -vi "example\|placeholder\|sample\|\.md" || true)
 if [ -n "$SECRET_HITS" ]; then
     echo "   ⚠️  发现硬编码敏感信息："
     echo "$SECRET_HITS" | head -5 | sed 's/^/      /'

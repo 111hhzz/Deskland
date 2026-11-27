@@ -123,11 +123,19 @@ export default defineConfig({
     tabWidth: 2,
     trailingComma: 'all',
     // public/themes/*/theme.json 由 token 编译器整体回写（JSON.stringify 风格），不参与 Oxfmt
-    ignorePatterns: ['dist', 'node_modules', '.local', '*.css', 'src/engine/tokens.ts', 'public/themes/*/theme.json'],
+    ignorePatterns: [
+      'dist',
+      'node_modules',
+      '.local',
+      '*.css',
+      'src/engine/tokens.ts',
+      'src/engine/paramDefs.ts',
+      'public/themes/*/theme.json',
+    ],
   },
   // Oxlint：类型感知规则 + 类型检查（tsrs，即 TypeScript 7 native）。
   lint: {
-    ignorePatterns: ['dist/**', 'node_modules/**', 'src/engine/tokens.ts'],
+    ignorePatterns: ['dist/**', 'node_modules/**', 'src/engine/tokens.ts', 'src/engine/paramDefs.ts'],
     options: { typeAware: true, typeCheck: true },
   },
 });

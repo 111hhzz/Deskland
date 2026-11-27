@@ -22,8 +22,8 @@ function el(id: string): HTMLElement {
 }
 
 // 面板配置（滑块 / 分段开关）由各主题引擎自己声明，DeskApp 只负责渲染与绑定：
-//   engine.sliders     [{ key, label, min, max, step, fmt, act }]
-//   engine.displayKeys [{ key, min, max }]
+//   engine.sliders     [{ ...ParamMeta, fmt?, act? }]（数据面来自 PARAM_DEFS，见 paramSchema.ts）
+//   engine.displayKeys [ParamMeta]（范围同样来自 PARAM_DEFS）
 // 新主题只加配置，不改这里。
 
 export class DeskApp {
@@ -201,10 +201,10 @@ export class DeskApp {
       const out = wrap.querySelector<HTMLSpanElement>('.row span:last-child');
       const inp = wrap.querySelector<HTMLInputElement>('input');
       if (!out || !inp) continue;
-      out.textContent = s.fmt(val);
+      out.textContent = s.fmt ? s.fmt(val) : String(val);
       inp.addEventListener('input', () => {
         this.P[s.key] = +inp.value;
-        out.textContent = s.fmt(numParam(this.P, s.key));
+        out.textContent = s.fmt ? s.fmt(numParam(this.P, s.key)) : String(numParam(this.P, s.key));
         if (s.act === 'field') this.engine.refresh();
         else if (s.act === 'size') {
           this.engine.resize();
