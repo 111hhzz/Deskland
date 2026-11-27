@@ -241,6 +241,6 @@ public class ThemeScanTests
     {
         Assert.Null(ThemeScan.ParseUserTheme("img-x", new Dictionary<string, object> { { "thumb", "x" } }));
         Assert.Null(ThemeScan.ParseUserTheme("img-x", new Dictionary<string, object> { { "name", "n" } }));
-        Assert.Null(ThemeScan.ParseUserTheme("img-x", null));
+        Assert.Null(ThemeScan.ParseUserTheme("img-x", null!));
     }
 }

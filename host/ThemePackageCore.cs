@@ -1,3 +1,4 @@
+#nullable disable   // 宿主项目 Nullable=disable（host csproj）；本文件被 test 工程链接编译，显式关闭以保持一致，避免同一源码在两个工程下门禁结果不同。
 using System;
 using System.Collections.Generic;
 using System.IO;

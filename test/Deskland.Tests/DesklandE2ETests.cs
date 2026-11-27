@@ -41,6 +41,7 @@ public class DesklandE2ETests : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
+        RestoreDesktopShell();   // 上一轮强杀可能残留纯净模式（图标/任务栏隐藏）
         KillProcess("Deskland");
         KillWebView2ForProfile(TestProfile);
         await Task.Delay(1000);
@@ -100,6 +101,7 @@ public class DesklandE2ETests : IAsyncLifetime
             // 初始化失败时 _playwright 仍是 null；无论是否连上，都要把宿主收掉，
             // 否则残留的 Deskland.exe 会一直占着 9222/9223，下一轮测试就连不上
             if (_playwright != null) _playwright.Dispose();
+            RestoreDesktopShell();   // 兜底：宿主被强杀时未走 ApplicationExit
             KillProcess("Deskland");
             KillWebView2ForProfile(TestProfile);
         }
@@ -159,6 +161,42 @@ public class DesklandE2ETests : IAsyncLifetime
     {
         var autostart = _pageSettings.Locator("#autostart");
         await Assertions.Expect(autostart).ToBeVisibleAsync();
+    }
+
+    /// <summary>
+    /// 「纯净桌面」开关：开启后隐藏任务栏、壁纸置顶；设置持久化。
+    /// 关闭有两条路径：设置页开关；以及纯净模式下点击真桌面（任务栏不可达时的紧急出口）。
+    /// 自定义开关的滑块 span 覆盖在 input 上，Playwright 点击会被拦截，走 DOM click。
+    /// </summary>
+    [Fact]
+    public async Task SettingsPage_PureDesktopRoundTrip()
+    {
+        var toggle = _pageSettings.Locator("#pureToggle");
+        await Assertions.Expect(toggle).ToBeVisibleAsync();
+        Assert.False(TaskbarHidden(), "初始状态任务栏应可见");
+        Assert.True(DesktopIconsVisible(), "初始状态桌面图标层应可见");
+
+        // ① 开关开启：任务栏隐藏 + 壁纸置顶（Explorer 图层不动）
+        await toggle.EvaluateAsync("el => el.click()");
+        var path = Path.Combine(TestProfile, "settings.json");
+        Assert.True(await WaitPurePersistedAsync(path, true), "开启后 settings.json 应有 pureDesktop=true");
+        await Task.Delay(400);                       // ShowWindow / 置顶同步生效，稍等再断言
+        Assert.True(TaskbarHidden(), "开启后任务栏应被隐藏");
+        Assert.True(DesktopIconsVisible(), "纯净模式不得动 Explorer 图标层（否则壁纸会被一起隐藏）");
+        Assert.True(await WaitLogContainsAsync(Path.Combine(TestProfile, "host.log"), "已脱离桌面层并置顶"), "宿主应执行壁纸置顶");
+
+        // ② 点击真桌面 → 立即退出（合成左键点击屏幕左上角，命中 WorkerW/Progman）
+        ClickDesktop();
+        Assert.True(await WaitPurePersistedAsync(path, false), "点击桌面后应自动退出纯净模式（settings.json=false）");
+        Assert.True(await WaitTaskbarVisibleAsync(), "点击桌面后任务栏应恢复显示");
+        Assert.True(await WaitLogContainsAsync(Path.Combine(TestProfile, "host.log"), "已挂回桌面层"), "宿主应将壁纸挂回桌面层");
+
+        // ③ 开关仍可正常往返（恢复入口没坏）
+        await toggle.EvaluateAsync("el => el.click()");
+        Assert.True(await WaitPurePersistedAsync(path, true), "再次开启后 settings.json 应有 pureDesktop=true");
+        await toggle.EvaluateAsync("el => el.click()");
+        Assert.True(await WaitPurePersistedAsync(path, false), "再次关闭后 settings.json 应有 pureDesktop=false");
+        Assert.True(await WaitTaskbarVisibleAsync(), "关闭后任务栏应恢复显示");
     }
 
     [Fact]
@@ -1152,6 +1190,100 @@ public class DesklandE2ETests : IAsyncLifetime
         public double Ratio { get; set; }
     }
 
+    // ---- 「纯净桌面」外壳窗口辅助（任务栏 / 多屏副任务栏 / 桌面图标层）----
+    [DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr h);
+    [DllImport("user32.dll")] private static extern bool ShowWindow(IntPtr h, int cmd);
+    [DllImport("user32.dll")] private static extern bool SetCursorPos(int x, int y);
+    [DllImport("user32.dll")] private static extern void mouse_event(uint flags, uint dx, uint dy, uint data, UIntPtr extra);
+    private const int SW_SHOW = 5;
+    private const uint MOUSEEVENTF_LEFTDOWN = 0x0002, MOUSEEVENTF_LEFTUP = 0x0004;
+
+    private static bool TaskbarHidden()
+    {
+        IntPtr tray = FindWindow("Shell_TrayWnd", null);
+        return tray != IntPtr.Zero && !IsWindowVisible(tray);
+    }
+
+    // 合成一次真桌面左键点击（屏幕左上角，命中 WorkerW/Progman）——验证「点桌面退出纯净模式」
+    private static void ClickDesktop()
+    {
+        SetCursorPos(8, 8);
+        mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, UIntPtr.Zero);
+        Thread.Sleep(40);
+        mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, UIntPtr.Zero);
+    }
+
+    private static async Task<bool> WaitTaskbarVisibleAsync()
+    {
+        var deadline = DateTime.Now + TimeSpan.FromSeconds(8);
+        while (DateTime.Now < deadline)
+        {
+            if (!TaskbarHidden()) return true;
+            await Task.Delay(150);
+        }
+        return false;
+    }
+
+    private static bool DesktopIconsVisible()
+    {
+        IntPtr defView;
+        FindDesktopRoot(out defView);
+        return defView != IntPtr.Zero && IsWindow(defView) && IsWindowVisible(defView);
+    }
+
+    // 轮询宿主日志，直到出现指定文本
+    private static async Task<bool> WaitLogContainsAsync(string path, string needle)
+    {
+        var deadline = DateTime.Now + TimeSpan.FromSeconds(8);
+        while (DateTime.Now < deadline)
+        {
+            try { if (File.Exists(path) && File.ReadAllText(path).Contains(needle)) return true; } catch { }
+            await Task.Delay(200);
+        }
+        return false;
+    }
+
+    // 轮询 settings.json，直到 pureDesktop 与期望一致（宿主 SaveSoon 有防抖）
+    private static async Task<bool> WaitPurePersistedAsync(string path, bool expect)
+    {
+        var deadline = DateTime.Now + TimeSpan.FromSeconds(8);
+        while (DateTime.Now < deadline)
+        {
+            try
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(File.ReadAllText(path));
+                if (doc.RootElement.TryGetProperty("pureDesktop", out var v) &&
+                    v.ValueKind == (expect ? System.Text.Json.JsonValueKind.True : System.Text.Json.JsonValueKind.False))
+                    return true;
+            }
+            catch { }
+            await Task.Delay(200);
+        }
+        return false;
+    }
+
+    /// 测试侧兜底：强杀宿主不会走 ApplicationExit，这里直接 ShowWindow 恢复所有外壳窗口
+    private static void RestoreDesktopShell()
+    {
+        ShowIfValid(FindWindow("Shell_TrayWnd", null));
+        EnumWindows(delegate (IntPtr h, IntPtr l)
+        {
+            var sb = new StringBuilder(64);
+            GetClassName(h, sb, 64);
+            if (sb.ToString() == "Shell_SecondaryTrayWnd") ShowIfValid(h);
+            return true;
+        }, IntPtr.Zero);
+        // 桌面图标层（SHELLDLL_DefView）：复用现有查找（Progman 或 WorkerW 下）
+        IntPtr defView;
+        FindDesktopRoot(out defView);
+        ShowIfValid(defView);
+    }
+
+    private static void ShowIfValid(IntPtr h)
+    {
+        if (h != IntPtr.Zero) ShowWindow(h, SW_SHOW);
+    }
+
     private static List<string> ReadyThemeIds()
     {
         using var doc = System.Text.Json.JsonDocument.Parse(
@@ -1183,6 +1315,7 @@ public class DesklandE2ETests : IAsyncLifetime
     {
         try { if (_wallpaperBrowser != null) await _wallpaperBrowser.CloseAsync(); } catch { }
         try { if (_settingsBrowser != null) await _settingsBrowser.CloseAsync(); } catch { }
+        RestoreDesktopShell();   // 重启前兜底恢复外壳窗口
         KillProcess("Deskland");
         KillWebView2ForProfile(TestProfile);
         await Task.Delay(1500);
