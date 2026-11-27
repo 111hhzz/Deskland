@@ -54,6 +54,9 @@
             if (c == "}") {
                 bdepth--
                 if (bdepth == 0) {
+                    # 块尾同行注释（`catch { } // 理由`）与块内注释同义，视为「有理由」豁免
+                    rest = substr(text, i + 1)
+                    if (rest ~ /^[ \t]*\/\//) has_note = 1
                     if (!has_code && !has_note)
                         printf "%s:%d: %s\n", FILENAME, catch_line, catch_text
                     state = "code"
