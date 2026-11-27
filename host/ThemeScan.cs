@@ -129,8 +129,35 @@ static class ThemeScan
         return list;
     }
 
+    /// <summary>用户主题字典 → 设置页 ThemeDef（纯逻辑，可单测）。</summary>
+    public static Dictionary<string, object> ParseUserTheme(string id, Dictionary<string, object> t)
+    {
+        if (t == null) return null;
+        string name = t.ContainsKey("name") ? t["name"] as string : null;
+        string thumb = t.ContainsKey("thumb") ? t["thumb"] as string : null;
+        if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(thumb)) return null;
+        var dict = new Dictionary<string, object>
+        {
+            { "id", id },
+            { "name", name },
+            { "desc", t.ContainsKey("desc") && t["desc"] is string ? t["desc"] as string : "" },
+            { "page", "pages/engine.html" }, // 与宿主 EngineUrl 一致：壁纸永远走引擎页
+            { "thumb", thumb },
+            { "status", "ready" },
+            { "product", "user" },           // 固定用户级：包内声明一律不信任
+        };
+        object adaptive;
+        if (t.TryGetValue("adaptive", out adaptive))
+        {
+            bool adv;
+            if (TryBool(adaptive, out adv) && adv) dict["adaptive"] = true;
+        }
+        dict["groups"] = ConvertGroups(t.ContainsKey("groups") ? t["groups"] : null);
+        return dict;
+    }
+
     // theme.json 是外部数据（含第三方主题）：非真非假的值一律按 false 处理，不能抛异常拖垮整份清单
-    static bool TryBool(object v, out bool b)
+    public static bool TryBool(object v, out bool b)
     {
         if (v is bool) { b = (bool)v; return true; }
         if (v is int) { b = (int)v != 0; return true; }

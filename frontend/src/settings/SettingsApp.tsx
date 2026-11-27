@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useSettings } from './store.js';
 import { TopBar } from './components/TopBar.js';
 import { ThemeList } from './components/ThemeList.js';
+import { ImportCard } from './components/ImportCard.js';
 import { PreviewCard } from './components/PreviewCard.js';
 import { Controls } from './components/Controls.js';
 import { HelpModal, PurchaseModal } from './components/Overlays.js';
@@ -43,7 +44,10 @@ export function SettingsApp() {
     <>
       <TopBar />
       <main className="layout">
-        <ThemeList />
+        <div className="themes-col">
+          <ImportCard />
+          <ThemeList />
+        </div>
         <div className="side">
           <PreviewCard />
           <Controls />
