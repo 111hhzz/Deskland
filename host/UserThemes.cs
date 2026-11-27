@@ -100,6 +100,14 @@ static class UserThemes
         public string Error;   // 空 = 成功
     }
 
+    /// <summary>导入入口：.dlp / .zip 走主题包安装，其余按媒体文件导入。</summary>
+    public static ImportResult ImportFile(string srcPath, string pageDir)
+    {
+        var ext = Path.GetExtension(srcPath).ToLowerInvariant();
+        if (ext == ".dlp" || ext == ".zip") return ThemePackage.Install(srcPath, pageDir);
+        return ImportMedia(srcPath);
+    }
+
     /// <summary>把一个媒体文件导入成用户主题（复制到 user-themes/id/ 并生成 theme.json）。</summary>
     public static ImportResult ImportMedia(string srcPath)
     {

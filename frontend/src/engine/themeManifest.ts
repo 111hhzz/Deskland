@@ -11,6 +11,8 @@ export interface ThemeManifest {
   /** 媒体素材地址（相对站点根，如 /u/<id>/a.mp4） */
   mediaSrc?: string;
   groups?: unknown;
+  /** 用户主题的 token 覆盖（CSS 变量名或 token 路径 → 值）；注册后注入 :root 并供 sceneToken 取值 */
+  tokens?: Record<string, unknown>;
 }
 
 /** 按候选顺序拉取 manifest；全部失败返回 null */

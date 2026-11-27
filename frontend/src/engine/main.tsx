@@ -11,7 +11,7 @@ import { OrbEngine } from '../scenes/OrbEngine.js';
 import { ImageEngine } from '../scenes/media/ImageEngine.js';
 import { VideoEngine } from '../scenes/media/VideoEngine.js';
 import { DeskApp } from './DeskApp.js';
-import { loadTheme as loadThemeTokens } from './tokenRuntime.js';
+import { loadTheme as loadThemeTokens, registerUserTheme } from './tokenRuntime.js';
 import type { DeskEngine } from './DeskApp.js';
 import { installLegacyFor } from './legacyInstall.js';
 import { registerRuntimeDefs } from './paramSchema.js';
@@ -82,6 +82,8 @@ async function loadTheme(id: string): Promise<EngineInstance> {
     const defs = normalizeGroups(m.groups);
     if (Object.keys(defs).length) registerRuntimeDefs(id, defs);
   }
+  // 用户主题 token 覆盖：必须在 loadThemeTokens 之前（引擎构造期 sceneToken 即取它）
+  if (known && m?.tokens) registerUserTheme(id, m.tokens);
   // 主题样式（热切换时换掉）+ 切换 token 表（引擎的 --scene-* 取值来自它）
   const themeId = known ? id : 'meadow';
   (document.getElementById('themeCss') as HTMLLinkElement).href = THEME_STYLE(themeId);

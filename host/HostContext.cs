@@ -184,11 +184,11 @@ class HostContext : ApplicationContext
         using (var dlg = new OpenFileDialog())
         {
             dlg.Title = "导入图片或视频作为壁纸";
-            dlg.Filter = "图片与视频|*.png;*.jpg;*.jpeg;*.webp;*.gif;*.avif;*.mp4;*.webm|图片|*.png;*.jpg;*.jpeg;*.webp;*.gif;*.avif|视频|*.mp4;*.webm|全部文件|*.*";
+            dlg.Filter = "主题包|*.dlp;*.zip|图片与视频|*.png;*.jpg;*.jpeg;*.webp;*.gif;*.avif;*.mp4;*.webm|图片|*.png;*.jpg;*.jpeg;*.webp;*.gif;*.avif|视频|*.mp4;*.webm|全部文件|*.*";
             dlg.Multiselect = true;
             if (dlg.ShowDialog() != DialogResult.OK) return;
             var results = new List<UserThemes.ImportResult>();
-            foreach (var path in dlg.FileNames) results.Add(UserThemes.ImportMedia(path));
+            foreach (var path in dlg.FileNames) results.Add(UserThemes.ImportFile(path, pageDir));
             AfterImport(results);
         }
     }
@@ -206,7 +206,7 @@ class HostContext : ApplicationContext
             if (bytes.Length > UserThemes.MaxMediaBytes) { PostImport(null, "too_large"); return; }
             tmp = Path.Combine(Path.GetTempPath(), "deskland-import-" + Guid.NewGuid().ToString("N") + Path.GetExtension(name));
             File.WriteAllBytes(tmp, bytes);
-            PostImport(UserThemes.ImportMedia(tmp), null);
+            PostImport(UserThemes.ImportFile(tmp, pageDir), null);
         }
         catch (Exception ex) { Log.Write("处理页面导入数据失败：" + ex.Message); PostImport(null, "io"); }
         finally

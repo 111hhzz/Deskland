@@ -22,9 +22,10 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
-  <!-- 主题清单组装是纯逻辑，直接链进来单测（宿主运行期由 Themes.cs 调它） -->
+  <!-- 主题清单组装与 .dlp 包校验是纯逻辑，直接链进来单测（宿主运行期由 Themes.cs / ThemePackage.cs 调它们） -->
   <ItemGroup>
     <Compile Include="..\..\host\ThemeScan.cs" Link="ThemeScan.cs" />
+    <Compile Include="..\..\host\ThemePackageCore.cs" Link="ThemePackageCore.cs" />
   </ItemGroup>
 
 </Project>

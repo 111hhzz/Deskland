@@ -24,6 +24,7 @@
     "importErrFormat": "不支持的格式",
     "importErrContent": "文件内容与扩展名不符",
     "importErrIO": "导入失败，请重试",
+    "importErrPkg": "主题包不符合规范，已拒绝导入",
     "collectionTitle": "选一片风景。",
     "collectionSubtitle": "让图标成为风景的一部分。",
     "language": "语言",

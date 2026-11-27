@@ -6,7 +6,7 @@ import { useRef, useState } from 'react';
 import type { DragEvent } from 'react';
 import { useSettings } from '../store.js';
 
-export const IMPORT_ACCEPT = '.png,.jpg,.jpeg,.webp,.gif,.avif,.mp4,.webm';
+export const IMPORT_ACCEPT = '.png,.jpg,.jpeg,.webp,.gif,.avif,.mp4,.webm,.dlp,.zip';
 
 export function ImportCard() {
   const { state, t, importPick, importFiles } = useSettings();

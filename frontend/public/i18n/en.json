@@ -24,6 +24,7 @@
     "importErrFormat": "Unsupported format",
     "importErrContent": "File content does not match its extension",
     "importErrIO": "Import failed, please retry",
+    "importErrPkg": "Theme package rejected: it does not meet the spec",
     "collectionTitle": "Find your scenery.",
     "collectionSubtitle": "Make your icons part of the landscape.",
     "language": "Language",

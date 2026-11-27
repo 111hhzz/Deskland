@@ -266,10 +266,11 @@ export function SettingsProvider({ host, children }: { host: HostBridge | null; 
             sniff_mismatch: 'importErrContent',
             missing: 'importErrIO',
             io: 'importErrIO',
+            // .dlp 包：pkg_too_large / pkg_entries / entry_path / nested_zip / asset_type / pkg_total / no_manifest / bad_json / bad_manifest
           };
           dispatch({
             type: 'notice',
-            notice: m.error ? { key: codeMap[m.error] ?? 'importErrIO' } : { key: 'importOk', vars: { name } },
+            notice: m.error ? { key: codeMap[m.error] ?? 'importErrPkg' } : { key: 'importOk', vars: { name } },
           });
           break;
         }
@@ -389,7 +390,7 @@ export function SettingsProvider({ host, children }: { host: HostBridge | null; 
     }
     for (const f of files) {
       const ext = (f.name.split('.').pop() ?? '').toLowerCase();
-      const okType = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'avif', 'mp4', 'webm'].includes(ext);
+      const okType = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'avif', 'mp4', 'webm', 'dlp', 'zip'].includes(ext);
       if (!okType) {
         dispatch({ type: 'notice', notice: { key: 'importErrFormat' } });
         continue;
